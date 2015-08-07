@@ -6,9 +6,9 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("FastSql")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Light-weight, fast and easy to use C# library to retrieve, write (using bulk insert) and copy data in Microsoft SQL Server databases")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("gerakul")]
 [assembly: AssemblyProduct("FastSql")]
 [assembly: AssemblyCopyright("Copyright ©  2015")]
 [assembly: AssemblyTrademark("")]
