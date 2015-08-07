@@ -1,8 +1,8 @@
-﻿// For using samples you must to do steps listed below:
+﻿// To use these samples:
 // 1. Create databases SampleDB1 and SampleDB2 on the your instance of SQL Server
 // 2. Execute script InitQuery.sql on database master (or any other database)
 // 3. Put your connection strings to static fields connStr and connStr2
-// 4. Put interesting sample to Main function
+// 4. Change sample name in Main() function to one's you interested in
 // 5. Set breakpoint to end of this sample 
 // 6. Execute program in debug mode
 
@@ -26,8 +26,8 @@ namespace Samples
 
     static void Main(string[] args)
     {
-      // put here interesting sample
-      Sample16();
+      // change sample name to one's you interested in
+      Sample1();
 
       Console.WriteLine("End");
       Console.ReadKey();
