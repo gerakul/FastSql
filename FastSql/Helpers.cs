@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace FastSql
+namespace Gerakul.FastSql
 {
   internal static class Helpers
   {

@@ -1,6 +1,6 @@
 ﻿using System.Data.SqlClient;
 
-namespace FastSql
+namespace Gerakul.FastSql
 {
   public class Import
   {

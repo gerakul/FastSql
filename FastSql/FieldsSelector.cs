@@ -1,5 +1,5 @@
 ﻿
-namespace FastSql
+namespace Gerakul.FastSql
 {
   public enum FieldsSelector
   {

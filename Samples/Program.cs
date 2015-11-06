@@ -7,7 +7,7 @@
 // 6. Execute program in debug mode
 
 
-using FastSql;
+using Gerakul.FastSql;
 using System;
 using System.Collections.Generic;
 using System.Data;

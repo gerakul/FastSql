@@ -2,7 +2,7 @@
 using System.Data;
 using System.Data.SqlClient;
 
-namespace FastSql
+namespace Gerakul.FastSql
 {
   public static class EnumerableExtensions
   {

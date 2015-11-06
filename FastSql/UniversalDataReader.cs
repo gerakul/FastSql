@@ -4,7 +4,7 @@ using System.Collections.ObjectModel;
 using System.Data;
 using System.Linq;
 
-namespace FastSql
+namespace Gerakul.FastSql
 {
   public class UniversalDataReader<T> : IDataReader
   {

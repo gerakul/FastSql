@@ -6,7 +6,7 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Reflection;
 
-namespace FastSql
+namespace Gerakul.FastSql
 {
   public class SqlExecutor
   {

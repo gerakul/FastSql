@@ -7,7 +7,7 @@
     <ProjectGuid>{3E0C1B09-5920-4B27-BF5D-83B60F1BD111}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>FastSql</RootNamespace>
+    <RootNamespace>Gerakul.FastSql</RootNamespace>
     <AssemblyName>FastSql</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>

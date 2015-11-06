@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace FastSql
+namespace Gerakul.FastSql
 {
   public class FieldSettings<T>
   {
