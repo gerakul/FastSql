@@ -1,9 +1,13 @@
 ﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Gerakul.FastSql
 {
   internal static class Helpers
   {
+    internal static readonly Task CompletedTask = Task.FromResult<object>(null);
+
     internal static void CheckFieldSelection(FieldsSelector fieldSelector, int sourceNum, int destinationNum, int commonNum)
     {
       switch (fieldSelector)
@@ -32,6 +36,34 @@ namespace Gerakul.FastSql
           throw new ArgumentException(string.Format("Unknown FieldsSelector. Value: {0}", fieldSelector));
           break;
       }
+    }
+
+    internal static AEnumerable<AsyncState<T>, T> CreateAsyncEnumerable<T>(Action<AsyncState<T>> disposeAction,
+      Func<AsyncState<T>, CancellationToken, Task> initTaskGetter)
+    {
+      return new AEnumerable<AsyncState<T>, T>(
+        state => state.Current,
+
+        disposeAction,
+
+        initTaskGetter,
+
+        async (state, ct) =>
+        {
+          var success = await state.ReadInfo.Reader.ReadAsyncInternal(ct).ConfigureAwait(false);
+
+          if (success)
+          {
+            state.Current = state.ReadInfo.GetValue();
+          }
+          else
+          {
+            state.Current = default(T);
+          }
+
+          return success;
+        }
+      );
     }
   }
 }

@@ -2,6 +2,8 @@
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Gerakul.FastSql
 {
@@ -81,6 +83,62 @@ namespace Gerakul.FastSql
       }
     }
 
+    public async Task WriteToServerAsync(CancellationToken cancellationToken)
+    {
+      string[] sourceFields = fields.Length > 0 ? fields.ToArray() : GetReaderColumns(reader).ToArray();
+
+      Mapping[] map;
+
+      if (bulkOptions.FieldsSelector == FieldsSelector.Source && !bulkOptions.CaseSensitive.HasValue)
+      {
+        map = sourceFields.Select(x => new Mapping() { Source = x, Destination = x }).ToArray();
+      }
+      else
+      {
+        string[] destFields = (await GetTableColumnsAsync(cancellationToken)).ToArray();
+
+        map = bulkOptions.CaseSensitive.HasValue && bulkOptions.CaseSensitive.Value ?
+          sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping() { Source = x, Destination = y }).ToArray() :
+          sourceFields.Join(destFields, x => x.ToLowerInvariant(), x => x.ToLowerInvariant(), (x, y) => new Mapping() { Source = x, Destination = y }).ToArray();
+
+        Helpers.CheckFieldSelection(bulkOptions.FieldsSelector, sourceFields.Length, destFields.Length, map.Length);
+      }
+
+      if (map.Length > 0)
+      {
+        using (SqlBulkCopy bcp = new SqlBulkCopy(connection, bulkOptions.SqlBulkCopyOptions, transaction))
+        {
+          bcp.DestinationTableName = destinationTable;
+          if (bulkOptions.BatchSize.HasValue)
+          {
+            bcp.BatchSize = bulkOptions.BatchSize.Value;
+          }
+
+          if (bulkOptions.BulkCopyTimeout.HasValue)
+          {
+            bcp.BulkCopyTimeout = bulkOptions.BulkCopyTimeout.Value;
+          }
+
+          if (bulkOptions.EnableStreaming.HasValue)
+          {
+            bcp.EnableStreaming = bulkOptions.EnableStreaming.Value;
+          }
+
+          foreach (var item in map)
+          {
+            bcp.ColumnMappings.Add(item.Source, item.Destination);
+          }
+
+          await bcp.WriteToServerAsync(reader, cancellationToken);
+        }
+      }
+    }
+
+    public Task WriteToServerAsync()
+    {
+      return WriteToServerAsync(CancellationToken.None);
+    }
+
     private IEnumerable<string> GetReaderColumns(IDataReader r)
     {
       for (int i = 0; i < r.FieldCount; i++)
@@ -101,6 +159,21 @@ namespace Gerakul.FastSql
           yield return item;
         }
       }
+    }
+
+    private async Task<IList<string>> GetTableColumnsAsync(CancellationToken cancellationToken)
+    {
+      SqlExecutor executor = transaction == null ? new SqlExecutor(connection) : new SqlExecutor(transaction);
+      List<string> result = new List<string>();
+      using (SqlDataReader r = await executor.ExecuteReaderAsync(cancellationToken, string.Format("select top 0 * from {0} with(nolock)", destinationTable)))
+      {
+        foreach (var item in GetReaderColumns(r))
+        {
+          result.Add(item);
+        }
+      }
+
+      return result;
     }
   }
 

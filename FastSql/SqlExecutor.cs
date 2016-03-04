@@ -5,6 +5,8 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Gerakul.FastSql
 {
@@ -44,15 +46,33 @@ namespace Gerakul.FastSql
       return cmd;
     }
 
-    public int ExecuteNonQuery(QueryOptions queryOptions, string commandText, params object[] parameters)
+    private void ApplyQueryOptions(SqlCommand cmd, QueryOptions queryOptions)
     {
-      SqlCommand cmd = CreateCommand(commandText, parameters);
       if (queryOptions.CommandTimeoutSeconds.HasValue)
       {
         cmd.CommandTimeout = queryOptions.CommandTimeoutSeconds.Value;
       }
+    }
+
+    public int ExecuteNonQuery(QueryOptions queryOptions, string commandText, params object[] parameters)
+    {
+      SqlCommand cmd = CreateCommand(commandText, parameters);
+      ApplyQueryOptions(cmd, queryOptions);
 
       return cmd.ExecuteNonQuery();
+    }
+
+    public Task<int> ExecuteNonQueryAsync(CancellationToken ct, QueryOptions queryOptions, string commandText, params object[] parameters)
+    {
+      SqlCommand cmd = CreateCommand(commandText, parameters);
+      ApplyQueryOptions(cmd, queryOptions);
+
+      return cmd.ExecuteNonQueryAsync(ct);
+    }
+
+    public Task<int> ExecuteNonQueryAsync(QueryOptions queryOptions, string commandText, params object[] parameters)
+    {
+      return ExecuteNonQueryAsync(CancellationToken.None, queryOptions, commandText, parameters);
     }
 
     public int ExecuteNonQuery(string commandText, params object[] parameters)
@@ -60,20 +80,63 @@ namespace Gerakul.FastSql
       return ExecuteNonQuery(new QueryOptions(), commandText, parameters);
     }
 
+    public Task<int> ExecuteNonQueryAsync(CancellationToken ct, string commandText, params object[] parameters)
+    {
+      return ExecuteNonQueryAsync(ct, new QueryOptions(), commandText, parameters);
+    }
+
+    public Task<int> ExecuteNonQueryAsync(string commandText, params object[] parameters)
+    {
+      return ExecuteNonQueryAsync(CancellationToken.None, new QueryOptions(), commandText, parameters);
+    }
+
     public SqlDataReader ExecuteReader(QueryOptions queryOptions, string commandText, params object[] parameters)
     {
       SqlCommand cmd = CreateCommand(commandText, parameters);
-      if (queryOptions.CommandTimeoutSeconds.HasValue)
-      {
-        cmd.CommandTimeout = queryOptions.CommandTimeoutSeconds.Value;
-      }
+      ApplyQueryOptions(cmd, queryOptions);
 
       return cmd.ExecuteReader();
+    }
+
+    public Task<SqlDataReader> ExecuteReaderAsync(CancellationToken cancellationToken, QueryOptions queryOptions, string commandText, params object[] parameters)
+    {
+      SqlCommand cmd = CreateCommand(commandText, parameters);
+      ApplyQueryOptions(cmd, queryOptions);
+
+      return cmd.ExecuteReaderAsync(cancellationToken);
+    }
+
+    public Task<SqlDataReader> ExecuteReaderAsync(QueryOptions queryOptions, string commandText, params object[] parameters)
+    {
+      return ExecuteReaderAsync(CancellationToken.None, queryOptions, commandText, parameters);
     }
 
     public SqlDataReader ExecuteReader(string commandText, params object[] parameters)
     {
       return ExecuteReader(new QueryOptions(), commandText, parameters);
+    }
+
+    public Task<SqlDataReader> ExecuteReaderAsync(CancellationToken cancellationToken, string commandText, params object[] parameters)
+    {
+      return ExecuteReaderAsync(cancellationToken, new QueryOptions(), commandText, parameters);
+    }
+
+    public Task<SqlDataReader> ExecuteReaderAsync(string commandText, params object[] parameters)
+    {
+      return ExecuteReaderAsync(CancellationToken.None, new QueryOptions(), commandText, parameters);
+    }
+
+    private AEnumerable<AsyncState<T>, T> CreateAsyncEnumerable<T>(CancellationToken executeReaderCT,
+      Func<IDataReader, ReadInfo<T>> readInfoGetter, SqlExecutorOptions options, string commandText, params object[] parameters)
+    {
+      return Helpers.CreateAsyncEnumerable<T>(
+        state => state.ReadInfo.Reader.Close(),
+
+        async (state, ct) =>
+        {
+          var reader = await ExecuteReaderAsync(executeReaderCT, options.QueryOptions, commandText, parameters).ConfigureAwait(false);
+          state.ReadInfo = readInfoGetter(reader);
+        });
     }
 
     public IEnumerable<object[]> ExecuteQuery(SqlExecutorOptions options, string commandText, params object[] parameters)
@@ -87,9 +150,30 @@ namespace Gerakul.FastSql
       }
     }
 
+    public IAsyncEnumerable<object[]> ExecuteQueryAsync(CancellationToken executeReaderCT,
+      SqlExecutorOptions options, string commandText, params object[] parameters)
+    {
+      return CreateAsyncEnumerable(executeReaderCT, r => ReadInfoFactory.CreateObjects(r), options, commandText, parameters);
+    }
+
+    public IAsyncEnumerable<object[]> ExecuteQueryAsync(SqlExecutorOptions options, string commandText, params object[] parameters)
+    {
+      return ExecuteQueryAsync(CancellationToken.None, options, commandText, parameters);
+    }
+
     public IEnumerable<object[]> ExecuteQuery(string commandText, params object[] parameters)
     {
       return ExecuteQuery(new SqlExecutorOptions(), commandText, parameters);
+    }
+
+    public IAsyncEnumerable<object[]> ExecuteQueryAsync(CancellationToken executeReaderCT, string commandText, params object[] parameters)
+    {
+      return ExecuteQueryAsync(executeReaderCT, new SqlExecutorOptions(), commandText, parameters);
+    }
+
+    public IAsyncEnumerable<object[]> ExecuteQueryAsync(string commandText, params object[] parameters)
+    {
+      return ExecuteQueryAsync(CancellationToken.None, new SqlExecutorOptions(), commandText, parameters);
     }
 
     public IEnumerable<T> ExecuteQuery<T>(SqlExecutorOptions options, string commandText, params object[] parameters) where T : new()
@@ -103,25 +187,65 @@ namespace Gerakul.FastSql
       }
     }
 
+    public IAsyncEnumerable<T> ExecuteQueryAsync<T>(CancellationToken executeReaderCT, SqlExecutorOptions options, string commandText, params object[] parameters) where T : new()
+    {
+      return CreateAsyncEnumerable(executeReaderCT, r => ReadInfoFactory.CreateByType<T>(r, options.ReadOptions), options, commandText, parameters);
+    }
+
+    public IAsyncEnumerable<T> ExecuteQueryAsync<T>(SqlExecutorOptions options, string commandText, params object[] parameters) where T : new()
+    {
+      return ExecuteQueryAsync<T>(CancellationToken.None, options, commandText, parameters);
+    }
+
     public IEnumerable<T> ExecuteQuery<T>(string commandText, params object[] parameters) where T : new()
     {
       return ExecuteQuery<T>(new SqlExecutorOptions(), commandText, parameters);
+    }
+
+    public IAsyncEnumerable<T> ExecuteQueryAsync<T>(CancellationToken executeReaderCT, string commandText, params object[] parameters) where T : new()
+    {
+      return ExecuteQueryAsync<T>(executeReaderCT, new SqlExecutorOptions(), commandText, parameters);
+    }
+
+    public IAsyncEnumerable<T> ExecuteQueryAsync<T>(string commandText, params object[] parameters) where T : new()
+    {
+      return ExecuteQueryAsync<T>(CancellationToken.None, new SqlExecutorOptions(), commandText, parameters);
     }
 
     public IEnumerable<T> ExecuteQueryAnonymous<T>(T proto, SqlExecutorOptions options, string commandText, params object[] parameters)
     {
       using (SqlDataReader reader = ExecuteReader(options.QueryOptions, commandText, parameters))
       {
-        foreach (var item in reader.ReadAllAnonymous<T>(proto, options.ReadOptions))
+        foreach (var item in reader.ReadAllAnonymous(proto, options.ReadOptions))
         {
           yield return item;
         }
       }
     }
 
+    public IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(CancellationToken executeReaderCT, T proto, SqlExecutorOptions options, string commandText, params object[] parameters)
+    {
+      return CreateAsyncEnumerable(executeReaderCT, r => ReadInfoFactory.CreateAnonymous<T>(r, proto, options.ReadOptions), options, commandText, parameters);
+    }
+
+    public IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(T proto, SqlExecutorOptions options, string commandText, params object[] parameters)
+    {
+      return ExecuteQueryAnonymousAsync(CancellationToken.None, proto, options, commandText, parameters);
+    }
+
     public IEnumerable<T> ExecuteQueryAnonymous<T>(T proto, string commandText, params object[] parameters)
     {
       return ExecuteQueryAnonymous<T>(proto, new SqlExecutorOptions(), commandText, parameters);
+    }
+
+    public IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(CancellationToken executeReaderCT, T proto, string commandText, params object[] parameters)
+    {
+      return ExecuteQueryAnonymousAsync(executeReaderCT, proto, new SqlExecutorOptions(), commandText, parameters);
+    }
+
+    public IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(T proto, string commandText, params object[] parameters)
+    {
+      return ExecuteQueryAnonymousAsync(CancellationToken.None, proto, new SqlExecutorOptions(), commandText, parameters);
     }
 
     public IEnumerable ExecuteQueryFirstColumn(SqlExecutorOptions options, string commandText, params object[] parameters)
@@ -135,9 +259,29 @@ namespace Gerakul.FastSql
       }
     }
 
+    public IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(CancellationToken executeReaderCT, SqlExecutorOptions options, string commandText, params object[] parameters)
+    {
+      return CreateAsyncEnumerable(executeReaderCT, r => ReadInfoFactory.CreateFirstColumn(r), options, commandText, parameters);
+    }
+
+    public IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(SqlExecutorOptions options, string commandText, params object[] parameters)
+    {
+      return ExecuteQueryFirstColumnAsync(CancellationToken.None, options, commandText, parameters);
+    }
+
     public IEnumerable ExecuteQueryFirstColumn(string commandText, params object[] parameters)
     {
       return ExecuteQueryFirstColumn(new SqlExecutorOptions(), commandText, parameters);
+    }
+
+    public IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(CancellationToken executeReaderCT, string commandText, params object[] parameters)
+    {
+      return ExecuteQueryFirstColumnAsync(executeReaderCT, new SqlExecutorOptions(), commandText, parameters);
+    }
+
+    public IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(string commandText, params object[] parameters)
+    {
+      return ExecuteQueryFirstColumnAsync(CancellationToken.None, new SqlExecutorOptions(), commandText, parameters);
     }
 
     public IEnumerable<T> ExecuteQueryFirstColumn<T>(SqlExecutorOptions options, string commandText, params object[] parameters)
@@ -151,9 +295,29 @@ namespace Gerakul.FastSql
       }
     }
 
+    public IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(CancellationToken executeReaderCT, SqlExecutorOptions options, string commandText, params object[] parameters)
+    {
+      return CreateAsyncEnumerable(executeReaderCT, r => ReadInfoFactory.CreateFirstColumn<T>(r), options, commandText, parameters);
+    }
+
+    public IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(SqlExecutorOptions options, string commandText, params object[] parameters)
+    {
+      return ExecuteQueryFirstColumnAsync<T>(CancellationToken.None, options, commandText, parameters);
+    }
+
     public IEnumerable<T> ExecuteQueryFirstColumn<T>(string commandText, params object[] parameters)
     {
       return ExecuteQueryFirstColumn<T>(new SqlExecutorOptions(), commandText, parameters);
+    }
+
+    public IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(CancellationToken executeReaderCT, string commandText, params object[] parameters)
+    {
+      return ExecuteQueryFirstColumnAsync<T>(executeReaderCT, new SqlExecutorOptions(), commandText, parameters);
+    }
+
+    public IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(string commandText, params object[] parameters)
+    {
+      return ExecuteQueryFirstColumnAsync<T>(CancellationToken.None, new SqlExecutorOptions(), commandText, parameters);
     }
 
     #region Static
@@ -176,6 +340,41 @@ namespace Gerakul.FastSql
       return ExecuteNonQuery(new QueryOptions(), connectionString, commandText, parameters);
     }
 
+    private static AEnumerable<AsyncState<T>, T> CreateAsyncEnumerable<T>(CancellationToken executeReaderCT,
+      Func<IDataReader, ReadInfo<T>> readInfoGetter, SqlExecutorOptions options, 
+      string connectionString, string commandText, params object[] parameters)
+    {
+      return Helpers.CreateAsyncEnumerable<T>(
+        state =>
+        {
+          state.ReadInfo.Reader.Close();
+          state.InternalExecutor.Connection.Close();
+        },
+
+        async (state, ct) =>
+        {
+          SqlConnection conn = null;
+          try
+          {
+            conn = new SqlConnection(connectionString);
+            await conn.OpenAsync(executeReaderCT).ConfigureAwait(false);
+            SqlExecutor executor = new SqlExecutor(conn);
+            state.InternalExecutor = executor;
+            var reader = await executor.ExecuteReaderAsync(executeReaderCT, options.QueryOptions, commandText, parameters).ConfigureAwait(false);
+            state.ReadInfo = readInfoGetter(reader);
+          }
+          catch
+          {
+            if (conn != null)
+            {
+              conn.Close();
+            }
+
+            throw;
+          }
+        });
+    }
+
     public static IEnumerable<object[]> ExecuteQuery(SqlExecutorOptions options, string connectionString, string commandText, params object[] parameters)
     {
       using (SqlConnection conn = new SqlConnection(connectionString))
@@ -189,9 +388,29 @@ namespace Gerakul.FastSql
       }
     }
 
+    public static IAsyncEnumerable<object[]> ExecuteQueryAsync(CancellationToken executeReaderCT, SqlExecutorOptions options, string connectionString, string commandText, params object[] parameters)
+    {
+      return CreateAsyncEnumerable(executeReaderCT, r => ReadInfoFactory.CreateObjects(r), options, connectionString, commandText, parameters);
+    }
+
+    public static IAsyncEnumerable<object[]> ExecuteQueryAsync(SqlExecutorOptions options, string connectionString, string commandText, params object[] parameters)
+    {
+      return ExecuteQueryAsync(CancellationToken.None, options, connectionString, commandText, parameters);
+    }
+
     public static IEnumerable<object[]> ExecuteQuery(string connectionString, string commandText, params object[] parameters)
     {
       return ExecuteQuery(new SqlExecutorOptions(), connectionString, commandText, parameters);
+    }
+
+    public static IAsyncEnumerable<object[]> ExecuteQueryAsync(CancellationToken executeReaderCT, string connectionString, string commandText, params object[] parameters)
+    {
+      return ExecuteQueryAsync(executeReaderCT, new SqlExecutorOptions(), connectionString, commandText, parameters);
+    }
+
+    public static IAsyncEnumerable<object[]> ExecuteQueryAsync(string connectionString, string commandText, params object[] parameters)
+    {
+      return ExecuteQueryAsync(CancellationToken.None, new SqlExecutorOptions(), connectionString, commandText, parameters);
     }
 
     public static IEnumerable<T> ExecuteQuery<T>(SqlExecutorOptions options, string connectionString, string commandText, params object[] parameters) where T : new()
@@ -207,9 +426,30 @@ namespace Gerakul.FastSql
       }
     }
 
+    public static IAsyncEnumerable<T> ExecuteQueryAsync<T>(CancellationToken executeReaderCT, 
+      SqlExecutorOptions options, string connectionString, string commandText, params object[] parameters) where T : new()
+    {
+      return CreateAsyncEnumerable(executeReaderCT, r => ReadInfoFactory.CreateByType<T>(r, options.ReadOptions), options, connectionString, commandText, parameters);
+    }
+
+    public static IAsyncEnumerable<T> ExecuteQueryAsync<T>(SqlExecutorOptions options, string connectionString, string commandText, params object[] parameters) where T : new()
+    {
+      return ExecuteQueryAsync<T>(CancellationToken.None, options, connectionString, commandText, parameters);
+    }
+
     public static IEnumerable<T> ExecuteQuery<T>(string connectionString, string commandText, params object[] parameters) where T : new()
     {
       return ExecuteQuery<T>(new SqlExecutorOptions(), connectionString, commandText, parameters);
+    }
+
+    public static IAsyncEnumerable<T> ExecuteQueryAsync<T>(CancellationToken executeReaderCT, string connectionString, string commandText, params object[] parameters) where T : new()
+    {
+      return ExecuteQueryAsync<T>(executeReaderCT, new SqlExecutorOptions(), connectionString, commandText, parameters);
+    }
+
+    public static IAsyncEnumerable<T> ExecuteQueryAsync<T>(string connectionString, string commandText, params object[] parameters) where T : new()
+    {
+      return ExecuteQueryAsync<T>(CancellationToken.None, new SqlExecutorOptions(), connectionString, commandText, parameters);
     }
 
     public static IEnumerable<T> ExecuteQueryAnonymous<T>(T proto, SqlExecutorOptions options, string connectionString, string commandText, params object[] parameters)
@@ -225,9 +465,32 @@ namespace Gerakul.FastSql
       }
     }
 
+    public static IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(CancellationToken executeReaderCT, T proto,
+      SqlExecutorOptions options, string connectionString, string commandText, params object[] parameters)
+    {
+      return CreateAsyncEnumerable(executeReaderCT, r => ReadInfoFactory.CreateAnonymous(r, proto, options.ReadOptions),
+        options, connectionString, commandText, parameters);
+    }
+
+    public static IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(T proto,
+      SqlExecutorOptions options, string connectionString, string commandText, params object[] parameters)
+    {
+      return ExecuteQueryAnonymousAsync(CancellationToken.None, proto, options, connectionString, commandText, parameters);
+    }
+
     public static IEnumerable<T> ExecuteQueryAnonymous<T>(T proto, string connectionString, string commandText, params object[] parameters)
     {
-      return ExecuteQueryAnonymous<T>(proto, new SqlExecutorOptions(), connectionString, commandText, parameters);
+      return ExecuteQueryAnonymous(proto, new SqlExecutorOptions(), connectionString, commandText, parameters);
+    }
+
+    public static IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(CancellationToken executeReaderCT, T proto, string connectionString, string commandText, params object[] parameters)
+    {
+      return ExecuteQueryAnonymousAsync(executeReaderCT, proto, new SqlExecutorOptions(), connectionString, commandText, parameters);
+    }
+
+    public static IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(T proto, string connectionString, string commandText, params object[] parameters)
+    {
+      return ExecuteQueryAnonymousAsync(CancellationToken.None, proto, new SqlExecutorOptions(), connectionString, commandText, parameters);
     }
 
     public static IEnumerable ExecuteQueryFirstColumn(SqlExecutorOptions options, string connectionString, string commandText, params object[] parameters)
@@ -243,9 +506,31 @@ namespace Gerakul.FastSql
       }
     }
 
+    public static IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(CancellationToken executeReaderCT, SqlExecutorOptions options,
+      string connectionString, string commandText, params object[] parameters)
+    {
+      return CreateAsyncEnumerable(executeReaderCT, r => ReadInfoFactory.CreateFirstColumn(r), options, connectionString, commandText, parameters);
+    }
+
+    public static IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(SqlExecutorOptions options,
+      string connectionString, string commandText, params object[] parameters)
+    {
+      return ExecuteQueryFirstColumnAsync(CancellationToken.None, options, connectionString, commandText, parameters);
+    }
+
     public static IEnumerable ExecuteQueryFirstColumn(string connectionString, string commandText, params object[] parameters)
     {
       return ExecuteQueryFirstColumn(new SqlExecutorOptions(), connectionString, commandText, parameters);
+    }
+
+    public static IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(CancellationToken executeReaderCT, string connectionString, string commandText, params object[] parameters)
+    {
+      return ExecuteQueryFirstColumnAsync(executeReaderCT, new SqlExecutorOptions(), connectionString, commandText, parameters);
+    }
+
+    public static IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(string connectionString, string commandText, params object[] parameters)
+    {
+      return ExecuteQueryFirstColumnAsync(CancellationToken.None, new SqlExecutorOptions(), connectionString, commandText, parameters);
     }
 
     public static IEnumerable<T> ExecuteQueryFirstColumn<T>(SqlExecutorOptions options, string connectionString, string commandText, params object[] parameters)
@@ -261,9 +546,29 @@ namespace Gerakul.FastSql
       }
     }
 
+    public static IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(CancellationToken executeReaderCT, SqlExecutorOptions options, string connectionString, string commandText, params object[] parameters)
+    {
+      return CreateAsyncEnumerable(executeReaderCT, r => ReadInfoFactory.CreateFirstColumn<T>(r), options, connectionString, commandText, parameters);
+    }
+
+    public static IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(SqlExecutorOptions options, string connectionString, string commandText, params object[] parameters)
+    {
+      return ExecuteQueryFirstColumnAsync<T>(CancellationToken.None, options, connectionString, commandText, parameters);
+    }
+
     public static IEnumerable<T> ExecuteQueryFirstColumn<T>(string connectionString, string commandText, params object[] parameters)
     {
       return ExecuteQueryFirstColumn<T>(new SqlExecutorOptions(), connectionString, commandText, parameters);
+    }
+
+    public static IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(CancellationToken executeReaderCT, string connectionString, string commandText, params object[] parameters)
+    {
+      return ExecuteQueryFirstColumnAsync<T>(executeReaderCT, new SqlExecutorOptions(), connectionString, commandText, parameters);
+    }
+
+    public static IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(string connectionString, string commandText, params object[] parameters)
+    {
+      return ExecuteQueryFirstColumnAsync<T>(CancellationToken.None, new SqlExecutorOptions(), connectionString, commandText, parameters);
     }
 
     public static string GetColumnString(Type type, string preffix = null, FromTypeOption option = FromTypeOption.PublicField | FromTypeOption.PublicProperty)
@@ -318,12 +623,41 @@ namespace Gerakul.FastSql
       }
     }
 
+    public static async Task UsingTransactionAsync(Func<SqlExecutor, Task> action, SqlConnection connection, IsolationLevel? isolationLevel = null)
+    {
+      SqlTransaction tran = null;
+      try
+      {
+        tran = isolationLevel.HasValue ? connection.BeginTransaction(isolationLevel.Value) : connection.BeginTransaction();
+        await action(new SqlExecutor(tran));
+        tran.Commit();
+      }
+      catch
+      {
+        if (tran != null)
+        {
+          tran.Rollback();
+        }
+
+        throw;
+      }
+    }
+
     public static void UsingTransaction(Action<SqlExecutor> action, string connectionString, IsolationLevel? isolationLevel = null)
     {
       using (SqlConnection conn = new SqlConnection(connectionString))
       {
         conn.Open();
         UsingTransaction(action, conn, isolationLevel);
+      }
+    }
+
+    public static async Task UsingTransactionAsync(Func<SqlExecutor, Task> action, string connectionString, IsolationLevel? isolationLevel = null)
+    {
+      using (SqlConnection conn = new SqlConnection(connectionString))
+      {
+        conn.Open();
+        await UsingTransactionAsync(action, conn, isolationLevel);
       }
     }
 

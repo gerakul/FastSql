@@ -1,4 +1,6 @@
 ﻿using System.Data.SqlClient;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Gerakul.FastSql
 {
@@ -57,9 +59,40 @@ namespace Gerakul.FastSql
       }
     }
 
+    public async Task ExecuteAsync(CancellationToken cancellationToken, ImportOptions options, string commandText, string destinationTable, params object[] commandParameters)
+    {
+      SqlExecutor executor = TransactionFrom == null ? new SqlExecutor(ConnectionFrom) : new SqlExecutor(TransactionFrom);
+      using (SqlDataReader reader = await executor.ExecuteReaderAsync(cancellationToken, options.QueryOptions, commandText, commandParameters))
+      {
+        if (TransactionTo == null)
+        {
+          await reader.WriteToServerAsync(cancellationToken, options.BulkOptions, ConnectionTo, destinationTable);
+        }
+        else
+        {
+          await reader.WriteToServerAsync(cancellationToken, options.BulkOptions, TransactionTo, destinationTable);
+        }
+      }
+    }
+
+    public Task ExecuteAsync(ImportOptions options, string commandText, string destinationTable, params object[] commandParameters)
+    {
+      return ExecuteAsync(CancellationToken.None, options, commandText, destinationTable, commandParameters);
+    }
+
     public void Execute(string commandText, string destinationTable, params object[] commandParameters)
     {
       Execute(new ImportOptions(), commandText, destinationTable, commandParameters);
+    }
+
+    public Task ExecuteAsync(CancellationToken cancellationToken, string commandText, string destinationTable, params object[] commandParameters)
+    {
+      return ExecuteAsync(cancellationToken, new ImportOptions(), commandText, destinationTable, commandParameters);
+    }
+
+    public Task ExecuteAsync(string commandText, string destinationTable, params object[] commandParameters)
+    {
+      return ExecuteAsync(CancellationToken.None, new ImportOptions(), commandText, destinationTable, commandParameters);
     }
 
     #region Static
@@ -80,9 +113,42 @@ namespace Gerakul.FastSql
       }
     }
 
+    public static async Task ExecuteAsync(CancellationToken cancellationToken, ImportOptions options, 
+      string connectionStringFrom, string connectionStringTo, string commandText, string destinationTable, params object[] commandParameters)
+    {
+      using (SqlConnection connFrom = new SqlConnection(connectionStringFrom))
+      {
+        connFrom.Open();
+
+        using (SqlConnection connTo = new SqlConnection(connectionStringTo))
+        {
+          connTo.Open();
+
+          Import import = new Import(connFrom, connTo);
+          await import.ExecuteAsync(cancellationToken, options, commandText, destinationTable, commandParameters);
+        }
+      }
+    }
+
+    public static Task ExecuteAsync(ImportOptions options, string connectionStringFrom, string connectionStringTo, string commandText, string destinationTable, params object[] commandParameters)
+    {
+      return ExecuteAsync(CancellationToken.None, options, connectionStringFrom, connectionStringTo, commandText, destinationTable, commandParameters);
+    }
+
     public static void Execute(string connectionStringFrom, string connectionStringTo, string commandText, string destinationTable, params object[] commandParameters)
     {
       Execute(new ImportOptions(), connectionStringFrom, connectionStringTo, commandText, destinationTable, commandParameters);
+    }
+
+    public static Task ExecuteAsync(CancellationToken cancellationToken,
+      string connectionStringFrom, string connectionStringTo, string commandText, string destinationTable, params object[] commandParameters)
+    {
+      return ExecuteAsync(cancellationToken, new ImportOptions(), connectionStringFrom, connectionStringTo, commandText, destinationTable, commandParameters);
+    }
+
+    public static Task ExecuteAsync(string connectionStringFrom, string connectionStringTo, string commandText, string destinationTable, params object[] commandParameters)
+    {
+      return ExecuteAsync(CancellationToken.None, new ImportOptions(), connectionStringFrom, connectionStringTo, commandText, destinationTable, commandParameters);
     }
 
     #endregion

@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Data;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Gerakul.FastSql
 {
   public class UniversalDataReader<T> : IDataReader
   {
     private IEnumerator<T> enumerator;
+    private IAsyncEnumerator<T> asyncEnumerator;
     private bool isClosed;
     private T curRow;
     private int fieldCount;
@@ -29,12 +32,23 @@ namespace Gerakul.FastSql
       }
     }
 
-    public UniversalDataReader(IEnumerable<T> values, IEnumerable<FieldSettings<T>> settings)
+    private UniversalDataReader(IEnumerable<FieldSettings<T>> settings)
     {
       this.isClosed = false;
       this.settings = settings.ToArray();
       this.ApplySettings();
+    }
+
+    public UniversalDataReader(IEnumerable<T> values, IEnumerable<FieldSettings<T>> settings) 
+      : this(settings)
+    {
       this.enumerator = values.GetEnumerator();
+    }
+
+    public UniversalDataReader(IAsyncEnumerable<T> values, IEnumerable<FieldSettings<T>> settings)
+       : this(settings)
+    {
+      this.asyncEnumerator = values.GetEnumerator();
     }
 
     private void ApplySettings()
@@ -99,15 +113,56 @@ namespace Gerakul.FastSql
         throw new InvalidOperationException("DataReader has been closed");
       }
 
-      if (enumerator.MoveNext())
+      if (enumerator == null)
       {
-        curRow = enumerator.Current;
-        return true;
+        if (asyncEnumerator.MoveNext().Result)
+        {
+          curRow = asyncEnumerator.Current;
+          return true;
+        }
       }
       else
       {
-        return false;
+        if (enumerator.MoveNext())
+        {
+          curRow = enumerator.Current;
+          return true;
+        }
       }
+
+      return false;
+    }
+
+    public async Task<bool> ReadAsync(CancellationToken cancellationToken)
+    {
+      if (isClosed)
+      {
+        throw new InvalidOperationException("DataReader has been closed");
+      }
+
+      if (enumerator == null)
+      {
+        if (await asyncEnumerator.MoveNext())
+        {
+          curRow = asyncEnumerator.Current;
+          return true;
+        }
+      }
+      else
+      {
+        if (enumerator.MoveNext())
+        {
+          curRow = enumerator.Current;
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    public Task<bool> ReadAsync()
+    {
+      return ReadAsync(CancellationToken.None);
     }
 
     public int RecordsAffected
