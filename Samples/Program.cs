@@ -228,10 +228,9 @@ namespace Samples
 
     static async Task Sample17()
     {
-      string connStr = @"Data Source=gerasimov;Initial Catalog=Traffic.Data;Persist Security Info=True;Type System Version=SQL Server 2012;User ID=NaviService;Password=Navi100$";
 
 
-      var arr = await SqlExecutor.ExecuteQueryAnonymousAsync(new { ID = 0, Index2 = 0 }, connStr, "select top 100 * from [dbo].[Test]").Skip(20).Take(10).ToArray();
+      //var arr = await SqlExecutor.ExecuteQueryAnonymousAsync(new { ID = 0, Index2 = 0 }, connStr, "select top 100 * from [dbo].[Test]").Skip(20).Take(10).ToArray();
     }
   }
 
