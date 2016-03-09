@@ -1,5 +1,5 @@
 # FastSql
-Light-weight, fast and easy to use C# library to retrieve, write (using bulk insert) and copy data in Microsoft SQL Server databases
+Light-weight, fast and easy to use C# library to retrieve, write (using bulk insert) and copy data in Microsoft SQL Server databases. There is support asynchronous operations.
 
 ## Samples:
 
@@ -9,6 +9,11 @@ Light-weight, fast and easy to use C# library to retrieve, write (using bulk ins
   var q = SqlExecutor.ExecuteQuery<Employee>(connStr, 
     "select * from Employee where CompanyID = @p0 and Age > @p1", 1, 40).ToArray();
   ```  
+  or asynchronously
+  ```csharp
+  var q = await SqlExecutor.ExecuteQueryAsync<Employee>(connStr, 
+    "select * from Employee where CompanyID = @p0 and Age > @p1", 1, 40).ToArray();
+  ```  
 
 2. Retrieving anonimous entities
 
@@ -16,6 +21,12 @@ Light-weight, fast and easy to use C# library to retrieve, write (using bulk ins
   var q = SqlExecutor.ExecuteQueryAnonymous(new { Company = default(string), Emp = default(string) }, 
     connStr, "select E.Name as Emp, C.Name as Company from Employee E join Company C on E.CompanyID = C.ID").ToArray();
   ```
+  or asynchronously
+  ```csharp
+  var q = await SqlExecutor.ExecuteQueryAnonymousAsync(new { Company = default(string), Emp = default(string) }, 
+    connStr, "select E.Name as Emp, C.Name as Company from Employee E join Company C on E.CompanyID = C.ID").ToArray();
+  ```
+  
 
 3. Bulk insert of entities to database
 
@@ -27,6 +38,16 @@ Light-weight, fast and easy to use C# library to retrieve, write (using bulk ins
   };
   
   newEmployees.WriteToServer(connStr, "Employee");
+  ```
+or asynchronously
+  ```csharp
+  Employee[] newEmployees = new Employee[] { 
+    new Employee() { CompanyID = 1, Name = "New Employee1", Age = 23, StartWorking = DateTime.UtcNow },
+    new Employee() { CompanyID = 1, Name = "New Employee2", StartWorking = DateTime.UtcNow },
+    new Employee() { CompanyID = 2, Name = "New Employee1" }
+  };
+  
+  await newEmployees.WriteToServerAsync(connStr, "Employee");
   ```
 
 More samples contains in Samples project. 
