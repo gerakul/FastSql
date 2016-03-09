@@ -27,10 +27,11 @@ namespace Samples
     static void Main(string[] args)
     {
       // change sample name to one's you interested in
-      Sample17();
+      Sample1();
+      Sample1Async().Wait();
 
       Console.WriteLine("End");
-      Console.ReadKey();
+      //Console.ReadKey();
     }
 
     // Simple retrieving  entities
@@ -40,11 +41,23 @@ namespace Samples
       var arr = q.ToArray();
     }
 
+    static async Task Sample1Async()
+    {
+      var q = SqlExecutor.ExecuteQueryAsync<Employee>(connStr, "select * from Employee");
+      var arr = await q.ToArray();
+    }
+
     // Using parameterized query
     static void Sample2()
     {
       var q = SqlExecutor.ExecuteQuery<Employee>(connStr, "select * from Employee where CompanyID = @p0 and Age > @p1", 1, 40);
       var arr = q.ToArray();
+    }
+
+    static async Task Sample2Async()
+    {
+      var q = SqlExecutor.ExecuteQueryAsync<Employee>(connStr, "select * from Employee where CompanyID = @p0 and Age > @p1", 1, 40);
+      var arr = await q.ToArray();
     }
 
     // Using FieldsSelector option: there will only be filled columns contains in source
@@ -54,6 +67,12 @@ namespace Samples
       var arr = q.ToArray();
     }
 
+    static async Task Sample3Async()
+    {
+      var q = SqlExecutor.ExecuteQueryAsync<Employee>(new SqlExecutorOptions(fieldsSelector: FieldsSelector.Source), connStr, "select ID, CompanyID, Name, Phone from Employee where CompanyID = @p0", 1);
+      var arr = await q.ToArray();
+    }
+
     // Using FieldsSelector option: there will only be filled columns contains both in source and destination 
     static void Sample4()
     {
@@ -61,11 +80,23 @@ namespace Samples
       var arr = q.ToArray();
     }
 
+    static async Task Sample4Async()
+    {
+      var q = SqlExecutor.ExecuteQueryAsync<OtherEmployee>(new SqlExecutorOptions(fieldsSelector: FieldsSelector.Common), connStr, "select * from Employee");
+      var arr = await q.ToArray();
+    }
+
     // Using options
     static void Sample5()
     {
       var q = SqlExecutor.ExecuteQuery<OtherEmployee>(new SqlExecutorOptions(60, FieldsSelector.Common, false, FromTypeOption.Both), connStr, "select * from Employee");
       var arr = q.ToArray();
+    }
+
+    static async Task Sample5Async()
+    {
+      var q = SqlExecutor.ExecuteQueryAsync<OtherEmployee>(new SqlExecutorOptions(60, FieldsSelector.Common, false, FromTypeOption.Both), connStr, "select * from Employee");
+      var arr = await q.ToArray();
     }
 
     // Retrieving anonimous entities
@@ -76,11 +107,24 @@ namespace Samples
       var arr = q.ToArray();
     }
 
+    static async Task Sample6Async()
+    {
+      var proto = new { Company = default(string), Emp = default(string) };
+      var q = SqlExecutor.ExecuteQueryAnonymousAsync(proto, connStr, "select E.Name as Emp, C.Name as Company from Employee E join Company C on E.CompanyID = C.ID");
+      var arr = await q.ToArray();
+    }
+
     // Retrieving list of values
     static void Sample7()
     {
       var q = SqlExecutor.ExecuteQueryFirstColumn<int>(connStr, "select ID from Employee");
       var arr = q.ToArray();
+    }
+
+    static async Task Sample7Async()
+    {
+      var q = SqlExecutor.ExecuteQueryFirstColumnAsync<int>(connStr, "select ID from Employee");
+      var arr = await q.ToArray();
     }
 
     // Retrieving one value
@@ -89,10 +133,20 @@ namespace Samples
       var empName = SqlExecutor.ExecuteQueryFirstColumn<string>(connStr, "select Name from Employee where CompanyID = @p0 and Age > @p1", 1, 40).First();
     }
 
+    static async Task Sample8Async()
+    {
+      var empName = await SqlExecutor.ExecuteQueryFirstColumnAsync<string>(connStr, "select Name from Employee where CompanyID = @p0 and Age > @p1", 1, 40).First();
+    }
+
     // Using query with modification and retrieving data
     static void Sample9()
     {
       int newID = SqlExecutor.ExecuteQueryFirstColumn<int>(connStr, "insert into Employee (CompanyID, Name, Age) values (@p0, @p1, @p2); select cast(scope_identity() as int)", 2, "Mary Grant", 30).First();
+    }
+
+    static async Task Sample9Async()
+    {
+      int newID = await SqlExecutor.ExecuteQueryFirstColumnAsync<int>(connStr, "insert into Employee (CompanyID, Name, Age) values (@p0, @p1, @p2); select cast(scope_identity() as int)", 2, "Mary Grant", 30).First();
     }
 
     // Query without retrieving data
@@ -101,16 +155,32 @@ namespace Samples
       SqlExecutor.ExecuteNonQuery(connStr, "update Company set Name = @p1 where ID = @p0", 2, "Updated Co");
     }
 
+    static async Task Sample10Async()
+    {
+      await SqlExecutor.ExecuteNonQueryAsync(connStr, "update Company set Name = @p1 where ID = @p0", 2, "Updated Co2");
+    }
+
     // Bulk insert of entities to database
     static void Sample11()
     {
-      Employee[] newEmployees = new Employee[] { 
+      Employee[] newEmployees = new Employee[] {
         new Employee() { CompanyID = 1, Name = "New Employee1", Age = 23, StartWorking = DateTime.UtcNow },
         new Employee() { CompanyID = 1, Name = "New Employee2", StartWorking = DateTime.UtcNow },
         new Employee() { CompanyID = 2, Name = "New Employee1" }
       };
 
       newEmployees.WriteToServer(connStr, "Employee");
+    }
+
+    static async Task Sample11Async()
+    {
+      Employee[] newEmployees = new Employee[] {
+        new Employee() { CompanyID = 1, Name = "New Employee11", Age = 23, StartWorking = DateTime.UtcNow },
+        new Employee() { CompanyID = 1, Name = "New Employee21", StartWorking = DateTime.UtcNow },
+        new Employee() { CompanyID = 2, Name = "New Employee11" }
+      };
+
+      await newEmployees.WriteToServerAsync(connStr, "Employee");
     }
 
     // Bulk insert of anonimous entities. Using options
@@ -132,6 +202,24 @@ namespace Samples
         }).WriteToServer(new BulkOptions(1000, 100, SqlBulkCopyOptions.Default, FieldsSelector.Source, false, true), connStr, "Employee");
     }
 
+    static async Task Sample12Async()
+    {
+      Employee[] newEmployees = new Employee[] {
+        new Employee() { CompanyID = 1, Name = "New Employee12", Age = 23, StartWorking = DateTime.UtcNow },
+        new Employee() { CompanyID = 1, Name = "New Employee22", StartWorking = DateTime.UtcNow },
+        new Employee() { CompanyID = 2, Name = "New Employee12" }
+      };
+
+      await newEmployees.Select(x => new
+      {
+        companyid = x.CompanyID,
+        x.Name,
+        phone = "111-111-111",
+        startWorking = x.StartWorking.HasValue ? x.StartWorking : DateTime.UtcNow,
+        x.Age
+      }).WriteToServerAsync(new BulkOptions(1000, 100, SqlBulkCopyOptions.Default, FieldsSelector.Source, false, true), connStr, "Employee");
+    }
+
     // Using transaction
     static void Sample13()
     {
@@ -144,7 +232,7 @@ namespace Samples
       // using SqlExecutor.UsingTransaction method. 
       SqlExecutor.UsingTransaction(x =>
         {
-          var arr = x.ExecuteQuery<Employee>("select * from Employee where Age is not null");
+          var arr = x.ExecuteQuery<Employee>("select * from Employee where Age is not null").ToArray();
 
           x.ExecuteNonQuery("update Employee set Age = Age + 1 where ID = @p0", 3);
 
@@ -178,10 +266,55 @@ namespace Samples
       }
     }
 
+    static async Task Sample13Async()
+    {
+      Employee[] newEmployees = new Employee[] {
+        new Employee() { CompanyID = 1, Name = "New Employee13", Age = 23, StartWorking = DateTime.UtcNow },
+        new Employee() { CompanyID = 1, Name = "New Employee23", StartWorking = DateTime.UtcNow },
+        new Employee() { CompanyID = 2, Name = "New Employee13" }
+      };
+
+      // using SqlExecutor.UsingTransaction method. 
+      await SqlExecutor.UsingTransactionAsync(async x =>
+      {
+        var arr = await x.ExecuteQueryAsync<Employee>("select * from Employee where Age is not null").ToArray();
+
+        await x.ExecuteNonQueryAsync("update Employee set Age = Age + 1 where ID = @p0", 3);
+
+        await newEmployees.WriteToServerAsync(x.Transaction, "Employee");
+
+      }, connStr);
+
+      // using external transaction
+      using (SqlConnection conn = new SqlConnection(connStr))
+      {
+        conn.Open();
+
+        var tran = conn.BeginTransaction();
+
+        try
+        {
+          SqlExecutor executor = new SqlExecutor(tran);
+
+          var arr = await executor.ExecuteQueryAsync<Employee>("select * from Employee where Age is not null").ToArray();
+
+          await executor.ExecuteNonQueryAsync("update Employee set Age = Age + 1 where ID = @p0", 3);
+
+          await newEmployees.WriteToServerAsync(tran, "Employee");
+          tran.Commit();
+        }
+        catch
+        {
+          tran.Rollback();
+          throw;
+        }
+      }
+    }
+
     // Getting IDataReader from IEnumerable<T>
     static void Sample14()
     {
-      Employee[] newEmployees = new Employee[] { 
+      Employee[] newEmployees = new Employee[] {
         new Employee() { CompanyID = 1, Name = "New Employee1", Age = 23, StartWorking = DateTime.UtcNow },
         new Employee() { CompanyID = 1, Name = "New Employee2", StartWorking = DateTime.UtcNow },
         new Employee() { CompanyID = 2, Name = "New Employee1" }
@@ -190,13 +323,13 @@ namespace Samples
       IDataReader dataReader1 = newEmployees.ToDataReader();
 
       IDataReader dataReader2 = newEmployees.Select(x => new
-        {
-          companyid = x.CompanyID,
-          x.Name,
-          phone = "111-111-111",
-          startWorking = x.StartWorking.HasValue ? x.StartWorking : DateTime.UtcNow,
-          x.Age
-        }).ToDataReader();
+      {
+        companyid = x.CompanyID,
+        x.Name,
+        phone = "111-111-111",
+        startWorking = x.StartWorking.HasValue ? x.StartWorking : DateTime.UtcNow,
+        x.Age
+      }).ToDataReader();
     }
 
     // Getting IEnumerable<T> from IDataReader
@@ -216,6 +349,22 @@ namespace Samples
       }
     }
 
+    static async Task Sample15Async()
+    {
+      using (SqlConnection conn = new SqlConnection(connStr))
+      {
+        conn.Open();
+
+        SqlExecutor executor = new SqlExecutor(conn);
+
+        using (SqlDataReader reader = await executor.ExecuteReaderAsync("select * from Employee where CompanyID = @p0 and Age > @p1", 1, 40))
+        {
+          IAsyncEnumerable<Employee> eployeeEnumerable = reader.ReadAllAsync<Employee>();
+          var arr = await eployeeEnumerable.ToArray();
+        }
+      }
+    }
+
     // Data import between databases
     static void Sample16()
     {
@@ -226,11 +375,13 @@ namespace Samples
       Import.Execute(connStr, connStr2, "select Name, Age from Employee where Age <= @p0", "Person", 30);
     }
 
-    static async Task Sample17()
+    static async Task Sample16Async()
     {
+      // Using options: SqlBulkCopyOptions
+      await Import.ExecuteAsync(new ImportOptions(sqlBulkCopyOptions: SqlBulkCopyOptions.KeepIdentity), connStr, connStr2, "select ID, Name, Age from Employee where Age > @p0", "Person", 30);
 
-
-      //var arr = await SqlExecutor.ExecuteQueryAnonymousAsync(new { ID = 0, Index2 = 0 }, connStr, "select top 100 * from [dbo].[Test]").Skip(20).Take(10).ToArray();
+      // Simple import
+      await  Import.ExecuteAsync(connStr, connStr2, "select Name, Age from Employee where Age <= @p0", "Person", 30);
     }
   }
 

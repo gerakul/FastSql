@@ -335,9 +335,39 @@ namespace Gerakul.FastSql
       return result;
     }
 
+    public static async Task<int> ExecuteNonQueryAsync(CancellationToken ct, QueryOptions queryOptions, 
+      string connectionString, string commandText, params object[] parameters)
+    {
+      int result;
+      using (SqlConnection conn = new SqlConnection(connectionString))
+      {
+        conn.Open();
+        SqlExecutor executor = new SqlExecutor(conn);
+        result = await executor.ExecuteNonQueryAsync(queryOptions, commandText, parameters);
+      }
+
+      return result;
+    }
+
+    public static Task<int> ExecuteNonQueryAsync(QueryOptions queryOptions,
+      string connectionString, string commandText, params object[] parameters)
+    {
+      return ExecuteNonQueryAsync(CancellationToken.None, queryOptions, connectionString, commandText, parameters);
+    }
+
     public static int ExecuteNonQuery(string connectionString, string commandText, params object[] parameters)
     {
       return ExecuteNonQuery(new QueryOptions(), connectionString, commandText, parameters);
+    }
+
+    public static Task<int> ExecuteNonQueryAsync(CancellationToken ct, string connectionString, string commandText, params object[] parameters)
+    {
+      return ExecuteNonQueryAsync(ct, new QueryOptions(), connectionString, commandText, parameters);
+    }
+
+    public static Task<int> ExecuteNonQueryAsync(string connectionString, string commandText, params object[] parameters)
+    {
+      return ExecuteNonQueryAsync(CancellationToken.None, new QueryOptions(), connectionString, commandText, parameters);
     }
 
     private static AEnumerable<AsyncState<T>, T> CreateAsyncEnumerable<T>(CancellationToken executeReaderCT,
