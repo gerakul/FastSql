@@ -228,6 +228,15 @@ namespace Gerakul.FastSql
     }
 
     #endregion
+
+    internal static IEnumerable<string> GetColumnNames(this IDataReader reader)
+    {
+      for (int i = 0; i < reader.FieldCount; i++)
+      {
+        string name = reader.GetName(i);
+        yield return name;
+      }
+    }
   }
 
   public class ReadOptions

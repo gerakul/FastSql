@@ -34,7 +34,7 @@ namespace Gerakul.FastSql
 
     public void WriteToServer()
     {
-      string[] sourceFields = fields.Length > 0 ? fields.ToArray() : GetReaderColumns(reader).ToArray();
+      string[] sourceFields = fields.Length > 0 ? fields.ToArray() : reader.GetColumnNames().ToArray();
 
       Mapping[] map;
 
@@ -85,7 +85,7 @@ namespace Gerakul.FastSql
 
     public async Task WriteToServerAsync(CancellationToken cancellationToken)
     {
-      string[] sourceFields = fields.Length > 0 ? fields.ToArray() : GetReaderColumns(reader).ToArray();
+      string[] sourceFields = fields.Length > 0 ? fields.ToArray() : reader.GetColumnNames().ToArray();
 
       Mapping[] map;
 
@@ -139,41 +139,17 @@ namespace Gerakul.FastSql
       return WriteToServerAsync(CancellationToken.None);
     }
 
-    private IEnumerable<string> GetReaderColumns(IDataReader r)
-    {
-      for (int i = 0; i < r.FieldCount; i++)
-      {
-        string name = r.GetName(i);
-        yield return name;
-      }
-    }
-
     private IEnumerable<string> GetTableColumns()
     {
       SqlExecutor executor = transaction == null ? new SqlExecutor(connection) : new SqlExecutor(transaction);
-
-      using (SqlDataReader r = executor.ExecuteReader(string.Format("select top 0 * from {0} with(nolock)", destinationTable)))
-      {
-        foreach (var item in GetReaderColumns(r))
-        {
-          yield return item;
-        }
-      }
+      return executor.GetTableColumns(destinationTable);
     }
 
     private async Task<IList<string>> GetTableColumnsAsync(CancellationToken cancellationToken)
     {
       SqlExecutor executor = transaction == null ? new SqlExecutor(connection) : new SqlExecutor(transaction);
-      List<string> result = new List<string>();
-      using (SqlDataReader r = await executor.ExecuteReaderAsync(cancellationToken, string.Format("select top 0 * from {0} with(nolock)", destinationTable)))
-      {
-        foreach (var item in GetReaderColumns(r))
-        {
-          result.Add(item);
-        }
-      }
 
-      return result;
+      return await executor.GetTableColumnsAsync(cancellationToken, destinationTable);
     }
   }
 

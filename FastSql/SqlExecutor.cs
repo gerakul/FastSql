@@ -320,6 +320,31 @@ namespace Gerakul.FastSql
       return ExecuteQueryFirstColumnAsync<T>(CancellationToken.None, new SqlExecutorOptions(), commandText, parameters);
     }
 
+    internal IEnumerable<string> GetTableColumns(string table)
+    {
+      using (SqlDataReader r = ExecuteReader(string.Format("select top 0 * from {0} with(nolock)", table)))
+      {
+        foreach (var item in r.GetColumnNames())
+        {
+          yield return item;
+        }
+      }
+    }
+
+    internal async Task<IList<string>> GetTableColumnsAsync(CancellationToken cancellationToken, string table)
+    {
+      List<string> result = new List<string>();
+      using (SqlDataReader r = await ExecuteReaderAsync(cancellationToken, string.Format("select top 0 * from {0} with(nolock)", table)))
+      {
+        foreach (var item in r.GetColumnNames())
+        {
+          result.Add(item);
+        }
+      }
+
+      return result;
+    }
+
     #region Static
 
     public static int ExecuteNonQuery(QueryOptions queryOptions, string connectionString, string commandText, params object[] parameters)
