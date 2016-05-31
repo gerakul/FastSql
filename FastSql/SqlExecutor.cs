@@ -716,6 +716,24 @@ namespace Gerakul.FastSql
       }
     }
 
+    public static void UsingConnection(Action<SqlExecutor> action, string connectionString)
+    {
+      using (SqlConnection conn = new SqlConnection(connectionString))
+      {
+        conn.Open();
+        action(new SqlExecutor(conn));
+      }
+    }
+
+    public static async Task UsingConnectionAsync(Func<SqlExecutor, Task> action, string connectionString)
+    {
+      using (SqlConnection conn = new SqlConnection(connectionString))
+      {
+        conn.Open();
+        await action(new SqlExecutor(conn));
+      }
+    }
+
     #endregion
   }
 
