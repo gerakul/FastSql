@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Data.SqlClient;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -64,6 +65,19 @@ namespace Gerakul.FastSql
           return success;
         }
       );
+    }
+
+    internal static void ApplyQueryOptions(SqlCommand cmd, QueryOptions queryOptions)
+    {
+      if (queryOptions.CommandTimeoutSeconds.HasValue)
+      {
+        cmd.CommandTimeout = queryOptions.CommandTimeoutSeconds.Value;
+      }
+    }
+
+    internal static string GetSqlParameterName(this string name)
+    {
+      return name[0] == '@' ? name.Substring(1) : name;
     }
   }
 }

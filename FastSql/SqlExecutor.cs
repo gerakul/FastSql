@@ -27,9 +27,14 @@ namespace Gerakul.FastSql
       this.Transaction = transaction;
     }
 
+    internal SqlCommand CreateCommandInternal(string commandText)
+    {
+      return Transaction == null ? new SqlCommand(commandText, Connection) : new SqlCommand(commandText, Connection, Transaction);
+    }
+
     public SqlCommand CreateCommand(string commandText, params object[] parameters)
     {
-      SqlCommand cmd = Transaction == null ? new SqlCommand(commandText, Connection) : new SqlCommand(commandText, Connection, Transaction);
+      SqlCommand cmd = CreateCommandInternal(commandText);
 
       for (int i = 0; i < parameters.Length; i++)
       {
@@ -46,18 +51,10 @@ namespace Gerakul.FastSql
       return cmd;
     }
 
-    private void ApplyQueryOptions(SqlCommand cmd, QueryOptions queryOptions)
-    {
-      if (queryOptions.CommandTimeoutSeconds.HasValue)
-      {
-        cmd.CommandTimeout = queryOptions.CommandTimeoutSeconds.Value;
-      }
-    }
-
     public int ExecuteNonQuery(QueryOptions queryOptions, string commandText, params object[] parameters)
     {
       SqlCommand cmd = CreateCommand(commandText, parameters);
-      ApplyQueryOptions(cmd, queryOptions);
+      Helpers.ApplyQueryOptions(cmd, queryOptions);
 
       return cmd.ExecuteNonQuery();
     }
@@ -65,7 +62,7 @@ namespace Gerakul.FastSql
     public Task<int> ExecuteNonQueryAsync(CancellationToken ct, QueryOptions queryOptions, string commandText, params object[] parameters)
     {
       SqlCommand cmd = CreateCommand(commandText, parameters);
-      ApplyQueryOptions(cmd, queryOptions);
+      Helpers.ApplyQueryOptions(cmd, queryOptions);
 
       return cmd.ExecuteNonQueryAsync(ct);
     }
@@ -93,7 +90,7 @@ namespace Gerakul.FastSql
     public SqlDataReader ExecuteReader(QueryOptions queryOptions, string commandText, params object[] parameters)
     {
       SqlCommand cmd = CreateCommand(commandText, parameters);
-      ApplyQueryOptions(cmd, queryOptions);
+      Helpers.ApplyQueryOptions(cmd, queryOptions);
 
       return cmd.ExecuteReader();
     }
@@ -101,7 +98,7 @@ namespace Gerakul.FastSql
     public Task<SqlDataReader> ExecuteReaderAsync(CancellationToken cancellationToken, QueryOptions queryOptions, string commandText, params object[] parameters)
     {
       SqlCommand cmd = CreateCommand(commandText, parameters);
-      ApplyQueryOptions(cmd, queryOptions);
+      Helpers.ApplyQueryOptions(cmd, queryOptions);
 
       return cmd.ExecuteReaderAsync(cancellationToken);
     }
@@ -366,7 +363,7 @@ namespace Gerakul.FastSql
       int result;
       using (SqlConnection conn = new SqlConnection(connectionString))
       {
-        conn.Open();
+        await conn.OpenAsync();
         SqlExecutor executor = new SqlExecutor(conn);
         result = await executor.ExecuteNonQueryAsync(queryOptions, commandText, parameters);
       }
@@ -711,7 +708,7 @@ namespace Gerakul.FastSql
     {
       using (SqlConnection conn = new SqlConnection(connectionString))
       {
-        conn.Open();
+        await conn.OpenAsync();
         await UsingTransactionAsync(action, conn, isolationLevel);
       }
     }
@@ -729,7 +726,7 @@ namespace Gerakul.FastSql
     {
       using (SqlConnection conn = new SqlConnection(connectionString))
       {
-        conn.Open();
+        await conn.OpenAsync();
         await action(new SqlExecutor(conn));
       }
     }

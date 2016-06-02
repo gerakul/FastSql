@@ -118,11 +118,11 @@ namespace Gerakul.FastSql
     {
       using (SqlConnection connFrom = new SqlConnection(connectionStringFrom))
       {
-        connFrom.Open();
+        await connFrom.OpenAsync();
 
         using (SqlConnection connTo = new SqlConnection(connectionStringTo))
         {
-          connTo.Open();
+          await connTo.OpenAsync();
 
           Import import = new Import(connFrom, connTo);
           await import.ExecuteAsync(cancellationToken, options, commandText, destinationTable, commandParameters);

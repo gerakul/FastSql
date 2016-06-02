@@ -169,7 +169,7 @@ namespace Gerakul.FastSql
     {
       using (SqlConnection connection = new SqlConnection(connectionString))
       {
-        connection.Open();
+        await connection.OpenAsync();
         await WriteToServerAsync(reader, cancellationToken, bulkOptions, connection, destinationTable, fields);
       }
     }

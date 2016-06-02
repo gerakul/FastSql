@@ -12,33 +12,40 @@ namespace Gerakul.FastSql
     public Type FieldType { get; private set; }
     public Func<T, object> Getter { get; private set; }
     public Func<T, bool> IsNullGetter { get; private set; }
+    public bool DetermineNullByValue { get; private set; }
 
-    public FieldSettings(string name, string dataTypeName, Type fieldType, Func<T, object> getter, Func<T, bool> isNullGetter)
+    private FieldSettings(string name, string dataTypeName, Type fieldType, Func<T, object> getter, Func<T, bool> isNullGetter, bool determineNullByValue)
     {
       this.Name = name;
       this.DataTypeName = dataTypeName;
       this.FieldType = fieldType;
       this.Getter = getter;
       this.IsNullGetter = isNullGetter;
+      this.DetermineNullByValue = determineNullByValue;
+    }
+
+    public FieldSettings(string name, string dataTypeName, Type fieldType, Func<T, object> getter, Func<T, bool> isNullGetter)
+      : this(name, dataTypeName, fieldType, getter, isNullGetter, false)
+    {
     }
 
     public FieldSettings(string name, Type fieldType, Func<T, object> getter, Func<T, bool> isNullGetter)
-      : this(name, fieldType.Name, fieldType, getter, isNullGetter)
+      : this(name, fieldType.Name, fieldType, getter, isNullGetter, false)
     {
     }
 
     public FieldSettings(string name, string dataTypeName, Type fieldType, Func<T, object> getter)
-      : this(name, dataTypeName, fieldType, getter, x => getter(x) == null)
+      : this(name, dataTypeName, fieldType, getter, x => getter(x) == null, true)
     {
     }
 
     public FieldSettings(string name, Type fieldType, Func<T, object> getter)
-      : this(name, fieldType.Name, fieldType, getter, x => getter(x) == null)
+      : this(name, fieldType.Name, fieldType, getter, x => getter(x) == null, true)
     {
     }
 
     public FieldSettings(string name)
-      : this(name, typeof(T).Name, typeof(T), x => x, x => x == null)
+      : this(name, typeof(T).Name, typeof(T), x => x, x => x == null, true)
     {
     }
   }
@@ -72,6 +79,11 @@ namespace Gerakul.FastSql
       }
 
       return fieldSettings.ToArray();
+    }
+
+    public static FieldSettings<T>[] FromType<T>(T proto, FromTypeOption option = FromTypeOption.Both)
+    {
+      return FromType<T>(option);
     }
   }
 }
