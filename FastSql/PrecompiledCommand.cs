@@ -106,33 +106,65 @@ namespace Gerakul.FastSql
       return ExecuteScalarAsync(CancellationToken.None, connectionString, value, queryOptions);
     }
 
-    public SqlDataReader ExecuteReader(string connectionString, T value, QueryOptions queryOptions = null)
-    {
-      using (SqlConnection conn = new SqlConnection(connectionString))
-      {
-        conn.Open();
-        return Create(conn, queryOptions).ExecuteReader(value);
-      }
-    }
+    //public SqlDataReader ExecuteReader(string connectionString, T value, QueryOptions queryOptions = null)
+    //{
+    //  using (SqlConnection conn = new SqlConnection(connectionString))
+    //  {
+    //    conn.Open();
+    //    return Create(conn, queryOptions).ExecuteReader(value);
+    //  }
+    //}
 
-    public async Task<SqlDataReader> ExecuteReaderAsync(CancellationToken cancellationToken, string connectionString, T value, QueryOptions queryOptions = null)
-    {
-      using (SqlConnection conn = new SqlConnection(connectionString))
-      {
-        await conn.OpenAsync().ConfigureAwait(false);
-        return await Create(conn, queryOptions).ExecuteReaderAsync(cancellationToken, value).ConfigureAwait(false);
-      }
-    }
+    //public async Task<SqlDataReader> ExecuteReaderAsync(CancellationToken cancellationToken, string connectionString, T value, QueryOptions queryOptions = null)
+    //{
+    //  using (SqlConnection conn = new SqlConnection(connectionString))
+    //  {
+    //    await conn.OpenAsync().ConfigureAwait(false);
+    //    return await Create(conn, queryOptions).ExecuteReaderAsync(cancellationToken, value).ConfigureAwait(false);
+    //  }
+    //}
 
-    public Task<SqlDataReader> ExecuteReaderAsync(string connectionString, T value, QueryOptions queryOptions = null)
-    {
-      return ExecuteReaderAsync(CancellationToken.None, connectionString, value, queryOptions);
-    }
+    //public Task<SqlDataReader> ExecuteReaderAsync(string connectionString, T value, QueryOptions queryOptions = null)
+    //{
+    //  return ExecuteReaderAsync(CancellationToken.None, connectionString, value, queryOptions);
+    //}
   }
 
   internal class ParMap<T>
   {
     public SqlParameter Parameter;
     public FieldSettings<T> Settings;
+
+    public ParMap<T> Clone()
+    {
+      return new ParMap<T>()
+      {
+        Parameter = new SqlParameter(
+          Parameter.ParameterName,
+          Parameter.SqlDbType,
+          Parameter.Size,
+          Parameter.Direction,
+          Parameter.Precision,
+          Parameter.Scale,
+          Parameter.SourceColumn,
+          Parameter.SourceVersion,
+          Parameter.SourceColumnNullMapping,
+          Parameter.Value,
+          Parameter.XmlSchemaCollectionDatabase,
+          Parameter.XmlSchemaCollectionOwningSchema,
+          Parameter.XmlSchemaCollectionName)
+        {
+          CompareInfo = Parameter.CompareInfo,
+          IsNullable = Parameter.IsNullable,
+          LocaleId = Parameter.LocaleId,
+          TypeName = Parameter.TypeName,
+          UdtTypeName = Parameter.UdtTypeName,
+          SqlValue = Parameter.SqlValue,
+          Offset = Parameter.Offset
+        },
+
+        Settings = Settings
+      };
+    }
   }
 }

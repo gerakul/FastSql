@@ -27,68 +27,6 @@ namespace Samples
 
     static void Main(string[] args)
     {
-      string cs = @"Data Source=localhost;Initial Catalog=SampleDB1;Persist Security Info=True;User ID=NaviService;Password=Navi100$";
-
-      var aa = new
-      {
-        Name = "yyyyyyyyyyyy",
-        CompanyID = 2,
-        Age = 30
-      };
-
-      Commands.Compile(aa, "update [dbo].[Employee] set Name = @Name where CompanyID = @CompanyID and Age >= @Age").ExecuteNonQueryAsync(cs, aa).Wait();
-      return;
-      var pc = Commands.Compile<Employee>("update [dbo].[Employee] set Name = @Name where CompanyID = @CompanyID and Age >= @Age");
-
-      Employee[] arr;
-      Employee[] arr1;
-      var e = new Employee() { CompanyID = 2, Age = 30, Name = "7777777" };
-      SqlExecutor.UsingConnectionAsync(async x =>
-      {
-        var comm = pc.Create(x.Connection);
-
-        await comm.ExecuteNonQueryAsync(e).ConfigureAwait(false);
-        e.CompanyID = 1;
-        e.Name = "8888888";
-        await comm.ExecuteNonQueryAsync(e).ConfigureAwait(false);
-
-        arr = await x.ExecuteQueryAsync<Employee>("select * from Employee").ToArray();
-
-        var r = await Commands.Compile(aa, "select * from Employee where CompanyID = @CompanyID and Age >= @Age")
-          .Create(x.Connection).ExecuteReaderAsync(aa);
-        arr1 = await r.ReadAllAsync<Employee>(new ReadOptions(FieldsSelector.Destination)).ToArray();
-        r.Close();
-      }, cs).Wait();
-
-      Commands.Compile(aa, "update [dbo].[Employee] set Name = @Name where CompanyID = @CompanyID and Age >= @Age").ExecuteNonQueryAsync(connStr, aa).Wait();
-
-      return;
-
-
-
-      using (SqlConnection conn = new SqlConnection(cs))
-      {
-        conn.Open();
-
-        SqlCommand cmd = new SqlCommand("update [dbo].[Employee] set Name = @Na#$me where ID = @ID", conn);
-
-        var p1 = new SqlParameter();
-        p1.ParameterName = "@Na#$me";
-        cmd.Parameters.Add(p1);
-
-        var p2 = new SqlParameter();
-        p2.ParameterName = "@iD";
-        cmd.Parameters.Add(p2);
-
-        p1.Value = "111111";
-        p2.Value = 22;
-
-        cmd.ExecuteNonQuery();
-      }
-
-
-      return;
-
       // change sample name to one's you interested in
       Sample1();
       Sample1Async().Wait();
@@ -445,6 +383,107 @@ namespace Samples
 
       // Simple import
       await  Import.ExecuteAsync(connStr, connStr2, "select Name, Age from Employee where Age <= @p0", "Person", 30);
+    }
+
+    // Using Commands
+    static void Sample17()
+    {
+      var precompiled = Commands.Compile<Employee>("update Employee set Phone = @Phone, Age = @Age where ID = @ID");
+      var emp = new Employee() { ID = 2, Name = "Name1", Age = 33, Phone = "111-222-333" };
+
+      precompiled.ExecuteNonQuery(connStr, emp);
+      emp.Age += 3;
+      precompiled.ExecuteNonQuery(connStr, emp);
+    }
+
+    static async Task Sample17Async()
+    {
+      var precompiled = Commands.Compile<Employee>("update Employee set Phone = @Phone, Age = @Age where ID = @ID");
+      var emp = new Employee() { ID = 2, Name = "Name1", Age = 33, Phone = "111-222-333" };
+
+      await precompiled.ExecuteNonQueryAsync(connStr, emp);
+      emp.Age += 3;
+      await precompiled.ExecuteNonQueryAsync(connStr, emp);
+    }
+
+    // Using Commands with anonymous type
+    static void Sample18()
+    {
+      var anonymousEmp = new { ID = 2, Age = 22, Phone = "111-888-333" };
+
+      var precompiled = Commands.Compile(anonymousEmp, "update Employee set Phone = @Phone, Age = @Age where ID = @ID");
+
+      precompiled.ExecuteNonQuery(connStr, anonymousEmp);
+      anonymousEmp = new { ID = 2, Age = 28, Phone = "111-777-333" };
+      precompiled.ExecuteNonQuery(connStr, anonymousEmp);
+    }
+
+    static async Task Sample18Async()
+    {
+      var anonimousEmp = new { ID = 2, Age = 22, Phone = "111-888-333" };
+
+      var precompiled = Commands.Compile(anonimousEmp, "update Employee set Phone = @Phone, Age = @Age where ID = @ID");
+
+      await precompiled.ExecuteNonQueryAsync(connStr, anonimousEmp);
+      anonimousEmp = new { ID = 2, Age = 28, Phone = "111-777-333" };
+      await precompiled.ExecuteNonQueryAsync(connStr, anonimousEmp);
+    }
+
+    // Using Commands with external transactions and connections
+    static void Sample19()
+    {
+      var anonimousEmp = new { ID = 2, Age = 22, Phone = "111-888-333" };
+      var precompiled = Commands.Compile(anonimousEmp, "update Employee set Phone = @Phone, Age = @Age where ID = @ID");
+
+      SqlExecutor.UsingTransaction(sql =>
+      {
+        var cmd = precompiled.Create(sql);
+
+        cmd.ExecuteNonQuery(anonimousEmp);
+        anonimousEmp = new { ID = 3, Age = 20, Phone = "111-444-333" };
+        cmd.ExecuteNonQuery(anonimousEmp);
+
+      }, connStr);
+
+
+      SqlExecutor.UsingConnection(conn =>
+      {
+        var cmd = precompiled.Create(conn);
+
+        anonimousEmp = new { ID = 4, Age = 27, Phone = "999-444-333" };
+        cmd.ExecuteNonQuery(anonimousEmp);
+        anonimousEmp = new { ID = 5, Age = 37, Phone = "888-444-333" };
+        cmd.ExecuteNonQuery(anonimousEmp);
+
+      }, connStr);
+    }
+
+    static async Task Sample19Async()
+    {
+      var anonimousEmp = new { ID = 2, Age = 22, Phone = "111-888-333" };
+      var precompiled = Commands.Compile(anonimousEmp, "update Employee set Phone = @Phone, Age = @Age where ID = @ID");
+
+      await SqlExecutor.UsingTransactionAsync(async sql =>
+      {
+        var cmd = precompiled.Create(sql);
+
+        await cmd.ExecuteNonQueryAsync(anonimousEmp);
+        anonimousEmp = new { ID = 3, Age = 20, Phone = "111-444-333" };
+        await cmd.ExecuteNonQueryAsync(anonimousEmp);
+
+      }, connStr);
+
+
+      await SqlExecutor.UsingConnectionAsync(async conn =>
+      {
+        var cmd = precompiled.Create(conn);
+
+        anonimousEmp = new { ID = 4, Age = 27, Phone = "999-444-333" };
+        await cmd.ExecuteNonQueryAsync(anonimousEmp);
+        anonimousEmp = new { ID = 5, Age = 37, Phone = "888-444-333" };
+        await cmd.ExecuteNonQueryAsync(anonimousEmp);
+
+      }, connStr);
     }
   }
 

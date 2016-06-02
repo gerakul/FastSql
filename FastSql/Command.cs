@@ -11,7 +11,7 @@ namespace Gerakul.FastSql
   public class Command<T>
   {
     private SqlCommand cmd;
-    private PrecompiledCommand<T> precompiledCommand;
+    private ParMap<T>[] map;
 
     internal Command(PrecompiledCommand<T> precompiledCommand, SqlConnection conn, QueryOptions queryOptions = null)
     {
@@ -33,14 +33,14 @@ namespace Gerakul.FastSql
 
     private void ApplyArguments(PrecompiledCommand<T> precompiledCommand, QueryOptions queryOptions)
     {
-      cmd.Parameters.AddRange(precompiledCommand.Map.Select(x => x.Parameter).ToArray());
+      map = precompiledCommand.Map.Select(x => x.Clone()).ToArray();
+      cmd.Parameters.AddRange(map.Select(x => x.Parameter).ToArray());
       Helpers.ApplyQueryOptions(cmd, queryOptions ?? new QueryOptions());
-      this.precompiledCommand = precompiledCommand;
     }
 
     private void Fill(T value)
     {
-      foreach (var m in precompiledCommand.Map)
+      foreach (var m in map)
       {
         if (m.Settings.DetermineNullByValue)
         {
