@@ -432,15 +432,15 @@ namespace Samples
     // Using Commands with external transactions and connections
     static void Sample19()
     {
-      var anonimousEmp = new { ID = 2, Age = 22, Phone = "111-888-333" };
-      var precompiled = Commands.Compile(anonimousEmp, "update Employee set Phone = @Phone, Age = @Age where ID = @ID");
+      var anonimousEmp = new { CompanyID = 2, Name = "Name1", Age = 22, Phone = "111-888-333" };
+      var precompiled = Commands.Compile(anonimousEmp, "insert into Employee (CompanyID, Name, Age, Phone) values (@CompanyID, @Name, @Age, @Phone)");
 
       SqlExecutor.UsingTransaction(sql =>
       {
         var cmd = precompiled.Create(sql);
 
         cmd.ExecuteNonQuery(anonimousEmp);
-        anonimousEmp = new { ID = 3, Age = 20, Phone = "111-444-333" };
+        anonimousEmp = new { CompanyID = 2, Name = "Name2", Age = 20, Phone = "111-444-333" };
         cmd.ExecuteNonQuery(anonimousEmp);
 
       }, connStr);
@@ -450,9 +450,9 @@ namespace Samples
       {
         var cmd = precompiled.Create(conn);
 
-        anonimousEmp = new { ID = 4, Age = 27, Phone = "999-444-333" };
+        anonimousEmp = new { CompanyID = 1, Name = "Name11", Age = 27, Phone = "999-444-333" };
         cmd.ExecuteNonQuery(anonimousEmp);
-        anonimousEmp = new { ID = 5, Age = 37, Phone = "888-444-333" };
+        anonimousEmp = new { CompanyID = 1, Name = "Name12", Age = 37, Phone = "888-444-333" };
         cmd.ExecuteNonQuery(anonimousEmp);
 
       }, connStr);
@@ -460,15 +460,15 @@ namespace Samples
 
     static async Task Sample19Async()
     {
-      var anonimousEmp = new { ID = 2, Age = 22, Phone = "111-888-333" };
-      var precompiled = Commands.Compile(anonimousEmp, "update Employee set Phone = @Phone, Age = @Age where ID = @ID");
+      var anonimousEmp = new { CompanyID = 2, Name = "Name111", Age = 22, Phone = "111-888-333" };
+      var precompiled = Commands.Compile(anonimousEmp, "insert into Employee (CompanyID, Name, Age, Phone) values (@CompanyID, @Name, @Age, @Phone)");
 
       await SqlExecutor.UsingTransactionAsync(async sql =>
       {
         var cmd = precompiled.Create(sql);
 
         await cmd.ExecuteNonQueryAsync(anonimousEmp);
-        anonimousEmp = new { ID = 3, Age = 20, Phone = "111-444-333" };
+        anonimousEmp = new { CompanyID = 2, Name = "Name222", Age = 20, Phone = "111-444-333" };
         await cmd.ExecuteNonQueryAsync(anonimousEmp);
 
       }, connStr);
@@ -478,9 +478,9 @@ namespace Samples
       {
         var cmd = precompiled.Create(conn);
 
-        anonimousEmp = new { ID = 4, Age = 27, Phone = "999-444-333" };
+        anonimousEmp = new { CompanyID = 1, Name = "Name1122", Age = 27, Phone = "999-444-333" };
         await cmd.ExecuteNonQueryAsync(anonimousEmp);
-        anonimousEmp = new { ID = 5, Age = 37, Phone = "888-444-333" };
+        anonimousEmp = new { CompanyID = 1, Name = "Name1234", Age = 37, Phone = "888-444-333" };
         await cmd.ExecuteNonQueryAsync(anonimousEmp);
 
       }, connStr);
