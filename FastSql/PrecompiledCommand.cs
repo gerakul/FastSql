@@ -73,8 +73,8 @@ namespace Gerakul.FastSql
     {
       using (SqlConnection conn = new SqlConnection(connectionString))
       {
-        await conn.OpenAsync();
-        return await Create(conn, queryOptions).ExecuteNonQueryAsync(cancellationToken, value);
+        await conn.OpenAsync().ConfigureAwait(false);
+        return await Create(conn, queryOptions).ExecuteNonQueryAsync(cancellationToken, value).ConfigureAwait(false);
       }
     }
 
@@ -96,8 +96,8 @@ namespace Gerakul.FastSql
     {
       using (SqlConnection conn = new SqlConnection(connectionString))
       {
-        await conn.OpenAsync();
-        return await Create(conn, queryOptions).ExecuteScalarAsync(cancellationToken, value);
+        await conn.OpenAsync().ConfigureAwait(false);
+        return await Create(conn, queryOptions).ExecuteScalarAsync(cancellationToken, value).ConfigureAwait(false);
       }
     }
 
@@ -119,8 +119,8 @@ namespace Gerakul.FastSql
     {
       using (SqlConnection conn = new SqlConnection(connectionString))
       {
-        await conn.OpenAsync();
-        return await Create(conn, queryOptions).ExecuteReaderAsync(cancellationToken, value);
+        await conn.OpenAsync().ConfigureAwait(false);
+        return await Create(conn, queryOptions).ExecuteReaderAsync(cancellationToken, value).ConfigureAwait(false);
       }
     }
 

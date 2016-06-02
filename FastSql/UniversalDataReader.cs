@@ -142,7 +142,7 @@ namespace Gerakul.FastSql
 
       if (enumerator == null)
       {
-        if (await asyncEnumerator.MoveNext())
+        if (await asyncEnumerator.MoveNext().ConfigureAwait(false))
         {
           curRow = asyncEnumerator.Current;
           return true;

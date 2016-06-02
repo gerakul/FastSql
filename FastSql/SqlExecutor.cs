@@ -331,7 +331,7 @@ namespace Gerakul.FastSql
     internal async Task<IList<string>> GetTableColumnsAsync(CancellationToken cancellationToken, string table)
     {
       List<string> result = new List<string>();
-      using (SqlDataReader r = await ExecuteReaderAsync(cancellationToken, string.Format("select top 0 * from {0} with(nolock)", table)))
+      using (SqlDataReader r = await ExecuteReaderAsync(cancellationToken, string.Format("select top 0 * from {0} with(nolock)", table)).ConfigureAwait(false))
       {
         foreach (var item in r.GetColumnNames())
         {
@@ -363,9 +363,9 @@ namespace Gerakul.FastSql
       int result;
       using (SqlConnection conn = new SqlConnection(connectionString))
       {
-        await conn.OpenAsync();
+        await conn.OpenAsync().ConfigureAwait(false);
         SqlExecutor executor = new SqlExecutor(conn);
-        result = await executor.ExecuteNonQueryAsync(queryOptions, commandText, parameters);
+        result = await executor.ExecuteNonQueryAsync(queryOptions, commandText, parameters).ConfigureAwait(false);
       }
 
       return result;
@@ -681,7 +681,7 @@ namespace Gerakul.FastSql
       try
       {
         tran = isolationLevel.HasValue ? connection.BeginTransaction(isolationLevel.Value) : connection.BeginTransaction();
-        await action(new SqlExecutor(tran));
+        await action(new SqlExecutor(tran)).ConfigureAwait(false);
         tran.Commit();
       }
       catch
@@ -708,8 +708,8 @@ namespace Gerakul.FastSql
     {
       using (SqlConnection conn = new SqlConnection(connectionString))
       {
-        await conn.OpenAsync();
-        await UsingTransactionAsync(action, conn, isolationLevel);
+        await conn.OpenAsync().ConfigureAwait(false);
+        await UsingTransactionAsync(action, conn, isolationLevel).ConfigureAwait(false);
       }
     }
 
@@ -726,8 +726,8 @@ namespace Gerakul.FastSql
     {
       using (SqlConnection conn = new SqlConnection(connectionString))
       {
-        await conn.OpenAsync();
-        await action(new SqlExecutor(conn));
+        await conn.OpenAsync().ConfigureAwait(false);
+        await action(new SqlExecutor(conn)).ConfigureAwait(false);
       }
     }
 

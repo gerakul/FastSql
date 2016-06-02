@@ -14,6 +14,7 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Samples
@@ -26,6 +27,68 @@ namespace Samples
 
     static void Main(string[] args)
     {
+      string cs = @"Data Source=localhost;Initial Catalog=SampleDB1;Persist Security Info=True;User ID=NaviService;Password=Navi100$";
+
+      var aa = new
+      {
+        Name = "yyyyyyyyyyyy",
+        CompanyID = 2,
+        Age = 30
+      };
+
+      Commands.Compile(aa, "update [dbo].[Employee] set Name = @Name where CompanyID = @CompanyID and Age >= @Age").ExecuteNonQueryAsync(cs, aa).Wait();
+      return;
+      var pc = Commands.Compile<Employee>("update [dbo].[Employee] set Name = @Name where CompanyID = @CompanyID and Age >= @Age");
+
+      Employee[] arr;
+      Employee[] arr1;
+      var e = new Employee() { CompanyID = 2, Age = 30, Name = "7777777" };
+      SqlExecutor.UsingConnectionAsync(async x =>
+      {
+        var comm = pc.Create(x.Connection);
+
+        await comm.ExecuteNonQueryAsync(e).ConfigureAwait(false);
+        e.CompanyID = 1;
+        e.Name = "8888888";
+        await comm.ExecuteNonQueryAsync(e).ConfigureAwait(false);
+
+        arr = await x.ExecuteQueryAsync<Employee>("select * from Employee").ToArray();
+
+        var r = await Commands.Compile(aa, "select * from Employee where CompanyID = @CompanyID and Age >= @Age")
+          .Create(x.Connection).ExecuteReaderAsync(aa);
+        arr1 = await r.ReadAllAsync<Employee>(new ReadOptions(FieldsSelector.Destination)).ToArray();
+        r.Close();
+      }, cs).Wait();
+
+      Commands.Compile(aa, "update [dbo].[Employee] set Name = @Name where CompanyID = @CompanyID and Age >= @Age").ExecuteNonQueryAsync(connStr, aa).Wait();
+
+      return;
+
+
+
+      using (SqlConnection conn = new SqlConnection(cs))
+      {
+        conn.Open();
+
+        SqlCommand cmd = new SqlCommand("update [dbo].[Employee] set Name = @Na#$me where ID = @ID", conn);
+
+        var p1 = new SqlParameter();
+        p1.ParameterName = "@Na#$me";
+        cmd.Parameters.Add(p1);
+
+        var p2 = new SqlParameter();
+        p2.ParameterName = "@iD";
+        cmd.Parameters.Add(p2);
+
+        p1.Value = "111111";
+        p2.Value = 22;
+
+        cmd.ExecuteNonQuery();
+      }
+
+
+      return;
+
       // change sample name to one's you interested in
       Sample1();
       Sample1Async().Wait();
@@ -288,7 +351,7 @@ namespace Samples
       // using external transaction
       using (SqlConnection conn = new SqlConnection(connStr))
       {
-        conn.Open();
+        await conn.OpenAsync();
 
         var tran = conn.BeginTransaction();
 
@@ -353,7 +416,7 @@ namespace Samples
     {
       using (SqlConnection conn = new SqlConnection(connStr))
       {
-        conn.Open();
+        await conn.OpenAsync();
 
         SqlExecutor executor = new SqlExecutor(conn);
 

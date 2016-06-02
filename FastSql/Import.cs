@@ -62,15 +62,15 @@ namespace Gerakul.FastSql
     public async Task ExecuteAsync(CancellationToken cancellationToken, ImportOptions options, string commandText, string destinationTable, params object[] commandParameters)
     {
       SqlExecutor executor = TransactionFrom == null ? new SqlExecutor(ConnectionFrom) : new SqlExecutor(TransactionFrom);
-      using (SqlDataReader reader = await executor.ExecuteReaderAsync(cancellationToken, options.QueryOptions, commandText, commandParameters))
+      using (SqlDataReader reader = await executor.ExecuteReaderAsync(cancellationToken, options.QueryOptions, commandText, commandParameters).ConfigureAwait(false))
       {
         if (TransactionTo == null)
         {
-          await reader.WriteToServerAsync(cancellationToken, options.BulkOptions, ConnectionTo, destinationTable);
+          await reader.WriteToServerAsync(cancellationToken, options.BulkOptions, ConnectionTo, destinationTable).ConfigureAwait(false);
         }
         else
         {
-          await reader.WriteToServerAsync(cancellationToken, options.BulkOptions, TransactionTo, destinationTable);
+          await reader.WriteToServerAsync(cancellationToken, options.BulkOptions, TransactionTo, destinationTable).ConfigureAwait(false);
         }
       }
     }
@@ -118,14 +118,14 @@ namespace Gerakul.FastSql
     {
       using (SqlConnection connFrom = new SqlConnection(connectionStringFrom))
       {
-        await connFrom.OpenAsync();
+        await connFrom.OpenAsync().ConfigureAwait(false);
 
         using (SqlConnection connTo = new SqlConnection(connectionStringTo))
         {
-          await connTo.OpenAsync();
+          await connTo.OpenAsync().ConfigureAwait(false);
 
           Import import = new Import(connFrom, connTo);
-          await import.ExecuteAsync(cancellationToken, options, commandText, destinationTable, commandParameters);
+          await import.ExecuteAsync(cancellationToken, options, commandText, destinationTable, commandParameters).ConfigureAwait(false);
         }
       }
     }

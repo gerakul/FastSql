@@ -95,7 +95,7 @@ namespace Gerakul.FastSql
       }
       else
       {
-        string[] destFields = (await GetTableColumnsAsync(cancellationToken)).ToArray();
+        string[] destFields = (await GetTableColumnsAsync(cancellationToken).ConfigureAwait(false)).ToArray();
 
         map = bulkOptions.CaseSensitive.HasValue && bulkOptions.CaseSensitive.Value ?
           sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping() { Source = x, Destination = y }).ToArray() :
@@ -129,7 +129,7 @@ namespace Gerakul.FastSql
             bcp.ColumnMappings.Add(item.Source, item.Destination);
           }
 
-          await bcp.WriteToServerAsync(reader, cancellationToken);
+          await bcp.WriteToServerAsync(reader, cancellationToken).ConfigureAwait(false);
         }
       }
     }
@@ -149,7 +149,7 @@ namespace Gerakul.FastSql
     {
       SqlExecutor executor = transaction == null ? new SqlExecutor(connection) : new SqlExecutor(transaction);
 
-      return await executor.GetTableColumnsAsync(cancellationToken, destinationTable);
+      return await executor.GetTableColumnsAsync(cancellationToken, destinationTable).ConfigureAwait(false);
     }
   }
 

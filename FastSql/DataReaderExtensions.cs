@@ -169,8 +169,8 @@ namespace Gerakul.FastSql
     {
       using (SqlConnection connection = new SqlConnection(connectionString))
       {
-        await connection.OpenAsync();
-        await WriteToServerAsync(reader, cancellationToken, bulkOptions, connection, destinationTable, fields);
+        await connection.OpenAsync().ConfigureAwait(false);
+        await WriteToServerAsync(reader, cancellationToken, bulkOptions, connection, destinationTable, fields).ConfigureAwait(false);
       }
     }
 

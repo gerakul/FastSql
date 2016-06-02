@@ -70,7 +70,7 @@ namespace Gerakul.FastSql
     {
       using (IDataReader reader = values.ToDataReader())
       {
-        await reader.WriteToServerAsync(cancellationToken, bulkOptions, connection, destinationTable, fields);
+        await reader.WriteToServerAsync(cancellationToken, bulkOptions, connection, destinationTable, fields).ConfigureAwait(false);
       }
     }
 
@@ -91,7 +91,7 @@ namespace Gerakul.FastSql
     {
       using (IDataReader reader = values.ToDataReader())
       {
-        await reader.WriteToServerAsync(cancellationToken, bulkOptions, transaction, destinationTable, fields);
+        await reader.WriteToServerAsync(cancellationToken, bulkOptions, transaction, destinationTable, fields).ConfigureAwait(false);
       }
     }
 
@@ -113,7 +113,7 @@ namespace Gerakul.FastSql
     {
       using (IDataReader reader = values.ToDataReader())
       {
-        await reader.WriteToServerAsync(cancellationToken, bulkOptions, connectionString, destinationTable, fields);
+        await reader.WriteToServerAsync(cancellationToken, bulkOptions, connectionString, destinationTable, fields).ConfigureAwait(false);
       }
     }
 
@@ -135,7 +135,7 @@ namespace Gerakul.FastSql
     {
       using (IDataReader reader = values.ToDataReader())
       {
-        await reader.WriteToServerAsync(cancellationToken, connection, destinationTable, fields);
+        await reader.WriteToServerAsync(cancellationToken, connection, destinationTable, fields).ConfigureAwait(false);
       }
     }
 
@@ -157,7 +157,7 @@ namespace Gerakul.FastSql
     {
       using (IDataReader reader = values.ToDataReader())
       {
-        await reader.WriteToServerAsync(cancellationToken, transaction, destinationTable, fields);
+        await reader.WriteToServerAsync(cancellationToken, transaction, destinationTable, fields).ConfigureAwait(false);
       }
     }
 
@@ -179,7 +179,7 @@ namespace Gerakul.FastSql
     {
       using (IDataReader reader = values.ToDataReader())
       {
-        await reader.WriteToServerAsync(cancellationToken, connectionString, destinationTable, fields);
+        await reader.WriteToServerAsync(cancellationToken, connectionString, destinationTable, fields).ConfigureAwait(false);
       }
     }
 
