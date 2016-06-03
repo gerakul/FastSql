@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
@@ -24,6 +25,94 @@ namespace Gerakul.FastSql
       var p = new SqlParameter();
       p.ParameterName = name;
       return p;
+    }
+
+    public static void UsingConnection(string connectionString, Action<SqlConnection> action)
+    {
+      using (SqlConnection conn = new SqlConnection(connectionString))
+      {
+        conn.Open();
+        action(conn);
+      }
+    }
+
+    public static async Task UsingConnectionAsync(string connectionString, Func<SqlConnection, Task> action)
+    {
+      using (SqlConnection conn = new SqlConnection(connectionString))
+      {
+        await conn.OpenAsync().ConfigureAwait(false);
+        await action(conn).ConfigureAwait(false);
+      }
+    }
+
+    public static void UsingTransaction(SqlConnection connection, IsolationLevel isolationLevel, Action<SqlTransaction> action)
+    {
+      SqlTransaction tran = null;
+      try
+      {
+        tran = connection.BeginTransaction(isolationLevel);
+        action(tran);
+        tran.Commit();
+      }
+      catch
+      {
+        if (tran != null)
+        {
+          tran.Rollback();
+        }
+
+        throw;
+      }
+    }
+
+    public static void UsingTransaction(SqlConnection connection, Action<SqlTransaction> action)
+    {
+      UsingTransaction(connection, IsolationLevel.Unspecified, action);
+    }
+
+    public static async Task UsingTransactionAsync(SqlConnection connection, IsolationLevel isolationLevel, Func<SqlTransaction, Task> action)
+    {
+      SqlTransaction tran = null;
+      try
+      {
+        tran = connection.BeginTransaction(isolationLevel);
+        await action(tran).ConfigureAwait(false);
+        tran.Commit();
+      }
+      catch
+      {
+        if (tran != null)
+        {
+          tran.Rollback();
+        }
+
+        throw;
+      }
+    }
+
+    public static Task UsingTransactionAsync(SqlConnection connection, Func<SqlTransaction, Task> action)
+    {
+      return UsingTransactionAsync(connection, IsolationLevel.Unspecified, action);
+    }
+
+    public static void UsingTransaction(string connectionString, IsolationLevel isolationLevel, Action<SqlTransaction> action)
+    {
+      UsingConnection(connectionString, conn => UsingTransaction(conn, isolationLevel, action));
+    }
+
+    public static void UsingTransaction(string connectionString, Action<SqlTransaction> action)
+    {
+      UsingTransaction(connectionString, IsolationLevel.Unspecified, action);
+    }
+
+    public static Task UsingTransactionAsync(string connectionString, IsolationLevel isolationLevel, Func<SqlTransaction, Task> action)
+    {
+      return UsingConnectionAsync(connectionString, conn => UsingTransactionAsync(conn, action));
+    }
+
+    public static Task UsingTransactionAsync(string connectionString, Func<SqlTransaction, Task> action)
+    {
+      return UsingTransactionAsync(connectionString, IsolationLevel.Unspecified, action);
     }
 
     public static PrecompiledCommand<T> Compile<T>(string commandText, IList<SqlParameter> parameters, IList<FieldSettings<T>> settings)

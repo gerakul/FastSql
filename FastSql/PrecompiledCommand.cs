@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
@@ -62,72 +64,169 @@ namespace Gerakul.FastSql
 
     public int ExecuteNonQuery(string connectionString, T value, QueryOptions queryOptions = null)
     {
-      using (SqlConnection conn = new SqlConnection(connectionString))
-      {
-        conn.Open();
-        return Create(conn, queryOptions).ExecuteNonQuery(value);
-      }
+      int result = 0;
+      Commands.UsingConnection(connectionString, conn => result = Create(conn, queryOptions).Fill(value).ExecuteNonQuery());
+      return result;
     }
 
-    public async Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken, string connectionString, T value, QueryOptions queryOptions = null)
+    public async Task<int> ExecuteNonQueryAsync(string connectionString, T value, QueryOptions queryOptions = null, 
+      CancellationToken cancellationToken = default(CancellationToken))
     {
-      using (SqlConnection conn = new SqlConnection(connectionString))
-      {
-        await conn.OpenAsync().ConfigureAwait(false);
-        return await Create(conn, queryOptions).ExecuteNonQueryAsync(cancellationToken, value).ConfigureAwait(false);
-      }
-    }
-
-    public Task<int> ExecuteNonQueryAsync(string connectionString, T value, QueryOptions queryOptions = null)
-    {
-      return ExecuteNonQueryAsync(CancellationToken.None, connectionString, value, queryOptions);
+      int result = 0;
+      await Commands.UsingConnectionAsync(connectionString, 
+        async conn => result = await Create(conn, queryOptions).Fill(value).ExecuteNonQueryAsync(null, cancellationToken));
+      return result;
     }
 
     public object ExecuteScalar(string connectionString, T value, QueryOptions queryOptions = null)
     {
+      object result = null;
+      Commands.UsingConnection(connectionString, conn => Create(conn, queryOptions).Fill(value).ExecuteScalar());
+      return result;
+    }
+
+    public async Task<object> ExecuteScalarAsync(string connectionString, T value, QueryOptions queryOptions = null,
+      CancellationToken cancellationToken = default(CancellationToken))
+    {
+      object result = null;
+      await Commands.UsingConnectionAsync(connectionString,
+        async conn => result = await Create(conn, queryOptions).Fill(value).ExecuteScalarAsync(null, cancellationToken));
+      return result;
+    }
+
+    private AEnumerable<AsyncState<R>, R> CreateAsyncEnumerable<R>(CancellationToken executeReaderCancellationToken,
+      Func<IDataReader, ReadInfo<R>> readInfoGetter, SqlExecutorOptions options,
+      string connectionString, T value)
+    {
+      return Helpers.CreateAsyncEnumerable<R>(
+        state =>
+        {
+          if (state.ReadInfo != null)
+          {
+            state.ReadInfo.Reader.Close();
+          }
+
+          if (state.InternalConnection != null)
+          {
+            state.InternalConnection.Close();
+          }
+        },
+
+        async (state, ct) =>
+        {
+          SqlConnection conn = null;
+          try
+          {
+            conn = new SqlConnection(connectionString);
+            await conn.OpenAsync(executeReaderCancellationToken).ConfigureAwait(false);
+            state.InternalConnection = conn;
+            var reader = await Create(conn, options?.QueryOptions).Fill(value).ExecuteReaderAsync(null, executeReaderCancellationToken).ConfigureAwait(false);
+            state.ReadInfo = readInfoGetter(reader);
+          }
+          catch
+          {
+            if (conn != null)
+            {
+              conn.Close();
+            }
+
+            throw;
+          }
+        });
+    }
+
+
+    public IEnumerable<object[]> ExecuteQuery(string connectionString, T value, SqlExecutorOptions options = null)
+    {
       using (SqlConnection conn = new SqlConnection(connectionString))
       {
         conn.Open();
-        return Create(conn, queryOptions).ExecuteScalar(value);
+        foreach (var item in Create(conn).Fill(value).ExecuteQuery(options))
+        {
+          yield return item;
+        }
       }
     }
 
-    public async Task<object> ExecuteScalarAsync(CancellationToken cancellationToken, string connectionString, T value, QueryOptions queryOptions = null)
+    public IAsyncEnumerable<object[]> ExecuteQueryAsync(string connectionString, T value, SqlExecutorOptions options = null, 
+      CancellationToken executeReaderCancellationToken = default(CancellationToken))
+    {
+      return CreateAsyncEnumerable(executeReaderCancellationToken, r => ReadInfoFactory.CreateObjects(r), options, connectionString, value);
+    }
+
+    public IEnumerable<R> ExecuteQuery<R>(string connectionString, T value, SqlExecutorOptions options = null) where R : new()
     {
       using (SqlConnection conn = new SqlConnection(connectionString))
       {
-        await conn.OpenAsync().ConfigureAwait(false);
-        return await Create(conn, queryOptions).ExecuteScalarAsync(cancellationToken, value).ConfigureAwait(false);
+        conn.Open();
+        foreach (var item in Create(conn).Fill(value).ExecuteQuery<R>(options))
+        {
+          yield return item;
+        }
       }
     }
 
-    public Task<object> ExecuteScalarAsync(string connectionString, T value, QueryOptions queryOptions = null)
+    public IAsyncEnumerable<R> ExecuteQueryAsync<R>(string connectionString, T value, SqlExecutorOptions options = null,
+      CancellationToken executeReaderCancellationToken = default(CancellationToken)) where R : new()
     {
-      return ExecuteScalarAsync(CancellationToken.None, connectionString, value, queryOptions);
+      return CreateAsyncEnumerable(executeReaderCancellationToken, r => ReadInfoFactory.CreateByType<R>(r, options?.ReadOptions), options, connectionString, value);
     }
 
-    //public SqlDataReader ExecuteReader(string connectionString, T value, QueryOptions queryOptions = null)
-    //{
-    //  using (SqlConnection conn = new SqlConnection(connectionString))
-    //  {
-    //    conn.Open();
-    //    return Create(conn, queryOptions).ExecuteReader(value);
-    //  }
-    //}
+    public IEnumerable<R> ExecuteQueryAnonymous<R>(R proto, string connectionString, T value, SqlExecutorOptions options = null)
+    {
+      using (SqlConnection conn = new SqlConnection(connectionString))
+      {
+        conn.Open();
+        foreach (var item in Create(conn).Fill(value).ExecuteQueryAnonymous(proto, options))
+        {
+          yield return item;
+        }
+      }
+    }
 
-    //public async Task<SqlDataReader> ExecuteReaderAsync(CancellationToken cancellationToken, string connectionString, T value, QueryOptions queryOptions = null)
-    //{
-    //  using (SqlConnection conn = new SqlConnection(connectionString))
-    //  {
-    //    await conn.OpenAsync().ConfigureAwait(false);
-    //    return await Create(conn, queryOptions).ExecuteReaderAsync(cancellationToken, value).ConfigureAwait(false);
-    //  }
-    //}
+    public IAsyncEnumerable<R> ExecuteQueryAnonymousAsync<R>(R proto, string connectionString, T value, SqlExecutorOptions options = null,
+      CancellationToken executeReaderCancellationToken = default(CancellationToken))
+    {
+      return CreateAsyncEnumerable(executeReaderCancellationToken, r => ReadInfoFactory.CreateAnonymous(r, proto, options?.ReadOptions),
+        options, connectionString, value);
+    }
 
-    //public Task<SqlDataReader> ExecuteReaderAsync(string connectionString, T value, QueryOptions queryOptions = null)
-    //{
-    //  return ExecuteReaderAsync(CancellationToken.None, connectionString, value, queryOptions);
-    //}
+    public IEnumerable ExecuteQueryFirstColumn(string connectionString, T value, SqlExecutorOptions options = null)
+    {
+      using (SqlConnection conn = new SqlConnection(connectionString))
+      {
+        conn.Open();
+        foreach (var item in Create(conn).Fill(value).ExecuteQueryFirstColumn(options))
+        {
+          yield return item;
+        }
+      }
+    }
+
+    public IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(string connectionString, T value, SqlExecutorOptions options = null,
+      CancellationToken executeReaderCancellationToken = default(CancellationToken))
+    {
+      return CreateAsyncEnumerable(executeReaderCancellationToken, r => ReadInfoFactory.CreateFirstColumn(r), options, connectionString, value);
+    }
+
+    public IEnumerable<R> ExecuteQueryFirstColumn<R>(string connectionString, T value, SqlExecutorOptions options = null,
+      CancellationToken executeReaderCancellationToken = default(CancellationToken))
+    {
+      using (SqlConnection conn = new SqlConnection(connectionString))
+      {
+        conn.Open();
+        foreach (var item in Create(conn).Fill(value).ExecuteQueryFirstColumn<R>(options))
+        {
+          yield return item;
+        }
+      }
+    }
+
+    public IAsyncEnumerable<R> ExecuteQueryFirstColumnAsync<R>(string connectionString, T value, SqlExecutorOptions options = null,
+      CancellationToken executeReaderCancellationToken = default(CancellationToken))
+    {
+      return CreateAsyncEnumerable(executeReaderCancellationToken, r => ReadInfoFactory.CreateFirstColumn<R>(r), options, connectionString, value);
+    }
   }
 
   internal class ParMap<T>

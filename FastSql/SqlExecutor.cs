@@ -51,6 +51,11 @@ namespace Gerakul.FastSql
       return cmd;
     }
 
+    public ExecutableCommand CreateExecutable(string commandText, params object[] parameters)
+    {
+      return new ExecutableCommand(CreateCommand(commandText, parameters));
+    }
+
     public int ExecuteNonQuery(QueryOptions queryOptions, string commandText, params object[] parameters)
     {
       SqlCommand cmd = CreateCommand(commandText, parameters);
@@ -127,7 +132,13 @@ namespace Gerakul.FastSql
       Func<IDataReader, ReadInfo<T>> readInfoGetter, SqlExecutorOptions options, string commandText, params object[] parameters)
     {
       return Helpers.CreateAsyncEnumerable<T>(
-        state => state.ReadInfo.Reader.Close(),
+        state =>
+        {
+          if (state.ReadInfo != null)
+          {
+            state.ReadInfo.Reader.Close();
+          }
+        },
 
         async (state, ct) =>
         {
@@ -399,8 +410,15 @@ namespace Gerakul.FastSql
       return Helpers.CreateAsyncEnumerable<T>(
         state =>
         {
-          state.ReadInfo.Reader.Close();
-          state.InternalExecutor.Connection.Close();
+          if (state.ReadInfo != null)
+          {
+            state.ReadInfo.Reader.Close();
+          }
+
+          if (state.InternalConnection != null)
+          {
+            state.InternalConnection.Close();
+          }
         },
 
         async (state, ct) =>
@@ -410,9 +428,9 @@ namespace Gerakul.FastSql
           {
             conn = new SqlConnection(connectionString);
             await conn.OpenAsync(executeReaderCT).ConfigureAwait(false);
+            state.InternalConnection = conn;
             SqlExecutor executor = new SqlExecutor(conn);
-            state.InternalExecutor = executor;
-            var reader = await executor.ExecuteReaderAsync(executeReaderCT, options.QueryOptions, commandText, parameters).ConfigureAwait(false);
+            var reader = await executor.CreateExecutable(commandText, parameters).ExecuteReaderAsync(options?.QueryOptions, executeReaderCT).ConfigureAwait(false);
             state.ReadInfo = readInfoGetter(reader);
           }
           catch

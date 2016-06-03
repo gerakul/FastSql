@@ -49,6 +49,7 @@
     <Compile Include="Commands.cs" />
     <Compile Include="DataReaderExtensions.cs" />
     <Compile Include="EnumerableExtensions.cs" />
+    <Compile Include="ExecutableCommand.cs" />
     <Compile Include="FieldSettings.cs" />
     <Compile Include="FieldsSelector.cs" />
     <Compile Include="Helpers.cs" />

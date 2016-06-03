@@ -38,7 +38,7 @@ namespace Gerakul.FastSql
       Helpers.ApplyQueryOptions(cmd, queryOptions ?? new QueryOptions());
     }
 
-    private void Fill(T value)
+    public ExecutableCommand Fill(T value)
     {
       foreach (var m in map)
       {
@@ -52,57 +52,28 @@ namespace Gerakul.FastSql
           m.Parameter.Value = m.Settings.IsNullGetter(value) ? DBNull.Value : m.Settings.Getter(value);
         }
       }
+
+      return new ExecutableCommand(cmd);
     }
 
-    public int ExecuteNonQuery(T value)
+    public int ExecuteNonQuery(T value, QueryOptions queryOptions = null)
     {
-      Fill(value);
-      return cmd.ExecuteNonQuery();
+      return Fill(value).ExecuteNonQuery(queryOptions);
     }
 
-    public Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken, T value)
+    public Task<int> ExecuteNonQueryAsync(T value, CancellationToken cancellationToken = default(CancellationToken), QueryOptions queryOptions = null)
     {
-      Fill(value);
-      return cmd.ExecuteNonQueryAsync(cancellationToken);
+      return Fill(value).ExecuteNonQueryAsync(queryOptions, cancellationToken);
     }
 
-    public Task<int> ExecuteNonQueryAsync(T value)
+    public object ExecuteScalar(T value, QueryOptions queryOptions = null)
     {
-      return ExecuteNonQueryAsync(CancellationToken.None, value);
+      return Fill(value).ExecuteScalar(queryOptions);
     }
 
-    public object ExecuteScalar(T value)
+    public Task<object> ExecuteScalarAsync(T value, CancellationToken cancellationToken = default(CancellationToken), QueryOptions queryOptions = null)
     {
-      Fill(value);
-      return cmd.ExecuteScalar();
-    }
-
-    public Task<object> ExecuteScalarAsync(CancellationToken cancellationToken, T value)
-    {
-      Fill(value);
-      return cmd.ExecuteScalarAsync(cancellationToken);
-    }
-
-    public Task<object> ExecuteScalarAsync(T value)
-    {
-      return ExecuteScalarAsync(CancellationToken.None, value);
-    }
-
-    public SqlDataReader ExecuteReader(T value)
-    {
-      Fill(value);
-      return cmd.ExecuteReader();
-    }
-
-    public Task<SqlDataReader> ExecuteReaderAsync(CancellationToken cancellationToken, T value)
-    {
-      Fill(value);
-      return cmd.ExecuteReaderAsync(cancellationToken);
-    }
-
-    public Task<SqlDataReader> ExecuteReaderAsync(T value)
-    {
-      return ExecuteReaderAsync(CancellationToken.None, value);
+      return Fill(value).ExecuteScalarAsync(queryOptions, cancellationToken);
     }
   }
 }

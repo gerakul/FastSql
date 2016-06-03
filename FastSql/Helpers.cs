@@ -35,7 +35,6 @@ namespace Gerakul.FastSql
           break;
         default:
           throw new ArgumentException(string.Format("Unknown FieldsSelector. Value: {0}", fieldSelector));
-          break;
       }
     }
 
@@ -69,6 +68,11 @@ namespace Gerakul.FastSql
 
     internal static void ApplyQueryOptions(SqlCommand cmd, QueryOptions queryOptions)
     {
+      if (queryOptions == null)
+      {
+        return;
+      }
+
       if (queryOptions.CommandTimeoutSeconds.HasValue)
       {
         cmd.CommandTimeout = queryOptions.CommandTimeoutSeconds.Value;

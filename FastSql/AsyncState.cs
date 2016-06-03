@@ -12,7 +12,7 @@ namespace Gerakul.FastSql
   internal class AsyncState<T>
   {
     public T Current;
-    public SqlExecutor InternalExecutor;
     public ReadInfo<T> ReadInfo;
+    public SqlConnection InternalConnection;
   }
 }
