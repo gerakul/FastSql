@@ -48,9 +48,9 @@ namespace Gerakul.FastSql
       }
     }
 
-    public DbCommand Create(SqlScope scope, T value, QueryOptions queryOptions = null)
+    public DbCommand Create(IDbScope scope, T value, QueryOptions queryOptions = null)
     {
-      var cmd = scope.CreateCommandInternal(CommandText);
+      var cmd = scope.CreateCommand(CommandText);
 
       for (int i = 0; i < map.Length; i++)
       {
@@ -66,7 +66,7 @@ namespace Gerakul.FastSql
           paramValue = m.Settings.IsNullGetter(value) ? DBNull.Value : m.Settings.Getter(value);
         }
 
-        cmd.Parameters.AddWithValue(m.ParameterName, paramValue);
+        scope.AddParamWithValue(cmd, m.ParameterName, paramValue);
       }
 
       Helpers.ApplyQueryOptions(cmd, queryOptions ?? new QueryOptions());

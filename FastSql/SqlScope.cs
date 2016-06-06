@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Gerakul.FastSql
 {
-  public class SqlScope
+  public class SqlScope : IDbScope
   {
     public SqlConnection Connection { get; private set; }
     public SqlTransaction Transaction { get; private set; }
@@ -26,9 +26,19 @@ namespace Gerakul.FastSql
       this.Transaction = transaction;
     }
 
-    internal SqlCommand CreateCommandInternal(string commandText)
+    //internal SqlCommand CreateCommandInternal(string commandText)
+    //{
+    //  return Transaction == null ? new SqlCommand(commandText, Connection) : new SqlCommand(commandText, Connection, Transaction);
+    //}
+
+    public DbCommand CreateCommand(string commandText)
     {
       return Transaction == null ? new SqlCommand(commandText, Connection) : new SqlCommand(commandText, Connection, Transaction);
+    }
+
+    public DbParameter AddParamWithValue(DbCommand cmd, string paramName, object value)
+    {
+      return ((SqlCommand)cmd).Parameters.AddWithValue(paramName, value);
     }
 
     public static void UsingConnection(string connectionString, Action<SqlScope> action)

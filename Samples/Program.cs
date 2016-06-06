@@ -23,74 +23,14 @@ namespace Samples
   class Program
   {
     // put here your connection strings
-    static string connStr = @"Data Source=localhost;Initial Catalog=SampleDB1;Persist Security Info=True;User ID=NaviService;Password=Navi100$";
+    static string connStr = @"Data Source=localhost;Initial Catalog=SampleDB1;Persist Security Info=True;User ID=****;Password=****";
     static string connStr2 = @"Data Source=localhost;Initial Catalog=SampleDB2;Persist Security Info=True;User ID=****;Password=****";
 
     static void Main(string[] args)
     {
-
-
-      SqlCommand[] arr = new SqlCommand[1000000];
-
-      Stopwatch sw = Stopwatch.StartNew();
-
-      for (int i = 0; i < arr.Length; i++)
-      {
-        var cmd = new SqlCommand("select * from Employee where CompanyID = @CompanyID and Age > @Age");
-        cmd.Parameters.AddWithValue("@CompanyID", 1);
-        cmd.Parameters.AddWithValue("@Age", i);
-
-        arr[i] = cmd;
-      }
-
-      sw.Stop();
-      Stopwatch sw1 = Stopwatch.StartNew();
-
-      for (int i = 0; i < arr.Length; i++)
-      {
-        arr[i].Parameters[0].Value = i;
-        arr[i].Parameters[1].Value = 1;
-      }
-
-      sw1.Stop();
-
-
-      //var exe = new ExecutableCommand(cmd);
-
-      //var conn = new SqlConnection(connStr);
-      //conn.Open();
-      //cmd.Connection = conn;
-      //var q = exe.ExecuteQuery<Employee>().ToArray();
-      //conn.Close();
-
-
-      Employee[] emps = new Employee[] {
-        new Employee() { ID = 3, CompanyID = 1, Name = "New Employee1", Age = 25, StartWorking = DateTime.UtcNow },
-        new Employee() { CompanyID = 1, Name = "New Employee2", StartWorking = DateTime.UtcNow },
-        new Employee() { CompanyID = 2, Name = "New Employee1" }
-      };
-
-      var anon = new
-      {
-        CompanyID = 1,
-        Name = "rrrrrrrr",
-        Age = 26,
-        StartWorking = (DateTime?)DateTime.UtcNow
-      };
-
-      //var precompiled = Commands.Compile(anon, "update Employee set Phone = @Phone, Age = @Age where ID = @ID");
-      //var precompiled = Commands.Compile(anon, "insert into Employee (CompanyID, Name, StartWorking) values (@CompanyID, @Name, @StartWorking)");
-      var precompiled = MappedCommand.Compile(anon, "select * from Employee where CompanyID = @CompanyID and Age > @Age");
-
-      var res = precompiled.ExecuteQueryAsync<Employee>(connStr, anon).ToArray().Result;
-
-      var res2 = SqlExecutor.ExecuteQueryAsync<Employee>(connStr, "select * from Employee where CompanyID = @p0 and Age > @p1", 1, 26).ToArray().Result;
-
-      return;
-
       // change sample name to one's you interested in
-      //Sample1();
-      //Sample1Async().Wait();
+      Sample1();
+      Sample1Async().Wait();
 
       Console.WriteLine("End");
       //Console.ReadKey();
@@ -105,121 +45,211 @@ namespace Samples
 
     static async Task Sample1Async()
     {
-      var q = SqlExecutor.ExecuteQueryAsync<Employee>(connStr, "select * from Employee");
+      var q = SimpleCommand.Compile("select * from Employee").ExecuteQueryAsync<Employee>(connStr);
       var arr = await q.ToArray();
     }
 
     // Using parameterized query
     static void Sample2()
     {
-      var q = SqlExecutor.ExecuteQuery<Employee>(connStr, "select * from Employee where CompanyID = @p0 and Age > @p1", 1, 40);
-      var arr = q.ToArray();
+      // simple command
+      var q1 = SimpleCommand.Compile("select * from Employee where CompanyID = @p0 and Age > @p1", 1, 40).ExecuteQuery<Employee>(connStr);
+      var arr1 = q1.ToArray();
+
+      // mapped command
+      var q2 = MappedCommand.Compile<OtherEmployee>("select * from Employee where CompanyID = @CompanyID and Age > @Age")
+        .ExecuteQuery<Employee>(connStr, new OtherEmployee() { CompanyID = 1, Age = 40 });
+      var arr2 = q2.ToArray();
+
+      // mapped command with anonymous type
+      var a = new { CompanyID = 1, Age = 40 };
+      var q3 = MappedCommand.Compile(a, "select * from Employee where CompanyID = @CompanyID and Age > @Age").ExecuteQuery<Employee>(connStr, a);
+      var arr3 = q3.ToArray();
     }
 
     static async Task Sample2Async()
     {
-      var q = SqlExecutor.ExecuteQueryAsync<Employee>(connStr, "select * from Employee where CompanyID = @p0 and Age > @p1", 1, 40);
-      var arr = await q.ToArray();
+      // simple command
+      var q1 = SimpleCommand.Compile("select * from Employee where CompanyID = @p0 and Age > @p1", 1, 40).ExecuteQueryAsync<Employee>(connStr);
+      var arr1 = await q1.ToArray();
+
+      // mapped command
+      var q2 = MappedCommand.Compile<OtherEmployee>("select * from Employee where CompanyID = @CompanyID and Age > @Age")
+        .ExecuteQueryAsync<Employee>(connStr, new OtherEmployee() { CompanyID = 1, Age = 40 });
+      var arr2 = await q2.ToArray();
+
+      // mapped command with anonymous type
+      var a = new { CompanyID = 1, Age = 40 };
+      var q3 = MappedCommand.Compile(a, "select * from Employee where CompanyID = @CompanyID and Age > @Age").ExecuteQueryAsync<Employee>(connStr, a);
+      var arr3 = await q3.ToArray();
     }
 
     // Using FieldsSelector option: there will only be filled columns contains in source
     static void Sample3()
     {
-      var q = SqlExecutor.ExecuteQuery<Employee>(new SqlExecutorOptions(fieldsSelector: FieldsSelector.Source), connStr, "select ID, CompanyID, Name, Phone from Employee where CompanyID = @p0", 1);
-      var arr = q.ToArray();
+      // simple command
+      var q1 = SimpleCommand.Compile("select ID, CompanyID, Name, Phone from Employee where CompanyID = @p0", 1)
+        .ExecuteQuery<Employee>(connStr, new ExecutionOptions(fieldsSelector: FieldsSelector.Source));
+      var arr1 = q1.ToArray();
+
+      // mapped command with anonymous type
+      var a = new { CompanyID = 1 };
+      var q2 = MappedCommand.Compile(a, "select ID, CompanyID, Name, Phone from Employee where CompanyID = @CompanyID")
+        .ExecuteQuery<Employee>(connStr, a, new ExecutionOptions(fieldsSelector: FieldsSelector.Source));
+      var arr2 = q2.ToArray();
     }
 
     static async Task Sample3Async()
     {
-      var q = SqlExecutor.ExecuteQueryAsync<Employee>(new SqlExecutorOptions(fieldsSelector: FieldsSelector.Source), connStr, "select ID, CompanyID, Name, Phone from Employee where CompanyID = @p0", 1);
-      var arr = await q.ToArray();
+      // simple command
+      var q1 = SimpleCommand.Compile("select ID, CompanyID, Name, Phone from Employee where CompanyID = @p0", 1)
+        .ExecuteQueryAsync<Employee>(connStr, new ExecutionOptions(fieldsSelector: FieldsSelector.Source));
+      var arr1 = await q1.ToArray();
+
+      // mapped command with anonymous type
+      var a = new { CompanyID = 1 };
+      var q2 = MappedCommand.Compile(a, "select ID, CompanyID, Name, Phone from Employee where CompanyID = @CompanyID")
+        .ExecuteQueryAsync<Employee>(connStr, a, new ExecutionOptions(fieldsSelector: FieldsSelector.Source));
+      var arr2 = await q2.ToArray();
     }
 
     // Using FieldsSelector option: there will only be filled columns contains both in source and destination 
     static void Sample4()
     {
-      var q = SqlExecutor.ExecuteQuery<OtherEmployee>(new SqlExecutorOptions(fieldsSelector: FieldsSelector.Common), connStr, "select * from Employee");
-      var arr = q.ToArray();
+      // simple command
+      var q1 = SimpleCommand.Compile("select * from Employee")
+        .ExecuteQuery<OtherEmployee>(connStr, new ExecutionOptions(fieldsSelector: FieldsSelector.Common));
+      var arr1 = q1.ToArray();
     }
 
     static async Task Sample4Async()
     {
-      var q = SqlExecutor.ExecuteQueryAsync<OtherEmployee>(new SqlExecutorOptions(fieldsSelector: FieldsSelector.Common), connStr, "select * from Employee");
-      var arr = await q.ToArray();
+      // simple command
+      var q1 = SimpleCommand.Compile("select * from Employee")
+        .ExecuteQueryAsync<OtherEmployee>(connStr, new ExecutionOptions(fieldsSelector: FieldsSelector.Common));
+      var arr1 = await q1.ToArray();
     }
 
     // Using options
     static void Sample5()
     {
-      var q = SqlExecutor.ExecuteQuery<OtherEmployee>(new SqlExecutorOptions(60, FieldsSelector.Common, false, FromTypeOption.Both), connStr, "select * from Employee");
-      var arr = q.ToArray();
+      // simple command
+      var q1 = SimpleCommand.Compile("select * from Employee")
+        .ExecuteQuery<OtherEmployee>(connStr, new ExecutionOptions(60, FieldsSelector.Common, false, FromTypeOption.Both));
+      var arr1 = q1.ToArray();
     }
 
     static async Task Sample5Async()
     {
-      var q = SqlExecutor.ExecuteQueryAsync<OtherEmployee>(new SqlExecutorOptions(60, FieldsSelector.Common, false, FromTypeOption.Both), connStr, "select * from Employee");
-      var arr = await q.ToArray();
+      // simple command
+      var q1 = SimpleCommand.Compile("select * from Employee")
+        .ExecuteQueryAsync<OtherEmployee>(connStr, new ExecutionOptions(60, FieldsSelector.Common, false, FromTypeOption.Both));
+      var arr1 = await q1.ToArray();
     }
 
     // Retrieving anonimous entities
     static void Sample6()
     {
+      // simple command
       var proto = new { Company = default(string), Emp = default(string) };
-      var q = SqlExecutor.ExecuteQueryAnonymous(proto, connStr, "select E.Name as Emp, C.Name as Company from Employee E join Company C on E.CompanyID = C.ID");
-      var arr = q.ToArray();
+      var q1 = SimpleCommand.Compile("select E.Name as Emp, C.Name as Company from Employee E join Company C on E.CompanyID = C.ID")
+        .ExecuteQueryAnonymous(proto, connStr);
+      var arr1 = q1.ToArray();
     }
 
     static async Task Sample6Async()
     {
+      // simple command
       var proto = new { Company = default(string), Emp = default(string) };
-      var q = SqlExecutor.ExecuteQueryAnonymousAsync(proto, connStr, "select E.Name as Emp, C.Name as Company from Employee E join Company C on E.CompanyID = C.ID");
-      var arr = await q.ToArray();
+      var q1 = SimpleCommand.Compile("select E.Name as Emp, C.Name as Company from Employee E join Company C on E.CompanyID = C.ID")
+        .ExecuteQueryAnonymousAsync(proto, connStr);
+      var arr1 = await q1.ToArray();
     }
 
     // Retrieving list of values
     static void Sample7()
     {
-      var q = SqlExecutor.ExecuteQueryFirstColumn<int>(connStr, "select ID from Employee");
-      var arr = q.ToArray();
+      // simple command
+      var q1 = SimpleCommand.Compile("select ID from Employee").ExecuteQueryFirstColumn<int>(connStr);
+      var arr1 = q1.ToArray();
     }
 
     static async Task Sample7Async()
     {
-      var q = SqlExecutor.ExecuteQueryFirstColumnAsync<int>(connStr, "select ID from Employee");
-      var arr = await q.ToArray();
+      // simple command
+      var q1 = SimpleCommand.Compile("select ID from Employee").ExecuteQueryFirstColumnAsync<int>(connStr);
+      var arr1 = await q1.ToArray();
     }
 
     // Retrieving one value
     static void Sample8()
     {
-      var empName = SqlExecutor.ExecuteQueryFirstColumn<string>(connStr, "select Name from Employee where CompanyID = @p0 and Age > @p1", 1, 40).First();
+      // simple command
+      var empName1 = SimpleCommand.Compile("select Name from Employee where CompanyID = @p0 and Age > @p1", 1, 40)
+        .ExecuteQueryFirstColumn<string>(connStr).First();
+
+      // mapped command with anonymous type
+      var a = new { CompanyID = 1, Age = 40 };
+      var empName2 = MappedCommand.Compile(a, "select Name from Employee where CompanyID = @CompanyID and Age > @Age")
+        .ExecuteQueryFirstColumn<string>(connStr, a).First();
     }
 
     static async Task Sample8Async()
     {
-      var empName = await SqlExecutor.ExecuteQueryFirstColumnAsync<string>(connStr, "select Name from Employee where CompanyID = @p0 and Age > @p1", 1, 40).First();
+      // simple command
+      var empName1 = await SimpleCommand.Compile("select Name from Employee where CompanyID = @p0 and Age > @p1", 1, 40)
+        .ExecuteQueryFirstColumnAsync<string>(connStr).First();
+
+      // mapped command with anonymous type
+      var a = new { CompanyID = 1, Age = 40 };
+      var empName2 = await MappedCommand.Compile(a, "select Name from Employee where CompanyID = @CompanyID and Age > @Age")
+        .ExecuteQueryFirstColumnAsync<string>(connStr, a).First();
     }
 
     // Using query with modification and retrieving data
     static void Sample9()
     {
-      int newID = SqlExecutor.ExecuteQueryFirstColumn<int>(connStr, "insert into Employee (CompanyID, Name, Age) values (@p0, @p1, @p2); select cast(scope_identity() as int)", 2, "Mary Grant", 30).First();
+      // simple command
+      int newID1 = SimpleCommand.Compile("insert into Employee (CompanyID, Name, Age) values (@p0, @p1, @p2); select cast(scope_identity() as int)", 2, "Mary Grant", 30)
+        .ExecuteQueryFirstColumn<int>(connStr).First();
+
+      // mapped command
+      var emp = new Employee() { CompanyID = 2, Name = "Mary Grant", Age = 30 };
+      int newID2 = MappedCommand.Compile<Employee>("insert into Employee (CompanyID, Name, Age) values (@CompanyID, @Name, @Age); select cast(scope_identity() as int)")
+        .ExecuteQueryFirstColumn<int>(connStr, emp).First();
     }
 
     static async Task Sample9Async()
     {
-      int newID = await SqlExecutor.ExecuteQueryFirstColumnAsync<int>(connStr, "insert into Employee (CompanyID, Name, Age) values (@p0, @p1, @p2); select cast(scope_identity() as int)", 2, "Mary Grant", 30).First();
+      // simple command
+      int newID1 = await SimpleCommand.Compile("insert into Employee (CompanyID, Name, Age) values (@p0, @p1, @p2); select cast(scope_identity() as int)", 2, "Mary Grant", 30)
+        .ExecuteQueryFirstColumnAsync<int>(connStr).First();
+
+      // mapped command
+      var emp = new Employee() { CompanyID = 2, Name = "Mary Grant", Age = 30 };
+      int newID2 = await MappedCommand.Compile<Employee>("insert into Employee (CompanyID, Name, Age) values (@CompanyID, @Name, @Age); select cast(scope_identity() as int)")
+        .ExecuteQueryFirstColumnAsync<int>(connStr, emp).First();
     }
 
     // Query without retrieving data
     static void Sample10()
     {
-      SqlExecutor.ExecuteNonQuery(connStr, "update Company set Name = @p1 where ID = @p0", 2, "Updated Co");
+      // simple command
+      SimpleCommand.Compile("update Company set Name = @p1 where ID = @p0", 2, "Updated Co").ExecuteNonQuery(connStr);
+
+      // mapped command with anonymous type
+      var a = new { ID = 2, Name = "Updated Co" };
+      MappedCommand.Compile(a, "update Company set Name = @Name where ID = @ID").ExecuteNonQuery(connStr, a);
     }
 
     static async Task Sample10Async()
     {
-      await SqlExecutor.ExecuteNonQueryAsync(connStr, "update Company set Name = @p1 where ID = @p0", 2, "Updated Co2");
+      // simple command
+      await SimpleCommand.Compile("update Company set Name = @p1 where ID = @p0", 2, "Updated Co").ExecuteNonQueryAsync(connStr);
+
+      // mapped command with anonymous type
+      var a = new { ID = 2, Name = "Updated Co" };
+      await MappedCommand.Compile(a, "update Company set Name = @Name where ID = @ID").ExecuteNonQueryAsync(connStr, a);
     }
 
     // Bulk insert of entities to database
@@ -291,16 +321,25 @@ namespace Samples
         new Employee() { CompanyID = 2, Name = "New Employee1" }
       };
 
-      // using SqlExecutor.UsingTransaction method. 
-      SqlExecutor.UsingTransaction(x =>
+      // simple command
+      var precompiled1 = SimpleCommand.Compile("select * from Employee where Age is not null");
+      // mapped command
+      var precompiled2 = MappedCommand.Compile<Employee>("update Employee set Age = Age + 1 where ID = @ID");
+
+      // using method SqlScope.UsingTransaction
+      SqlScope.UsingTransaction(connStr, scope =>
         {
-          var arr = x.ExecuteQuery<Employee>("select * from Employee where Age is not null").ToArray();
+          // using precompiled simple command
+          var arr = precompiled1.Create(scope).ExecuteQuery<Employee>().ToArray();
 
-          x.ExecuteNonQuery("update Employee set Age = Age + 1 where ID = @p0", 3);
+          // using precompiled mapped command
+          Employee e = new Employee() { ID = 3 };
+          precompiled2.Create(scope, e).ExecuteNonQuery();
+          e.ID = 4;
+          precompiled2.Create(scope, e).ExecuteNonQuery();
 
-          newEmployees.WriteToServer(x.Transaction, "Employee");
-
-        }, connStr);
+          newEmployees.WriteToServer(scope.Transaction, "Employee");
+        });
 
       // using external transaction
       using (SqlConnection conn = new SqlConnection(connStr))
@@ -311,13 +350,19 @@ namespace Samples
 
         try
         {
-          SqlExecutor executor = new SqlExecutor(tran);
+          SqlScope scope = new SqlScope(tran);
 
-          var arr = executor.ExecuteQuery<Employee>("select * from Employee where Age is not null");
+          // using precompiled simple command
+          var arr = precompiled1.Create(scope).ExecuteQuery<Employee>().ToArray();
 
-          executor.ExecuteNonQuery("update Employee set Age = Age + 1 where ID = @p0", 3);
+          // using precompiled mapped command
+          Employee e = new Employee() { ID = 3 };
+          precompiled2.Create(scope, e).ExecuteNonQuery();
+          e.ID = 4;
+          precompiled2.Create(scope, e).ExecuteNonQuery();
 
-          newEmployees.WriteToServer(tran, "Employee");
+          newEmployees.WriteToServer(scope.Transaction, "Employee");
+
           tran.Commit();
         }
         catch
@@ -331,21 +376,30 @@ namespace Samples
     static async Task Sample13Async()
     {
       Employee[] newEmployees = new Employee[] {
-        new Employee() { CompanyID = 1, Name = "New Employee13", Age = 23, StartWorking = DateTime.UtcNow },
-        new Employee() { CompanyID = 1, Name = "New Employee23", StartWorking = DateTime.UtcNow },
-        new Employee() { CompanyID = 2, Name = "New Employee13" }
+        new Employee() { CompanyID = 1, Name = "New Employee1", Age = 23, StartWorking = DateTime.UtcNow },
+        new Employee() { CompanyID = 1, Name = "New Employee2", StartWorking = DateTime.UtcNow },
+        new Employee() { CompanyID = 2, Name = "New Employee1" }
       };
 
-      // using SqlExecutor.UsingTransaction method. 
-      await SqlExecutor.UsingTransactionAsync(async x =>
+      // simple command
+      var precompiled1 = SimpleCommand.Compile("select * from Employee where Age is not null");
+      // mapped command
+      var precompiled2 = MappedCommand.Compile<Employee>("update Employee set Age = Age + 1 where ID = @ID");
+
+      // using method SqlScope.UsingTransaction
+      await SqlScope.UsingTransactionAsync(connStr, async scope =>
       {
-        var arr = await x.ExecuteQueryAsync<Employee>("select * from Employee where Age is not null").ToArray();
+        // using precompiled simple command
+        var arr = await precompiled1.Create(scope).ExecuteQueryAsync<Employee>().ToArray();
 
-        await x.ExecuteNonQueryAsync("update Employee set Age = Age + 1 where ID = @p0", 3);
+        // using precompiled mapped command
+        Employee e = new Employee() { ID = 3 };
+        await precompiled2.Create(scope, e).ExecuteNonQueryAsync();
+        e.ID = 4;
+        await precompiled2.Create(scope, e).ExecuteNonQueryAsync();
 
-        await newEmployees.WriteToServerAsync(x.Transaction, "Employee");
-
-      }, connStr);
+        await newEmployees.WriteToServerAsync(scope.Transaction, "Employee");
+      });
 
       // using external transaction
       using (SqlConnection conn = new SqlConnection(connStr))
@@ -356,13 +410,19 @@ namespace Samples
 
         try
         {
-          SqlExecutor executor = new SqlExecutor(tran);
+          SqlScope scope = new SqlScope(tran);
 
-          var arr = await executor.ExecuteQueryAsync<Employee>("select * from Employee where Age is not null").ToArray();
+          // using precompiled simple command
+          var arr = await precompiled1.Create(scope).ExecuteQueryAsync<Employee>().ToArray();
 
-          await executor.ExecuteNonQueryAsync("update Employee set Age = Age + 1 where ID = @p0", 3);
+          // using precompiled mapped command
+          Employee e = new Employee() { ID = 3 };
+          await precompiled2.Create(scope, e).ExecuteNonQueryAsync();
+          e.ID = 4;
+          await precompiled2.Create(scope, e).ExecuteNonQueryAsync();
 
-          await newEmployees.WriteToServerAsync(tran, "Employee");
+          await newEmployees.WriteToServerAsync(scope.Transaction, "Employee");
+
           tran.Commit();
         }
         catch
@@ -397,34 +457,26 @@ namespace Samples
     // Getting IEnumerable<T> from IDataReader
     static void Sample15()
     {
-      using (SqlConnection conn = new SqlConnection(connStr))
+      SqlScope.UsingConnection(connStr, scope =>
       {
-        conn.Open();
-
-        SqlExecutor executor = new SqlExecutor(conn);
-
-        using (SqlDataReader reader = executor.ExecuteReader("select * from Employee where CompanyID = @p0 and Age > @p1", 1, 40))
+        using (var reader = SimpleCommand.Compile("select * from Employee where CompanyID = @p0 and Age > @p1", 1, 30).Create(scope).ExecuteReader())
         {
           IEnumerable<Employee> eployeeEnumerable = reader.ReadAll<Employee>();
           var arr = eployeeEnumerable.ToArray();
         }
-      }
+      });
     }
 
     static async Task Sample15Async()
     {
-      using (SqlConnection conn = new SqlConnection(connStr))
+      await SqlScope.UsingConnectionAsync(connStr, async scope =>
       {
-        await conn.OpenAsync();
-
-        SqlExecutor executor = new SqlExecutor(conn);
-
-        using (SqlDataReader reader = await executor.ExecuteReaderAsync("select * from Employee where CompanyID = @p0 and Age > @p1", 1, 40))
+        using (var reader = await SimpleCommand.Compile("select * from Employee where CompanyID = @p0 and Age > @p1", 1, 30).Create(scope).ExecuteReaderAsync())
         {
-          IAsyncEnumerable<Employee> eployeeEnumerable = reader.ReadAllAsync<Employee>();
+          var eployeeEnumerable = reader.ReadAllAsync<Employee>();
           var arr = await eployeeEnumerable.ToArray();
         }
-      }
+      });
     }
 
     // Data import between databases
@@ -445,107 +497,6 @@ namespace Samples
       // Simple import
       await  Import.ExecuteAsync(connStr, connStr2, "select Name, Age from Employee where Age <= @p0", "Person", 30);
     }
-
-    // Using Commands
-    static void Sample17()
-    {
-      var precompiled = MappedCommand.Compile<Employee>("update Employee set Phone = @Phone, Age = @Age where ID = @ID");
-      var emp = new Employee() { ID = 2, Name = "Name1", Age = 33, Phone = "111-222-333" };
-
-      precompiled.ExecuteNonQuery(connStr, emp);
-      emp.Age += 3;
-      precompiled.ExecuteNonQuery(connStr, emp);
-    }
-
-    static async Task Sample17Async()
-    {
-      var precompiled = MappedCommand.Compile<Employee>("update Employee set Phone = @Phone, Age = @Age where ID = @ID");
-      var emp = new Employee() { ID = 2, Name = "Name1", Age = 33, Phone = "111-222-333" };
-
-      await precompiled.ExecuteNonQueryAsync(connStr, emp);
-      emp.Age += 3;
-      await precompiled.ExecuteNonQueryAsync(connStr, emp);
-    }
-
-    // Using Commands with anonymous type
-    static void Sample18()
-    {
-      var anonymousEmp = new { ID = 2, Age = 22, Phone = "111-888-333" };
-
-      var precompiled = MappedCommand.Compile(anonymousEmp, "update Employee set Phone = @Phone, Age = @Age where ID = @ID");
-
-      precompiled.ExecuteNonQuery(connStr, anonymousEmp);
-      anonymousEmp = new { ID = 2, Age = 28, Phone = "111-777-333" };
-      precompiled.ExecuteNonQuery(connStr, anonymousEmp);
-    }
-
-    static async Task Sample18Async()
-    {
-      var anonimousEmp = new { ID = 2, Age = 22, Phone = "111-888-333" };
-
-      var precompiled = MappedCommand.Compile(anonimousEmp, "update Employee set Phone = @Phone, Age = @Age where ID = @ID");
-
-      await precompiled.ExecuteNonQueryAsync(connStr, anonimousEmp);
-      anonimousEmp = new { ID = 2, Age = 28, Phone = "111-777-333" };
-      await precompiled.ExecuteNonQueryAsync(connStr, anonimousEmp);
-    }
-
-    //// Using Commands with external transactions and connections
-    //static void Sample19()
-    //{
-    //  var anonimousEmp = new { CompanyID = 2, Name = "Name1", Age = 22, Phone = "111-888-333" };
-    //  var precompiled = Commands.Compile(anonimousEmp, "insert into Employee (CompanyID, Name, Age, Phone) values (@CompanyID, @Name, @Age, @Phone)");
-
-    //  SqlExecutor.UsingTransaction(sql =>
-    //  {
-    //    var cmd = precompiled.Create(sql);
-
-    //    cmd.ExecuteNonQuery(anonimousEmp);
-    //    anonimousEmp = new { CompanyID = 2, Name = "Name2", Age = 20, Phone = "111-444-333" };
-    //    cmd.ExecuteNonQuery(anonimousEmp);
-
-    //  }, connStr);
-
-
-    //  SqlExecutor.UsingConnection(conn =>
-    //  {
-    //    var cmd = precompiled.Create(conn);
-
-    //    anonimousEmp = new { CompanyID = 1, Name = "Name11", Age = 27, Phone = "999-444-333" };
-    //    cmd.ExecuteNonQuery(anonimousEmp);
-    //    anonimousEmp = new { CompanyID = 1, Name = "Name12", Age = 37, Phone = "888-444-333" };
-    //    cmd.ExecuteNonQuery(anonimousEmp);
-
-    //  }, connStr);
-    //}
-
-    //static async Task Sample19Async()
-    //{
-    //  var anonimousEmp = new { CompanyID = 2, Name = "Name111", Age = 22, Phone = "111-888-333" };
-    //  var precompiled = Commands.Compile(anonimousEmp, "insert into Employee (CompanyID, Name, Age, Phone) values (@CompanyID, @Name, @Age, @Phone)");
-
-    //  await SqlExecutor.UsingTransactionAsync(async sql =>
-    //  {
-    //    var cmd = precompiled.Create(sql);
-
-    //    await cmd.ExecuteNonQueryAsync(anonimousEmp);
-    //    anonimousEmp = new { CompanyID = 2, Name = "Name222", Age = 20, Phone = "111-444-333" };
-    //    await cmd.ExecuteNonQueryAsync(anonimousEmp);
-
-    //  }, connStr);
-
-
-    //  await SqlExecutor.UsingConnectionAsync(async conn =>
-    //  {
-    //    var cmd = precompiled.Create(conn);
-
-    //    anonimousEmp = new { CompanyID = 1, Name = "Name1122", Age = 27, Phone = "999-444-333" };
-    //    await cmd.ExecuteNonQueryAsync(anonimousEmp);
-    //    anonimousEmp = new { CompanyID = 1, Name = "Name1234", Age = 37, Phone = "888-444-333" };
-    //    await cmd.ExecuteNonQueryAsync(anonimousEmp);
-
-    //  }, connStr);
-    //}
   }
 
   public class C
@@ -554,5 +505,4 @@ namespace Samples
     public int Index1;
     public int Index2;
   }
-
 }

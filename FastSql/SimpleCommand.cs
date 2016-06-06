@@ -22,19 +22,19 @@ namespace Gerakul.FastSql
       this.parameters = parameters;
     }
 
-    public DbCommand Create(SqlScope scope, QueryOptions queryOptions = null)
+    public DbCommand Create(IDbScope scope, QueryOptions queryOptions = null)
     {
-      var cmd = scope.CreateCommandInternal(CommandText);
+      var cmd = scope.CreateCommand(CommandText);
 
       for (int i = 0; i < parameters.Length; i++)
       {
-        if (parameters[i] is SqlParameter)
+        if (parameters[i] is DbParameter)
         {
           cmd.Parameters.Add(parameters[i]);
         }
         else
         {
-          cmd.Parameters.AddWithValue("@p" + i.ToString(), (object)parameters[i] ?? DBNull.Value);
+          scope.AddParamWithValue(cmd, "@p" + i.ToString(), (object)parameters[i] ?? DBNull.Value);
         }
       }
 
