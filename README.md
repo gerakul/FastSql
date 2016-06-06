@@ -35,7 +35,7 @@ Light-weight, fast and easy to use C# library to retrieve, write (including bulk
   ```
   or asynchronously
   ```csharp
-  var q1 = SimpleCommand.Compile("select E.Name as Emp, C.Name as Company from Employee E join Company C on E.CompanyID = C.ID")
+  var q1 = await SimpleCommand.Compile("select E.Name as Emp, C.Name as Company from Employee E join Company C on E.CompanyID = C.ID")
       .ExecuteQueryAnonymousAsync(new { Company = default(string), Emp = default(string) }, connStr);
   ```
   
