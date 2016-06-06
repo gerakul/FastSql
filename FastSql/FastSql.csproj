@@ -45,11 +45,10 @@
     <Compile Include="AEnumerable.cs" />
     <Compile Include="AsyncState.cs" />
     <Compile Include="BulkCopy.cs" />
-    <Compile Include="Command.cs" />
     <Compile Include="Commands.cs" />
     <Compile Include="DataReaderExtensions.cs" />
     <Compile Include="EnumerableExtensions.cs" />
-    <Compile Include="ExecutableCommand.cs" />
+    <Compile Include="DbCommandExtensions.cs" />
     <Compile Include="FieldSettings.cs" />
     <Compile Include="FieldsSelector.cs" />
     <Compile Include="Helpers.cs" />
@@ -58,6 +57,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ReadInfo.cs" />
     <Compile Include="SqlExecutor.cs" />
+    <Compile Include="SqlScope.cs" />
     <Compile Include="UniversalDataReader.cs" />
   </ItemGroup>
   <ItemGroup>

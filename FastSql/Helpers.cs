@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Data;
+using System.Data.Common;
 using System.Data.SqlClient;
 using System.Threading;
 using System.Threading.Tasks;
@@ -66,7 +68,7 @@ namespace Gerakul.FastSql
       );
     }
 
-    internal static void ApplyQueryOptions(SqlCommand cmd, QueryOptions queryOptions)
+    internal static void ApplyQueryOptions(DbCommand cmd, QueryOptions queryOptions)
     {
       if (queryOptions == null)
       {

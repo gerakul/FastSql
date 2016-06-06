@@ -16,7 +16,7 @@ namespace Gerakul.FastSql
     public string CommandText { get; private set; }
     internal ParMap<T>[] Map;
 
-    internal PrecompiledCommand(string commandText, IList<SqlParameter> parameters, IList<FieldSettings<T>> settings)
+    internal PrecompiledCommand(string commandText, IList<string> parameters, IList<FieldSettings<T>> settings)
     {
       this.CommandText = commandText;
 
@@ -25,7 +25,7 @@ namespace Gerakul.FastSql
         Map = new ParMap<T>[0];
       }
 
-      if (parameters.GroupBy(x => x.ParameterName.GetSqlParameterName().ToLowerInvariant()).Any(x => x.Count() > 1))
+      if (parameters.GroupBy(x => x.GetSqlParameterName().ToLowerInvariant()).Any(x => x.Count() > 1))
       {
         throw new ArgumentException("Parameter names has been duplicated");
       }
@@ -37,9 +37,9 @@ namespace Gerakul.FastSql
 
       Map = parameters
         .Join(settings,
-          x => x.ParameterName.GetSqlParameterName().ToLowerInvariant(),
+          x => x.GetSqlParameterName().ToLowerInvariant(),
           x => x.Name.ToLowerInvariant(),
-          (x, y) => new ParMap<T>() { Parameter = x, Settings = y }).ToArray();
+          (x, y) => new ParMap<T>() { ParameterName = x, Settings = y }).ToArray();
 
       if (Map.Length < parameters.Count)
       {
@@ -47,25 +47,36 @@ namespace Gerakul.FastSql
       }
     }
 
-    public Command<T> Create(SqlConnection conn, QueryOptions queryOptions = null)
+    public SqlCommand Create(SqlScope scope, T value, QueryOptions queryOptions = null)
     {
-      return new Command<T>(this, conn, queryOptions);
-    }
+      var cmd = scope.CreateCommandInternal(CommandText);
 
-    public Command<T> Create(SqlTransaction tran, QueryOptions queryOptions = null)
-    {
-      return new Command<T>(this, tran, queryOptions);
-    }
+      for (int i = 0; i < Map.Length; i++)
+      {
+        var m = Map[i];
+        object paramValue;
+        if (m.Settings.DetermineNullByValue)
+        {
+          var val = m.Settings.Getter(value);
+          paramValue = val == null ? DBNull.Value : val;
+        }
+        else
+        {
+          paramValue = m.Settings.IsNullGetter(value) ? DBNull.Value : m.Settings.Getter(value);
+        }
 
-    public Command<T> Create(SqlExecutor executor, QueryOptions queryOptions = null)
-    {
-      return new Command<T>(this, executor, queryOptions);
+        cmd.Parameters.AddWithValue(m.ParameterName, paramValue);
+      }
+
+      Helpers.ApplyQueryOptions(cmd, queryOptions ?? new QueryOptions());
+
+      return cmd;
     }
 
     public int ExecuteNonQuery(string connectionString, T value, QueryOptions queryOptions = null)
     {
       int result = 0;
-      Commands.UsingConnection(connectionString, conn => result = Create(conn, queryOptions).Fill(value).ExecuteNonQuery());
+      SqlScope.UsingConnection(connectionString, scope => result = Create(scope, value).ExecuteNonQuery(queryOptions));
       return result;
     }
 
@@ -73,15 +84,15 @@ namespace Gerakul.FastSql
       CancellationToken cancellationToken = default(CancellationToken))
     {
       int result = 0;
-      await Commands.UsingConnectionAsync(connectionString, 
-        async conn => result = await Create(conn, queryOptions).Fill(value).ExecuteNonQueryAsync(null, cancellationToken));
+      await SqlScope.UsingConnectionAsync(connectionString, 
+        async scope => result = await Create(scope, value).ExecuteNonQueryAsync(queryOptions, cancellationToken));
       return result;
     }
 
     public object ExecuteScalar(string connectionString, T value, QueryOptions queryOptions = null)
     {
       object result = null;
-      Commands.UsingConnection(connectionString, conn => Create(conn, queryOptions).Fill(value).ExecuteScalar());
+      SqlScope.UsingConnection(connectionString, scope => Create(scope, value).ExecuteScalar(queryOptions));
       return result;
     }
 
@@ -89,8 +100,8 @@ namespace Gerakul.FastSql
       CancellationToken cancellationToken = default(CancellationToken))
     {
       object result = null;
-      await Commands.UsingConnectionAsync(connectionString,
-        async conn => result = await Create(conn, queryOptions).Fill(value).ExecuteScalarAsync(null, cancellationToken));
+      await SqlScope.UsingConnectionAsync(connectionString,
+        async scope => result = await Create(scope, value).ExecuteScalarAsync(queryOptions, cancellationToken));
       return result;
     }
 
@@ -106,10 +117,10 @@ namespace Gerakul.FastSql
             state.ReadInfo.Reader.Close();
           }
 
-          if (state.InternalConnection != null)
-          {
-            state.InternalConnection.Close();
-          }
+            if (state.InternalConnection != null)
+            {
+              state.InternalConnection.Close();
+            }
         },
 
         async (state, ct) =>
@@ -120,7 +131,7 @@ namespace Gerakul.FastSql
             conn = new SqlConnection(connectionString);
             await conn.OpenAsync(executeReaderCancellationToken).ConfigureAwait(false);
             state.InternalConnection = conn;
-            var reader = await Create(conn, options?.QueryOptions).Fill(value).ExecuteReaderAsync(null, executeReaderCancellationToken).ConfigureAwait(false);
+            var reader = await Create(new SqlScope(conn), value).ExecuteReaderAsync(options?.QueryOptions, executeReaderCancellationToken).ConfigureAwait(false);
             state.ReadInfo = readInfoGetter(reader);
           }
           catch
@@ -135,13 +146,13 @@ namespace Gerakul.FastSql
         });
     }
 
-
     public IEnumerable<object[]> ExecuteQuery(string connectionString, T value, SqlExecutorOptions options = null)
     {
       using (SqlConnection conn = new SqlConnection(connectionString))
       {
         conn.Open();
-        foreach (var item in Create(conn).Fill(value).ExecuteQuery(options))
+        SqlScope scope = new SqlScope(conn);
+        foreach (var item in Create(scope, value).ExecuteQuery(options))
         {
           yield return item;
         }
@@ -159,7 +170,8 @@ namespace Gerakul.FastSql
       using (SqlConnection conn = new SqlConnection(connectionString))
       {
         conn.Open();
-        foreach (var item in Create(conn).Fill(value).ExecuteQuery<R>(options))
+        SqlScope scope = new SqlScope(conn);
+        foreach (var item in Create(scope, value).ExecuteQuery<R>(options))
         {
           yield return item;
         }
@@ -177,7 +189,8 @@ namespace Gerakul.FastSql
       using (SqlConnection conn = new SqlConnection(connectionString))
       {
         conn.Open();
-        foreach (var item in Create(conn).Fill(value).ExecuteQueryAnonymous(proto, options))
+        SqlScope scope = new SqlScope(conn);
+        foreach (var item in Create(scope, value).ExecuteQueryAnonymous(proto, options))
         {
           yield return item;
         }
@@ -196,7 +209,8 @@ namespace Gerakul.FastSql
       using (SqlConnection conn = new SqlConnection(connectionString))
       {
         conn.Open();
-        foreach (var item in Create(conn).Fill(value).ExecuteQueryFirstColumn(options))
+        SqlScope scope = new SqlScope(conn);
+        foreach (var item in Create(scope, value).ExecuteQueryFirstColumn(options))
         {
           yield return item;
         }
@@ -215,7 +229,8 @@ namespace Gerakul.FastSql
       using (SqlConnection conn = new SqlConnection(connectionString))
       {
         conn.Open();
-        foreach (var item in Create(conn).Fill(value).ExecuteQueryFirstColumn<R>(options))
+        SqlScope scope = new SqlScope(conn);
+        foreach (var item in Create(scope, value).ExecuteQueryFirstColumn<R>(options))
         {
           yield return item;
         }
@@ -231,39 +246,7 @@ namespace Gerakul.FastSql
 
   internal class ParMap<T>
   {
-    public SqlParameter Parameter;
+    public string ParameterName;
     public FieldSettings<T> Settings;
-
-    public ParMap<T> Clone()
-    {
-      return new ParMap<T>()
-      {
-        Parameter = new SqlParameter(
-          Parameter.ParameterName,
-          Parameter.SqlDbType,
-          Parameter.Size,
-          Parameter.Direction,
-          Parameter.Precision,
-          Parameter.Scale,
-          Parameter.SourceColumn,
-          Parameter.SourceVersion,
-          Parameter.SourceColumnNullMapping,
-          Parameter.Value,
-          Parameter.XmlSchemaCollectionDatabase,
-          Parameter.XmlSchemaCollectionOwningSchema,
-          Parameter.XmlSchemaCollectionName)
-        {
-          CompareInfo = Parameter.CompareInfo,
-          IsNullable = Parameter.IsNullable,
-          LocaleId = Parameter.LocaleId,
-          TypeName = Parameter.TypeName,
-          UdtTypeName = Parameter.UdtTypeName,
-          SqlValue = Parameter.SqlValue,
-          Offset = Parameter.Offset
-        },
-
-        Settings = Settings
-      };
-    }
   }
 }

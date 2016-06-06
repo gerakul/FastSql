@@ -51,11 +51,6 @@ namespace Gerakul.FastSql
       return cmd;
     }
 
-    public ExecutableCommand CreateExecutable(string commandText, params object[] parameters)
-    {
-      return new ExecutableCommand(CreateCommand(commandText, parameters));
-    }
-
     public int ExecuteNonQuery(QueryOptions queryOptions, string commandText, params object[] parameters)
     {
       SqlCommand cmd = CreateCommand(commandText, parameters);
@@ -430,7 +425,7 @@ namespace Gerakul.FastSql
             await conn.OpenAsync(executeReaderCT).ConfigureAwait(false);
             state.InternalConnection = conn;
             SqlExecutor executor = new SqlExecutor(conn);
-            var reader = await executor.CreateExecutable(commandText, parameters).ExecuteReaderAsync(options?.QueryOptions, executeReaderCT).ConfigureAwait(false);
+            var reader = await executor.CreateCommand(commandText, parameters).ExecuteReaderAsync(options?.QueryOptions, executeReaderCT).ConfigureAwait(false);
             state.ReadInfo = readInfoGetter(reader);
           }
           catch
