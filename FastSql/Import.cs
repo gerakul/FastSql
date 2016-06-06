@@ -1,4 +1,5 @@
-﻿using System.Data.SqlClient;
+﻿using System.Data.Common;
+using System.Data.SqlClient;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -45,8 +46,8 @@ namespace Gerakul.FastSql
 
     public void Execute(ImportOptions options, string commandText, string destinationTable, params object[] commandParameters)
     {
-      SqlExecutor executor = TransactionFrom == null ? new SqlExecutor(ConnectionFrom) : new SqlExecutor(TransactionFrom);
-      using (SqlDataReader reader = executor.ExecuteReader(options.QueryOptions, commandText, commandParameters))
+      SqlScope scope = TransactionFrom == null ? new SqlScope(ConnectionFrom) : new SqlScope(TransactionFrom);
+      using (DbDataReader reader = SimpleCommand.Compile(commandText, commandParameters).Create(scope).ExecuteReader(options.QueryOptions))
       {
         if (TransactionTo == null)
         {
@@ -61,8 +62,8 @@ namespace Gerakul.FastSql
 
     public async Task ExecuteAsync(CancellationToken cancellationToken, ImportOptions options, string commandText, string destinationTable, params object[] commandParameters)
     {
-      SqlExecutor executor = TransactionFrom == null ? new SqlExecutor(ConnectionFrom) : new SqlExecutor(TransactionFrom);
-      using (SqlDataReader reader = await executor.ExecuteReaderAsync(cancellationToken, options.QueryOptions, commandText, commandParameters).ConfigureAwait(false))
+      SqlScope scope = TransactionFrom == null ? new SqlScope(ConnectionFrom) : new SqlScope(TransactionFrom);
+      using (DbDataReader reader = await SimpleCommand.Compile(commandText, commandParameters).Create(scope).ExecuteReaderAsync(options.QueryOptions).ConfigureAwait(false))
       {
         if (TransactionTo == null)
         {

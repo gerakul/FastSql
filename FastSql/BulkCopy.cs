@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Threading;
@@ -139,17 +140,35 @@ namespace Gerakul.FastSql
       return WriteToServerAsync(CancellationToken.None);
     }
 
-    private IEnumerable<string> GetTableColumns()
+    private IList<string> GetTableColumns()
     {
-      SqlExecutor executor = transaction == null ? new SqlExecutor(connection) : new SqlExecutor(transaction);
-      return executor.GetTableColumns(destinationTable);
+      SqlScope scope = transaction == null ? new SqlScope(connection) : new SqlScope(transaction);
+      List<string> result = new List<string>();
+      using (DbDataReader r = SimpleCommand.Compile(string.Format("select top 0 * from {0} with(nolock)", destinationTable)).Create(scope).ExecuteReader())
+      {
+        foreach (var item in r.GetColumnNames())
+        {
+          result.Add(item);
+        }
+      }
+
+      return result;
     }
 
     private async Task<IList<string>> GetTableColumnsAsync(CancellationToken cancellationToken)
     {
-      SqlExecutor executor = transaction == null ? new SqlExecutor(connection) : new SqlExecutor(transaction);
+      SqlScope scope = transaction == null ? new SqlScope(connection) : new SqlScope(transaction);
 
-      return await executor.GetTableColumnsAsync(cancellationToken, destinationTable).ConfigureAwait(false);
+      List<string> result = new List<string>();
+      using (DbDataReader r = await SimpleCommand.Compile(string.Format("select top 0 * from {0} with(nolock)", destinationTable)).Create(scope).ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
+      {
+        foreach (var item in r.GetColumnNames())
+        {
+          result.Add(item);
+        }
+      }
+
+      return result;
     }
   }
 

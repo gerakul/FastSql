@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 
 namespace Gerakul.FastSql
 {
+  [Obsolete("use SimpleCommand")]
   public class SqlExecutor
   {
     public SqlConnection Connection { get; private set; }
@@ -363,7 +364,7 @@ namespace Gerakul.FastSql
       return result;
     }
 
-    public static async Task<int> ExecuteNonQueryAsync(CancellationToken ct, QueryOptions queryOptions, 
+    public static async Task<int> ExecuteNonQueryAsync(CancellationToken ct, QueryOptions queryOptions,
       string connectionString, string commandText, params object[] parameters)
     {
       int result;
@@ -399,7 +400,7 @@ namespace Gerakul.FastSql
     }
 
     private static AEnumerable<AsyncState<T>, T> CreateAsyncEnumerable<T>(CancellationToken executeReaderCT,
-      Func<IDataReader, ReadInfo<T>> readInfoGetter, SqlExecutorOptions options, 
+      Func<IDataReader, ReadInfo<T>> readInfoGetter, SqlExecutorOptions options,
       string connectionString, string commandText, params object[] parameters)
     {
       return Helpers.CreateAsyncEnumerable<T>(
@@ -491,7 +492,7 @@ namespace Gerakul.FastSql
       }
     }
 
-    public static IAsyncEnumerable<T> ExecuteQueryAsync<T>(CancellationToken executeReaderCT, 
+    public static IAsyncEnumerable<T> ExecuteQueryAsync<T>(CancellationToken executeReaderCT,
       SqlExecutorOptions options, string connectionString, string commandText, params object[] parameters) where T : new()
     {
       return CreateAsyncEnumerable(executeReaderCT, r => ReadInfoFactory.CreateByType<T>(r, options.ReadOptions), options, connectionString, commandText, parameters);
@@ -747,6 +748,7 @@ namespace Gerakul.FastSql
     #endregion
   }
 
+  [Obsolete("use ExecutionOptions")]
   public class SqlExecutorOptions
   {
     public QueryOptions QueryOptions { get; private set; }
@@ -761,16 +763,6 @@ namespace Gerakul.FastSql
     public SqlExecutorOptions(int? commandTimeoutSeconds = null, FieldsSelector fieldsSelector = FieldsSelector.Destination, bool caseSensitive = false, FromTypeOption fromTypeOption = FromTypeOption.Both)
       : this(new QueryOptions(commandTimeoutSeconds), new ReadOptions(fieldsSelector, caseSensitive, fromTypeOption))
     {
-    }
-  }
-
-  public class QueryOptions
-  {
-    public int? CommandTimeoutSeconds { get; set; }
-
-    public QueryOptions(int? commandTimeoutSeconds = null)
-    {
-      this.CommandTimeoutSeconds = commandTimeoutSeconds;
     }
   }
 }

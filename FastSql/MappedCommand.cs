@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
@@ -11,18 +12,18 @@ using System.Threading.Tasks;
 
 namespace Gerakul.FastSql
 {
-  public class PrecompiledCommand<T>
+  public class MappedCommand<T>
   {
     public string CommandText { get; private set; }
-    internal ParMap<T>[] Map;
+    private ParMap<T>[] map;
 
-    internal PrecompiledCommand(string commandText, IList<string> parameters, IList<FieldSettings<T>> settings)
+    internal MappedCommand(string commandText, IList<string> parameters, IList<FieldSettings<T>> settings)
     {
       this.CommandText = commandText;
 
       if (parameters == null || parameters.Count == 0)
       {
-        Map = new ParMap<T>[0];
+        map = new ParMap<T>[0];
       }
 
       if (parameters.GroupBy(x => x.GetSqlParameterName().ToLowerInvariant()).Any(x => x.Count() > 1))
@@ -35,25 +36,25 @@ namespace Gerakul.FastSql
         throw new ArgumentException("Setting names has been duplicated");
       }
 
-      Map = parameters
+      map = parameters
         .Join(settings,
           x => x.GetSqlParameterName().ToLowerInvariant(),
           x => x.Name.ToLowerInvariant(),
           (x, y) => new ParMap<T>() { ParameterName = x, Settings = y }).ToArray();
 
-      if (Map.Length < parameters.Count)
+      if (map.Length < parameters.Count)
       {
         throw new ArgumentException("Not all parameters has been mapped on settings", nameof(parameters));
       }
     }
 
-    public SqlCommand Create(SqlScope scope, T value, QueryOptions queryOptions = null)
+    public DbCommand Create(SqlScope scope, T value, QueryOptions queryOptions = null)
     {
       var cmd = scope.CreateCommandInternal(CommandText);
 
-      for (int i = 0; i < Map.Length; i++)
+      for (int i = 0; i < map.Length; i++)
       {
-        var m = Map[i];
+        var m = map[i];
         object paramValue;
         if (m.Settings.DetermineNullByValue)
         {
@@ -72,6 +73,8 @@ namespace Gerakul.FastSql
 
       return cmd;
     }
+
+    #region Execution
 
     public int ExecuteNonQuery(string connectionString, T value, QueryOptions queryOptions = null)
     {
@@ -106,7 +109,7 @@ namespace Gerakul.FastSql
     }
 
     private AEnumerable<AsyncState<R>, R> CreateAsyncEnumerable<R>(CancellationToken executeReaderCancellationToken,
-      Func<IDataReader, ReadInfo<R>> readInfoGetter, SqlExecutorOptions options,
+      Func<IDataReader, ReadInfo<R>> readInfoGetter, ExecutionOptions options,
       string connectionString, T value)
     {
       return Helpers.CreateAsyncEnumerable<R>(
@@ -146,7 +149,7 @@ namespace Gerakul.FastSql
         });
     }
 
-    public IEnumerable<object[]> ExecuteQuery(string connectionString, T value, SqlExecutorOptions options = null)
+    public IEnumerable<object[]> ExecuteQuery(string connectionString, T value, ExecutionOptions options = null)
     {
       using (SqlConnection conn = new SqlConnection(connectionString))
       {
@@ -159,13 +162,13 @@ namespace Gerakul.FastSql
       }
     }
 
-    public IAsyncEnumerable<object[]> ExecuteQueryAsync(string connectionString, T value, SqlExecutorOptions options = null, 
+    public IAsyncEnumerable<object[]> ExecuteQueryAsync(string connectionString, T value, ExecutionOptions options = null, 
       CancellationToken executeReaderCancellationToken = default(CancellationToken))
     {
       return CreateAsyncEnumerable(executeReaderCancellationToken, r => ReadInfoFactory.CreateObjects(r), options, connectionString, value);
     }
 
-    public IEnumerable<R> ExecuteQuery<R>(string connectionString, T value, SqlExecutorOptions options = null) where R : new()
+    public IEnumerable<R> ExecuteQuery<R>(string connectionString, T value, ExecutionOptions options = null) where R : new()
     {
       using (SqlConnection conn = new SqlConnection(connectionString))
       {
@@ -178,13 +181,13 @@ namespace Gerakul.FastSql
       }
     }
 
-    public IAsyncEnumerable<R> ExecuteQueryAsync<R>(string connectionString, T value, SqlExecutorOptions options = null,
+    public IAsyncEnumerable<R> ExecuteQueryAsync<R>(string connectionString, T value, ExecutionOptions options = null,
       CancellationToken executeReaderCancellationToken = default(CancellationToken)) where R : new()
     {
       return CreateAsyncEnumerable(executeReaderCancellationToken, r => ReadInfoFactory.CreateByType<R>(r, options?.ReadOptions), options, connectionString, value);
     }
 
-    public IEnumerable<R> ExecuteQueryAnonymous<R>(R proto, string connectionString, T value, SqlExecutorOptions options = null)
+    public IEnumerable<R> ExecuteQueryAnonymous<R>(R proto, string connectionString, T value, ExecutionOptions options = null)
     {
       using (SqlConnection conn = new SqlConnection(connectionString))
       {
@@ -197,14 +200,14 @@ namespace Gerakul.FastSql
       }
     }
 
-    public IAsyncEnumerable<R> ExecuteQueryAnonymousAsync<R>(R proto, string connectionString, T value, SqlExecutorOptions options = null,
+    public IAsyncEnumerable<R> ExecuteQueryAnonymousAsync<R>(R proto, string connectionString, T value, ExecutionOptions options = null,
       CancellationToken executeReaderCancellationToken = default(CancellationToken))
     {
       return CreateAsyncEnumerable(executeReaderCancellationToken, r => ReadInfoFactory.CreateAnonymous(r, proto, options?.ReadOptions),
         options, connectionString, value);
     }
 
-    public IEnumerable ExecuteQueryFirstColumn(string connectionString, T value, SqlExecutorOptions options = null)
+    public IEnumerable ExecuteQueryFirstColumn(string connectionString, T value, ExecutionOptions options = null)
     {
       using (SqlConnection conn = new SqlConnection(connectionString))
       {
@@ -217,13 +220,13 @@ namespace Gerakul.FastSql
       }
     }
 
-    public IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(string connectionString, T value, SqlExecutorOptions options = null,
+    public IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(string connectionString, T value, ExecutionOptions options = null,
       CancellationToken executeReaderCancellationToken = default(CancellationToken))
     {
       return CreateAsyncEnumerable(executeReaderCancellationToken, r => ReadInfoFactory.CreateFirstColumn(r), options, connectionString, value);
     }
 
-    public IEnumerable<R> ExecuteQueryFirstColumn<R>(string connectionString, T value, SqlExecutorOptions options = null,
+    public IEnumerable<R> ExecuteQueryFirstColumn<R>(string connectionString, T value, ExecutionOptions options = null,
       CancellationToken executeReaderCancellationToken = default(CancellationToken))
     {
       using (SqlConnection conn = new SqlConnection(connectionString))
@@ -237,11 +240,59 @@ namespace Gerakul.FastSql
       }
     }
 
-    public IAsyncEnumerable<R> ExecuteQueryFirstColumnAsync<R>(string connectionString, T value, SqlExecutorOptions options = null,
+    public IAsyncEnumerable<R> ExecuteQueryFirstColumnAsync<R>(string connectionString, T value, ExecutionOptions options = null,
       CancellationToken executeReaderCancellationToken = default(CancellationToken))
     {
       return CreateAsyncEnumerable(executeReaderCancellationToken, r => ReadInfoFactory.CreateFirstColumn<R>(r), options, connectionString, value);
     }
+
+    #endregion
+  }
+
+  public static class MappedCommand
+  {
+    #region Creation
+
+    private static Regex regName = new Regex("(([^@]@)|(^@))(?<Name>([a-z]|[A-Z]|[0-9]|[$#_])+)", RegexOptions.Multiline);
+
+    private static string[] ParseCommandText(string commandText)
+    {
+      return regName.Matches(commandText).Cast<Match>()
+        .Select(x => "@" + x.Groups["Name"].ToString().ToLowerInvariant())
+        .Distinct().ToArray();
+    }
+
+    public static MappedCommand<T> Compile<T>(string commandText, IList<string> paramNames, IList<FieldSettings<T>> settings)
+    {
+      return new MappedCommand<T>(commandText, paramNames, settings);
+    }
+
+    public static MappedCommand<T> Compile<T>(string commandText, IList<FieldSettings<T>> settings)
+    {
+      return new MappedCommand<T>(commandText, ParseCommandText(commandText), settings);
+    }
+
+    public static MappedCommand<T> Compile<T>(string commandText, IList<string> paramNames, FromTypeOption option = FromTypeOption.Both)
+    {
+      return new MappedCommand<T>(commandText, paramNames, FieldSettings.FromType<T>(option));
+    }
+
+    public static MappedCommand<T> Compile<T>(string commandText, FromTypeOption option = FromTypeOption.Both)
+    {
+      return new MappedCommand<T>(commandText, ParseCommandText(commandText), FieldSettings.FromType<T>(option));
+    }
+
+    public static MappedCommand<T> Compile<T>(T proto, string commandText, IList<string> paramNames, FromTypeOption option = FromTypeOption.Both)
+    {
+      return new MappedCommand<T>(commandText, paramNames, FieldSettings.FromType(proto, option));
+    }
+
+    public static MappedCommand<T> Compile<T>(T proto, string commandText, FromTypeOption option = FromTypeOption.Both)
+    {
+      return new MappedCommand<T>(commandText, ParseCommandText(commandText), FieldSettings.FromType(proto, option));
+    }
+
+    #endregion
   }
 
   internal class ParMap<T>

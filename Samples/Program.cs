@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -22,14 +23,74 @@ namespace Samples
   class Program
   {
     // put here your connection strings
-    static string connStr = @"Data Source=localhost;Initial Catalog=SampleDB1;Persist Security Info=True;User ID=****;Password=****";
+    static string connStr = @"Data Source=localhost;Initial Catalog=SampleDB1;Persist Security Info=True;User ID=NaviService;Password=Navi100$";
     static string connStr2 = @"Data Source=localhost;Initial Catalog=SampleDB2;Persist Security Info=True;User ID=****;Password=****";
 
     static void Main(string[] args)
     {
+
+
+      SqlCommand[] arr = new SqlCommand[1000000];
+
+      Stopwatch sw = Stopwatch.StartNew();
+
+      for (int i = 0; i < arr.Length; i++)
+      {
+        var cmd = new SqlCommand("select * from Employee where CompanyID = @CompanyID and Age > @Age");
+        cmd.Parameters.AddWithValue("@CompanyID", 1);
+        cmd.Parameters.AddWithValue("@Age", i);
+
+        arr[i] = cmd;
+      }
+
+      sw.Stop();
+      Stopwatch sw1 = Stopwatch.StartNew();
+
+      for (int i = 0; i < arr.Length; i++)
+      {
+        arr[i].Parameters[0].Value = i;
+        arr[i].Parameters[1].Value = 1;
+      }
+
+      sw1.Stop();
+
+
+      //var exe = new ExecutableCommand(cmd);
+
+      //var conn = new SqlConnection(connStr);
+      //conn.Open();
+      //cmd.Connection = conn;
+      //var q = exe.ExecuteQuery<Employee>().ToArray();
+      //conn.Close();
+
+
+      Employee[] emps = new Employee[] {
+        new Employee() { ID = 3, CompanyID = 1, Name = "New Employee1", Age = 25, StartWorking = DateTime.UtcNow },
+        new Employee() { CompanyID = 1, Name = "New Employee2", StartWorking = DateTime.UtcNow },
+        new Employee() { CompanyID = 2, Name = "New Employee1" }
+      };
+
+      var anon = new
+      {
+        CompanyID = 1,
+        Name = "rrrrrrrr",
+        Age = 26,
+        StartWorking = (DateTime?)DateTime.UtcNow
+      };
+
+      //var precompiled = Commands.Compile(anon, "update Employee set Phone = @Phone, Age = @Age where ID = @ID");
+      //var precompiled = Commands.Compile(anon, "insert into Employee (CompanyID, Name, StartWorking) values (@CompanyID, @Name, @StartWorking)");
+      var precompiled = MappedCommand.Compile(anon, "select * from Employee where CompanyID = @CompanyID and Age > @Age");
+
+      var res = precompiled.ExecuteQueryAsync<Employee>(connStr, anon).ToArray().Result;
+
+      var res2 = SqlExecutor.ExecuteQueryAsync<Employee>(connStr, "select * from Employee where CompanyID = @p0 and Age > @p1", 1, 26).ToArray().Result;
+
+      return;
+
       // change sample name to one's you interested in
-      Sample1();
-      Sample1Async().Wait();
+      //Sample1();
+      //Sample1Async().Wait();
 
       Console.WriteLine("End");
       //Console.ReadKey();
@@ -38,7 +99,7 @@ namespace Samples
     // Simple retrieving  entities
     static void Sample1()
     {
-      var q = SqlExecutor.ExecuteQuery<Employee>(connStr, "select * from Employee");
+      var q = SimpleCommand.Compile("select * from Employee").ExecuteQuery<Employee>(connStr);
       var arr = q.ToArray();
     }
 
@@ -388,7 +449,7 @@ namespace Samples
     // Using Commands
     static void Sample17()
     {
-      var precompiled = Commands.Compile<Employee>("update Employee set Phone = @Phone, Age = @Age where ID = @ID");
+      var precompiled = MappedCommand.Compile<Employee>("update Employee set Phone = @Phone, Age = @Age where ID = @ID");
       var emp = new Employee() { ID = 2, Name = "Name1", Age = 33, Phone = "111-222-333" };
 
       precompiled.ExecuteNonQuery(connStr, emp);
@@ -398,7 +459,7 @@ namespace Samples
 
     static async Task Sample17Async()
     {
-      var precompiled = Commands.Compile<Employee>("update Employee set Phone = @Phone, Age = @Age where ID = @ID");
+      var precompiled = MappedCommand.Compile<Employee>("update Employee set Phone = @Phone, Age = @Age where ID = @ID");
       var emp = new Employee() { ID = 2, Name = "Name1", Age = 33, Phone = "111-222-333" };
 
       await precompiled.ExecuteNonQueryAsync(connStr, emp);
@@ -411,7 +472,7 @@ namespace Samples
     {
       var anonymousEmp = new { ID = 2, Age = 22, Phone = "111-888-333" };
 
-      var precompiled = Commands.Compile(anonymousEmp, "update Employee set Phone = @Phone, Age = @Age where ID = @ID");
+      var precompiled = MappedCommand.Compile(anonymousEmp, "update Employee set Phone = @Phone, Age = @Age where ID = @ID");
 
       precompiled.ExecuteNonQuery(connStr, anonymousEmp);
       anonymousEmp = new { ID = 2, Age = 28, Phone = "111-777-333" };
@@ -422,69 +483,69 @@ namespace Samples
     {
       var anonimousEmp = new { ID = 2, Age = 22, Phone = "111-888-333" };
 
-      var precompiled = Commands.Compile(anonimousEmp, "update Employee set Phone = @Phone, Age = @Age where ID = @ID");
+      var precompiled = MappedCommand.Compile(anonimousEmp, "update Employee set Phone = @Phone, Age = @Age where ID = @ID");
 
       await precompiled.ExecuteNonQueryAsync(connStr, anonimousEmp);
       anonimousEmp = new { ID = 2, Age = 28, Phone = "111-777-333" };
       await precompiled.ExecuteNonQueryAsync(connStr, anonimousEmp);
     }
 
-    // Using Commands with external transactions and connections
-    static void Sample19()
-    {
-      var anonimousEmp = new { CompanyID = 2, Name = "Name1", Age = 22, Phone = "111-888-333" };
-      var precompiled = Commands.Compile(anonimousEmp, "insert into Employee (CompanyID, Name, Age, Phone) values (@CompanyID, @Name, @Age, @Phone)");
+    //// Using Commands with external transactions and connections
+    //static void Sample19()
+    //{
+    //  var anonimousEmp = new { CompanyID = 2, Name = "Name1", Age = 22, Phone = "111-888-333" };
+    //  var precompiled = Commands.Compile(anonimousEmp, "insert into Employee (CompanyID, Name, Age, Phone) values (@CompanyID, @Name, @Age, @Phone)");
 
-      SqlExecutor.UsingTransaction(sql =>
-      {
-        var cmd = precompiled.Create(sql);
+    //  SqlExecutor.UsingTransaction(sql =>
+    //  {
+    //    var cmd = precompiled.Create(sql);
 
-        cmd.ExecuteNonQuery(anonimousEmp);
-        anonimousEmp = new { CompanyID = 2, Name = "Name2", Age = 20, Phone = "111-444-333" };
-        cmd.ExecuteNonQuery(anonimousEmp);
+    //    cmd.ExecuteNonQuery(anonimousEmp);
+    //    anonimousEmp = new { CompanyID = 2, Name = "Name2", Age = 20, Phone = "111-444-333" };
+    //    cmd.ExecuteNonQuery(anonimousEmp);
 
-      }, connStr);
-
-
-      SqlExecutor.UsingConnection(conn =>
-      {
-        var cmd = precompiled.Create(conn);
-
-        anonimousEmp = new { CompanyID = 1, Name = "Name11", Age = 27, Phone = "999-444-333" };
-        cmd.ExecuteNonQuery(anonimousEmp);
-        anonimousEmp = new { CompanyID = 1, Name = "Name12", Age = 37, Phone = "888-444-333" };
-        cmd.ExecuteNonQuery(anonimousEmp);
-
-      }, connStr);
-    }
-
-    static async Task Sample19Async()
-    {
-      var anonimousEmp = new { CompanyID = 2, Name = "Name111", Age = 22, Phone = "111-888-333" };
-      var precompiled = Commands.Compile(anonimousEmp, "insert into Employee (CompanyID, Name, Age, Phone) values (@CompanyID, @Name, @Age, @Phone)");
-
-      await SqlExecutor.UsingTransactionAsync(async sql =>
-      {
-        var cmd = precompiled.Create(sql);
-
-        await cmd.ExecuteNonQueryAsync(anonimousEmp);
-        anonimousEmp = new { CompanyID = 2, Name = "Name222", Age = 20, Phone = "111-444-333" };
-        await cmd.ExecuteNonQueryAsync(anonimousEmp);
-
-      }, connStr);
+    //  }, connStr);
 
 
-      await SqlExecutor.UsingConnectionAsync(async conn =>
-      {
-        var cmd = precompiled.Create(conn);
+    //  SqlExecutor.UsingConnection(conn =>
+    //  {
+    //    var cmd = precompiled.Create(conn);
 
-        anonimousEmp = new { CompanyID = 1, Name = "Name1122", Age = 27, Phone = "999-444-333" };
-        await cmd.ExecuteNonQueryAsync(anonimousEmp);
-        anonimousEmp = new { CompanyID = 1, Name = "Name1234", Age = 37, Phone = "888-444-333" };
-        await cmd.ExecuteNonQueryAsync(anonimousEmp);
+    //    anonimousEmp = new { CompanyID = 1, Name = "Name11", Age = 27, Phone = "999-444-333" };
+    //    cmd.ExecuteNonQuery(anonimousEmp);
+    //    anonimousEmp = new { CompanyID = 1, Name = "Name12", Age = 37, Phone = "888-444-333" };
+    //    cmd.ExecuteNonQuery(anonimousEmp);
 
-      }, connStr);
-    }
+    //  }, connStr);
+    //}
+
+    //static async Task Sample19Async()
+    //{
+    //  var anonimousEmp = new { CompanyID = 2, Name = "Name111", Age = 22, Phone = "111-888-333" };
+    //  var precompiled = Commands.Compile(anonimousEmp, "insert into Employee (CompanyID, Name, Age, Phone) values (@CompanyID, @Name, @Age, @Phone)");
+
+    //  await SqlExecutor.UsingTransactionAsync(async sql =>
+    //  {
+    //    var cmd = precompiled.Create(sql);
+
+    //    await cmd.ExecuteNonQueryAsync(anonimousEmp);
+    //    anonimousEmp = new { CompanyID = 2, Name = "Name222", Age = 20, Phone = "111-444-333" };
+    //    await cmd.ExecuteNonQueryAsync(anonimousEmp);
+
+    //  }, connStr);
+
+
+    //  await SqlExecutor.UsingConnectionAsync(async conn =>
+    //  {
+    //    var cmd = precompiled.Create(conn);
+
+    //    anonimousEmp = new { CompanyID = 1, Name = "Name1122", Age = 27, Phone = "999-444-333" };
+    //    await cmd.ExecuteNonQueryAsync(anonimousEmp);
+    //    anonimousEmp = new { CompanyID = 1, Name = "Name1234", Age = 37, Phone = "888-444-333" };
+    //    await cmd.ExecuteNonQueryAsync(anonimousEmp);
+
+    //  }, connStr);
+    //}
   }
 
   public class C
