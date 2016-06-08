@@ -13,8 +13,8 @@ namespace Gerakul.FastSql
 
     public ExecutionOptions(QueryOptions queryOptions, ReadOptions readOptions = null)
     {
-      this.QueryOptions = queryOptions == null ? new QueryOptions() : queryOptions;
-      this.ReadOptions = readOptions == null ? new ReadOptions() : readOptions;
+      this.QueryOptions = queryOptions ?? new QueryOptions();
+      this.ReadOptions = readOptions ?? new ReadOptions();
     }
 
     public ExecutionOptions(int? commandTimeoutSeconds = null, FieldsSelector fieldsSelector = FieldsSelector.Destination, bool caseSensitive = false, FromTypeOption fromTypeOption = FromTypeOption.Both)

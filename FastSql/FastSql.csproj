@@ -53,6 +53,7 @@
     <Compile Include="FieldsSelector.cs" />
     <Compile Include="Helpers.cs" />
     <Compile Include="IDbScope.cs" />
+    <Compile Include="IDbScopeExtensions.cs" />
     <Compile Include="Import.cs" />
     <Compile Include="MappedCommand.cs" />
     <Compile Include="SimpleCommand.cs" />

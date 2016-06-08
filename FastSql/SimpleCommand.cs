@@ -14,15 +14,13 @@ namespace Gerakul.FastSql
   public class SimpleCommand
   {
     public string CommandText { get; private set; }
-    private object[] parameters;
 
-    private SimpleCommand(string commandText, object[] parameters)
+    private SimpleCommand(string commandText)
     {
       this.CommandText = commandText;
-      this.parameters = parameters;
     }
 
-    public DbCommand Create(IDbScope scope, QueryOptions queryOptions = null)
+    internal DbCommand Create(IDbScope scope, QueryOptions queryOptions, object[] parameters)
     {
       var cmd = scope.CreateCommand(CommandText);
 
@@ -43,45 +41,88 @@ namespace Gerakul.FastSql
       return cmd;
     }
 
+    #region Creation
+
+    public static SimpleCommand Compile(string commandText)
+    {
+      return new SimpleCommand(commandText);
+    }
+
+    #endregion
+
     #region Execution
 
-    public int ExecuteNonQuery(string connectionString, QueryOptions queryOptions = null)
+    public static int ExecuteNonQuery(QueryOptions queryOptions, string connectionString, string commandText, params object[] parameters)
     {
       int result = 0;
-      SqlScope.UsingConnection(connectionString, scope => result = Create(scope).ExecuteNonQuery(queryOptions));
+      SqlScope.UsingConnection(connectionString, scope =>
+      {
+        result = scope.CreateSimple(queryOptions, commandText, parameters).ExecuteNonQuery();
+      });
+
       return result;
     }
 
-    public async Task<int> ExecuteNonQueryAsync(string connectionString, QueryOptions queryOptions = null,
-      CancellationToken cancellationToken = default(CancellationToken))
+    public static int ExecuteNonQuery(string connectionString, string commandText, params object[] parameters)
+    {
+      return ExecuteNonQuery(null, connectionString, commandText, parameters);
+    }
+
+    public static async Task<int> ExecuteNonQueryAsync(QueryOptions queryOptions, CancellationToken cancellationToken, 
+      string connectionString, string commandText, params object[] parameters)
     {
       int result = 0;
-      await SqlScope.UsingConnectionAsync(connectionString,
-        async scope => result = await Create(scope).ExecuteNonQueryAsync(queryOptions, cancellationToken));
+      await SqlScope.UsingConnectionAsync(connectionString, async scope =>
+      {
+        result = await scope.CreateSimple(queryOptions, commandText, parameters).ExecuteNonQueryAsync(cancellationToken);
+      });
+
       return result;
     }
 
-    public object ExecuteScalar(string connectionString, QueryOptions queryOptions = null)
+    public static Task<int> ExecuteNonQueryAsync(string connectionString, string commandText, params object[] parameters)
+    {
+      return ExecuteNonQueryAsync(null, default(CancellationToken), connectionString, commandText, parameters);
+    }
+
+    public static object ExecuteScalar(QueryOptions queryOptions, string connectionString, string commandText, params object[] parameters)
     {
       object result = null;
-      SqlScope.UsingConnection(connectionString, scope => Create(scope).ExecuteScalar(queryOptions));
+      SqlScope.UsingConnection(connectionString, scope =>
+      {
+        result = scope.CreateSimple(queryOptions, commandText, parameters).ExecuteScalar();
+      });
+
       return result;
     }
 
-    public async Task<object> ExecuteScalarAsync(string connectionString, QueryOptions queryOptions = null,
-      CancellationToken cancellationToken = default(CancellationToken))
+    public static object ExecuteScalar(string connectionString, string commandText, params object[] parameters)
+    {
+      return ExecuteScalar(null, connectionString, commandText, parameters);
+    }
+
+    public static async Task<object> ExecuteScalarAsync(QueryOptions queryOptions, CancellationToken cancellationToken, 
+      string connectionString, string commandText, params object[] parameters)
     {
       object result = null;
-      await SqlScope.UsingConnectionAsync(connectionString,
-        async scope => result = await Create(scope).ExecuteScalarAsync(queryOptions, cancellationToken));
+      await SqlScope.UsingConnectionAsync(connectionString, async scope =>
+      {
+        result = await scope.CreateSimple(queryOptions, commandText, parameters).ExecuteScalarAsync(cancellationToken);
+      });
+
       return result;
     }
 
-    private AEnumerable<AsyncState<R>, R> CreateAsyncEnumerable<R>(CancellationToken executeReaderCancellationToken,
-      Func<IDataReader, ReadInfo<R>> readInfoGetter, ExecutionOptions options,
-      string connectionString)
+    public static Task<object> ExecuteScalarAsync(string connectionString, string commandText, params object[] parameters)
     {
-      return Helpers.CreateAsyncEnumerable<R>(
+      return ExecuteScalarAsync(null, default(CancellationToken), connectionString, commandText, parameters);
+    }
+
+    private static AEnumerable<AsyncState<T>, T> CreateAsyncEnumerable<T>(CancellationToken cancellationToken,
+      Func<IDataReader, ReadInfo<T>> readInfoGetter, ExecutionOptions options,
+      string connectionString, string commandText, object[] parameters)
+    {
+      return Helpers.CreateAsyncEnumerable<T>(
         state =>
         {
           if (state.ReadInfo != null)
@@ -101,9 +142,10 @@ namespace Gerakul.FastSql
           try
           {
             conn = new SqlConnection(connectionString);
-            await conn.OpenAsync(executeReaderCancellationToken).ConfigureAwait(false);
+            await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
             state.InternalConnection = conn;
-            var reader = await Create(new SqlScope(conn)).ExecuteReaderAsync(options?.QueryOptions, executeReaderCancellationToken).ConfigureAwait(false);
+            SqlScope scope = new SqlScope(conn);
+            var reader = await scope.CreateSimple(options?.QueryOptions, commandText, parameters).ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             state.ReadInfo = readInfoGetter(reader);
           }
           catch
@@ -118,110 +160,152 @@ namespace Gerakul.FastSql
         });
     }
 
-    public IEnumerable<object[]> ExecuteQuery(string connectionString, ExecutionOptions options = null)
+    public static IEnumerable<object[]> ExecuteQuery(ExecutionOptions options, string connectionString, string commandText, params object[] parameters)
     {
       using (SqlConnection conn = new SqlConnection(connectionString))
       {
         conn.Open();
         SqlScope scope = new SqlScope(conn);
-        foreach (var item in Create(scope).ExecuteQuery(options))
+
+        foreach (var item in scope.CreateSimple(options?.QueryOptions, commandText, parameters).ExecuteQuery())
         {
           yield return item;
         }
       }
     }
 
-    public IAsyncEnumerable<object[]> ExecuteQueryAsync(string connectionString, ExecutionOptions options = null,
-      CancellationToken executeReaderCancellationToken = default(CancellationToken))
+    public static IEnumerable<object[]> ExecuteQuery(string connectionString, string commandText, params object[] parameters)
     {
-      return CreateAsyncEnumerable(executeReaderCancellationToken, r => ReadInfoFactory.CreateObjects(r), options, connectionString);
+      return ExecuteQuery(null, connectionString, commandText, parameters);
     }
 
-    public IEnumerable<R> ExecuteQuery<R>(string connectionString, ExecutionOptions options = null) where R : new()
+    public static IAsyncEnumerable<object[]> ExecuteQueryAsync(ExecutionOptions options, CancellationToken cancellationToken, 
+      string connectionString, string commandText, params object[] parameters)
+    {
+      return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateObjects(r), options, connectionString, commandText, parameters);
+    }
+
+    public static IAsyncEnumerable<object[]> ExecuteQueryAsync(string connectionString, string commandText, params object[] parameters)
+    {
+      return ExecuteQueryAsync(null, default(CancellationToken), connectionString, commandText, parameters);
+    }
+
+    public static IEnumerable<T> ExecuteQuery<T>(ExecutionOptions options, string connectionString, string commandText, params object[] parameters) where T : new()
     {
       using (SqlConnection conn = new SqlConnection(connectionString))
       {
         conn.Open();
         SqlScope scope = new SqlScope(conn);
-        foreach (var item in Create(scope).ExecuteQuery<R>(options))
+
+        foreach (var item in scope.CreateSimple(null, commandText, parameters).ExecuteQuery<T>(options))
         {
           yield return item;
         }
       }
     }
 
-    public IAsyncEnumerable<R> ExecuteQueryAsync<R>(string connectionString, ExecutionOptions options = null,
-      CancellationToken executeReaderCancellationToken = default(CancellationToken)) where R : new()
+    public static IEnumerable<T> ExecuteQuery<T>(string connectionString, string commandText, params object[] parameters) where T : new()
     {
-      return CreateAsyncEnumerable(executeReaderCancellationToken, r => ReadInfoFactory.CreateByType<R>(r, options?.ReadOptions), options, connectionString);
+      return ExecuteQuery<T>(null, connectionString, commandText, parameters);
     }
 
-    public IEnumerable<R> ExecuteQueryAnonymous<R>(R proto, string connectionString, ExecutionOptions options = null)
+    public static IAsyncEnumerable<T> ExecuteQueryAsync<T>(ExecutionOptions options, CancellationToken cancellationToken, 
+      string connectionString, string commandText, params object[] parameters) where T : new()
+    {
+      return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateByType<T>(r, options?.ReadOptions), options, connectionString, commandText, parameters);
+    }
+
+    public static IAsyncEnumerable<T> ExecuteQueryAsync<T>(string connectionString, string commandText, params object[] parameters) where T : new()
+    {
+      return ExecuteQueryAsync<T>(null, default(CancellationToken), connectionString, commandText, parameters);
+    }
+
+    public static IEnumerable<T> ExecuteQueryAnonymous<T>(T proto, ExecutionOptions options, string connectionString, string commandText, params object[] parameters)
     {
       using (SqlConnection conn = new SqlConnection(connectionString))
       {
         conn.Open();
         SqlScope scope = new SqlScope(conn);
-        foreach (var item in Create(scope).ExecuteQueryAnonymous(proto, options))
+        foreach (var item in scope.CreateSimple(commandText, parameters).ExecuteQueryAnonymous(proto, options))
         {
           yield return item;
         }
       }
     }
 
-    public IAsyncEnumerable<R> ExecuteQueryAnonymousAsync<R>(R proto, string connectionString, ExecutionOptions options = null,
-      CancellationToken executeReaderCancellationToken = default(CancellationToken))
+    public static IEnumerable<T> ExecuteQueryAnonymous<T>(T proto, string connectionString, string commandText, params object[] parameters)
     {
-      return CreateAsyncEnumerable(executeReaderCancellationToken, r => ReadInfoFactory.CreateAnonymous(r, proto, options?.ReadOptions),
-        options, connectionString);
+      return ExecuteQueryAnonymous(proto, null, connectionString, commandText, parameters);
     }
 
-    public IEnumerable ExecuteQueryFirstColumn(string connectionString, ExecutionOptions options = null)
+    public static IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(T proto, ExecutionOptions options, CancellationToken cancellationToken, 
+      string connectionString, string commandText, params object[] parameters)
+    {
+      return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateAnonymous(r, proto, options?.ReadOptions),
+        options, connectionString, commandText, parameters);
+    }
+
+    public static IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(T proto, string connectionString, string commandText, params object[] parameters)
+    {
+      return ExecuteQueryAnonymousAsync(proto, null, default(CancellationToken), connectionString, commandText, parameters);
+    }
+
+    public static IEnumerable ExecuteQueryFirstColumn(ExecutionOptions options, string connectionString, string commandText, params object[] parameters)
     {
       using (SqlConnection conn = new SqlConnection(connectionString))
       {
         conn.Open();
         SqlScope scope = new SqlScope(conn);
-        foreach (var item in Create(scope).ExecuteQueryFirstColumn(options))
+        foreach (var item in scope.CreateSimple(commandText, parameters).ExecuteQueryFirstColumn(options))
         {
           yield return item;
         }
       }
     }
 
-    public IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(string connectionString, ExecutionOptions options = null,
-      CancellationToken executeReaderCancellationToken = default(CancellationToken))
+    public static IEnumerable ExecuteQueryFirstColumn(string connectionString, string commandText, params object[] parameters)
     {
-      return CreateAsyncEnumerable(executeReaderCancellationToken, r => ReadInfoFactory.CreateFirstColumn(r), options, connectionString);
+      return ExecuteQueryFirstColumn(null, connectionString, commandText, parameters);
     }
 
-    public IEnumerable<R> ExecuteQueryFirstColumn<R>(string connectionString, ExecutionOptions options = null,
-      CancellationToken executeReaderCancellationToken = default(CancellationToken))
+    public static IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(ExecutionOptions options, CancellationToken cancellationToken, 
+      string connectionString, string commandText, params object[] parameters)
+    {
+      return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateFirstColumn(r), options, connectionString, commandText, parameters);
+    }
+
+    public static IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(string connectionString, string commandText, params object[] parameters)
+    {
+      return ExecuteQueryFirstColumnAsync(null, default(CancellationToken), connectionString, commandText, parameters);
+    }
+
+    public static IEnumerable<T> ExecuteQueryFirstColumn<T>(ExecutionOptions options, string connectionString, string commandText, params object[] parameters)
     {
       using (SqlConnection conn = new SqlConnection(connectionString))
       {
         conn.Open();
         SqlScope scope = new SqlScope(conn);
-        foreach (var item in Create(scope).ExecuteQueryFirstColumn<R>(options))
+        foreach (var item in scope.CreateSimple(commandText, parameters).ExecuteQueryFirstColumn<T>(options))
         {
           yield return item;
         }
       }
     }
 
-    public IAsyncEnumerable<R> ExecuteQueryFirstColumnAsync<R>(string connectionString, ExecutionOptions options = null,
-      CancellationToken executeReaderCancellationToken = default(CancellationToken))
+    public static IEnumerable<T> ExecuteQueryFirstColumn<T>(string connectionString, string commandText, params object[] parameters)
     {
-      return CreateAsyncEnumerable(executeReaderCancellationToken, r => ReadInfoFactory.CreateFirstColumn<R>(r), options, connectionString);
+      return ExecuteQueryFirstColumn<T>(null, connectionString, commandText, parameters);
     }
 
-    #endregion
-
-    #region Creation
-
-    public static SimpleCommand Compile(string commandText, params object[] parameters)
+    public static IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(ExecutionOptions options, CancellationToken cancellationToken, 
+      string connectionString, string commandText, params object[] parameters)
     {
-      return new SimpleCommand(commandText, parameters);
+      return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateFirstColumn<T>(r), options, connectionString, commandText, parameters);
+    }
+
+    public static IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(string connectionString, string commandText, params object[] parameters)
+    {
+      return ExecuteQueryFirstColumnAsync<T>(null, default(CancellationToken), connectionString, commandText, parameters);
     }
 
     #endregion

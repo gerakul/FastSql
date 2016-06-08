@@ -26,11 +26,6 @@ namespace Gerakul.FastSql
       this.Transaction = transaction;
     }
 
-    //internal SqlCommand CreateCommandInternal(string commandText)
-    //{
-    //  return Transaction == null ? new SqlCommand(commandText, Connection) : new SqlCommand(commandText, Connection, Transaction);
-    //}
-
     public DbCommand CreateCommand(string commandText)
     {
       return Transaction == null ? new SqlCommand(commandText, Connection) : new SqlCommand(commandText, Connection, Transaction);

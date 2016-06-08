@@ -144,7 +144,7 @@ namespace Gerakul.FastSql
     {
       SqlScope scope = transaction == null ? new SqlScope(connection) : new SqlScope(transaction);
       List<string> result = new List<string>();
-      using (DbDataReader r = SimpleCommand.Compile(string.Format("select top 0 * from {0} with(nolock)", destinationTable)).Create(scope).ExecuteReader())
+      using (DbDataReader r = scope.CreateSimple(string.Format("select top 0 * from {0} with(nolock)", destinationTable)).ExecuteReader())
       {
         foreach (var item in r.GetColumnNames())
         {
@@ -158,9 +158,8 @@ namespace Gerakul.FastSql
     private async Task<IList<string>> GetTableColumnsAsync(CancellationToken cancellationToken)
     {
       SqlScope scope = transaction == null ? new SqlScope(connection) : new SqlScope(transaction);
-
       List<string> result = new List<string>();
-      using (DbDataReader r = await SimpleCommand.Compile(string.Format("select top 0 * from {0} with(nolock)", destinationTable)).Create(scope).ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
+      using (DbDataReader r = await scope.CreateSimple(string.Format("select top 0 * from {0} with(nolock)", destinationTable)).ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
       {
         foreach (var item in r.GetColumnNames())
         {

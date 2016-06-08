@@ -46,7 +46,7 @@ namespace Gerakul.FastSql
       return cmd.ExecuteReaderAsync(cancellationToken);
     }
 
-    private static AEnumerable<AsyncState<T>, T> CreateAsyncEnumerable<T>(DbCommand cmd, CancellationToken executeReaderCancellationToken,
+    private static AEnumerable<AsyncState<T>, T> CreateAsyncEnumerable<T>(DbCommand cmd, CancellationToken cancellationToken,
       Func<IDataReader, ReadInfo<T>> readInfoGetter, ExecutionOptions options)
     {
       return Helpers.CreateAsyncEnumerable<T>(
@@ -60,7 +60,7 @@ namespace Gerakul.FastSql
 
         async (state, ct) =>
         {
-          var reader = await cmd.ExecuteReaderAsync(options?.QueryOptions, executeReaderCancellationToken).ConfigureAwait(false);
+          var reader = await cmd.ExecuteReaderAsync(options?.QueryOptions, cancellationToken).ConfigureAwait(false);
           state.ReadInfo = readInfoGetter(reader);
         });
     }
@@ -76,9 +76,9 @@ namespace Gerakul.FastSql
       }
     }
 
-    public static IAsyncEnumerable<object[]> ExecuteQueryAsync(this DbCommand cmd, ExecutionOptions options = null, CancellationToken executeReaderCancellationToken = default(CancellationToken))
+    public static IAsyncEnumerable<object[]> ExecuteQueryAsync(this DbCommand cmd, ExecutionOptions options = null, CancellationToken cancellationToken = default(CancellationToken))
     {
-      return CreateAsyncEnumerable(cmd, executeReaderCancellationToken, r => ReadInfoFactory.CreateObjects(r), options);
+      return CreateAsyncEnumerable(cmd, cancellationToken, r => ReadInfoFactory.CreateObjects(r), options);
     }
 
     public static IEnumerable<T> ExecuteQuery<T>(this DbCommand cmd, ExecutionOptions options = null) where T : new()
@@ -93,9 +93,9 @@ namespace Gerakul.FastSql
     }
 
     public static IAsyncEnumerable<T> ExecuteQueryAsync<T>(this DbCommand cmd, ExecutionOptions options = null, 
-      CancellationToken executeReaderCancellationToken = default(CancellationToken)) where T : new()
+      CancellationToken cancellationToken = default(CancellationToken)) where T : new()
     {
-      return CreateAsyncEnumerable(cmd, executeReaderCancellationToken, r => ReadInfoFactory.CreateByType<T>(r, options?.ReadOptions), options);
+      return CreateAsyncEnumerable(cmd, cancellationToken, r => ReadInfoFactory.CreateByType<T>(r, options?.ReadOptions), options);
     }
 
     public static IEnumerable<T> ExecuteQueryAnonymous<T>(this DbCommand cmd, T proto, ExecutionOptions options = null)
@@ -110,9 +110,9 @@ namespace Gerakul.FastSql
     }
 
     public static IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(this DbCommand cmd, T proto, ExecutionOptions options = null, 
-      CancellationToken executeReaderCancellationToken = default(CancellationToken))
+      CancellationToken cancellationToken = default(CancellationToken))
     {
-      return CreateAsyncEnumerable(cmd, executeReaderCancellationToken, r => ReadInfoFactory.CreateAnonymous<T>(r, proto, options?.ReadOptions), 
+      return CreateAsyncEnumerable(cmd, cancellationToken, r => ReadInfoFactory.CreateAnonymous<T>(r, proto, options?.ReadOptions), 
         options);
     }
 
@@ -128,9 +128,9 @@ namespace Gerakul.FastSql
     }
 
     public static IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(this DbCommand cmd, ExecutionOptions options = null, 
-      CancellationToken executeReaderCancellationToken = default(CancellationToken))
+      CancellationToken cancellationToken = default(CancellationToken))
     {
-      return CreateAsyncEnumerable(cmd, executeReaderCancellationToken, r => ReadInfoFactory.CreateFirstColumn(r), options);
+      return CreateAsyncEnumerable(cmd, cancellationToken, r => ReadInfoFactory.CreateFirstColumn(r), options);
     }
 
     public static IEnumerable<T> ExecuteQueryFirstColumn<T>(this DbCommand cmd, ExecutionOptions options = null)
@@ -145,9 +145,9 @@ namespace Gerakul.FastSql
     }
 
     public static IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(this DbCommand cmd, ExecutionOptions options = null,
-      CancellationToken executeReaderCancellationToken = default(CancellationToken))
+      CancellationToken cancellationToken = default(CancellationToken))
     {
-      return CreateAsyncEnumerable(cmd, executeReaderCancellationToken, r => ReadInfoFactory.CreateFirstColumn<T>(r), options);
+      return CreateAsyncEnumerable(cmd, cancellationToken, r => ReadInfoFactory.CreateFirstColumn<T>(r), options);
     }
   }
 }
