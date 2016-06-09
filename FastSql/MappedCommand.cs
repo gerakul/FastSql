@@ -123,7 +123,7 @@ namespace Gerakul.FastSql
     }
 
     private AEnumerable<AsyncState<R>, R> CreateAsyncEnumerable<R>(CancellationToken cancellationToken,
-      Func<IDataReader, ReadInfo<R>> readInfoGetter, ExecutionOptions options,
+      Func<IDataReader, ReadInfo<R>> readInfoGetter, QueryOptions queryOptions,
       string connectionString, T value)
     {
       return Helpers.CreateAsyncEnumerable<R>(
@@ -148,7 +148,7 @@ namespace Gerakul.FastSql
             conn = new SqlConnection(connectionString);
             await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
             state.InternalConnection = conn;
-            var reader = await Create(new SqlScope(conn), value, options?.QueryOptions).ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            var reader = await Create(new SqlScope(conn), value, queryOptions).ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             state.ReadInfo = readInfoGetter(reader);
           }
           catch
@@ -169,7 +169,7 @@ namespace Gerakul.FastSql
       {
         conn.Open();
         SqlScope scope = new SqlScope(conn);
-        foreach (var item in Create(scope, value).ExecuteQuery(options))
+        foreach (var item in Create(scope, value, options?.QueryOptions).ExecuteQuery())
         {
           yield return item;
         }
@@ -179,7 +179,7 @@ namespace Gerakul.FastSql
     public IAsyncEnumerable<object[]> ExecuteQueryAsync(string connectionString, T value, ExecutionOptions options = null, 
       CancellationToken cancellationToken = default(CancellationToken))
     {
-      return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateObjects(r), options, connectionString, value);
+      return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateObjects(r), options?.QueryOptions, connectionString, value);
     }
 
     public IEnumerable<R> ExecuteQuery<R>(string connectionString, T value, ExecutionOptions options = null) where R : new()
@@ -188,7 +188,7 @@ namespace Gerakul.FastSql
       {
         conn.Open();
         SqlScope scope = new SqlScope(conn);
-        foreach (var item in Create(scope, value).ExecuteQuery<R>(options))
+        foreach (var item in Create(scope, value, options?.QueryOptions).ExecuteQuery<R>(options?.ReadOptions))
         {
           yield return item;
         }
@@ -198,7 +198,7 @@ namespace Gerakul.FastSql
     public IAsyncEnumerable<R> ExecuteQueryAsync<R>(string connectionString, T value, ExecutionOptions options = null,
       CancellationToken cancellationToken = default(CancellationToken)) where R : new()
     {
-      return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateByType<R>(r, options?.ReadOptions), options, connectionString, value);
+      return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateByType<R>(r, options?.ReadOptions), options?.QueryOptions, connectionString, value);
     }
 
     public IEnumerable<R> ExecuteQueryAnonymous<R>(R proto, string connectionString, T value, ExecutionOptions options = null)
@@ -207,7 +207,7 @@ namespace Gerakul.FastSql
       {
         conn.Open();
         SqlScope scope = new SqlScope(conn);
-        foreach (var item in Create(scope, value).ExecuteQueryAnonymous(proto, options))
+        foreach (var item in Create(scope, value, options?.QueryOptions).ExecuteQueryAnonymous(proto, options?.ReadOptions))
         {
           yield return item;
         }
@@ -218,7 +218,7 @@ namespace Gerakul.FastSql
       CancellationToken cancellationToken = default(CancellationToken))
     {
       return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateAnonymous(r, proto, options?.ReadOptions),
-        options, connectionString, value);
+        options?.QueryOptions, connectionString, value);
     }
 
     public IEnumerable ExecuteQueryFirstColumn(string connectionString, T value, ExecutionOptions options = null)
@@ -227,7 +227,7 @@ namespace Gerakul.FastSql
       {
         conn.Open();
         SqlScope scope = new SqlScope(conn);
-        foreach (var item in Create(scope, value).ExecuteQueryFirstColumn(options))
+        foreach (var item in Create(scope, value, options?.QueryOptions).ExecuteQueryFirstColumn())
         {
           yield return item;
         }
@@ -237,7 +237,7 @@ namespace Gerakul.FastSql
     public IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(string connectionString, T value, ExecutionOptions options = null,
       CancellationToken cancellationToken = default(CancellationToken))
     {
-      return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateFirstColumn(r), options, connectionString, value);
+      return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateFirstColumn(r), options?.QueryOptions, connectionString, value);
     }
 
     public IEnumerable<R> ExecuteQueryFirstColumn<R>(string connectionString, T value, ExecutionOptions options = null,
@@ -247,7 +247,7 @@ namespace Gerakul.FastSql
       {
         conn.Open();
         SqlScope scope = new SqlScope(conn);
-        foreach (var item in Create(scope, value).ExecuteQueryFirstColumn<R>(options))
+        foreach (var item in Create(scope, value, options?.QueryOptions).ExecuteQueryFirstColumn<R>())
         {
           yield return item;
         }
@@ -257,7 +257,7 @@ namespace Gerakul.FastSql
     public IAsyncEnumerable<R> ExecuteQueryFirstColumnAsync<R>(string connectionString, T value, ExecutionOptions options = null,
       CancellationToken cancellationToken = default(CancellationToken))
     {
-      return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateFirstColumn<R>(r), options, connectionString, value);
+      return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateFirstColumn<R>(r), options?.QueryOptions, connectionString, value);
     }
 
     #endregion
@@ -286,24 +286,24 @@ namespace Gerakul.FastSql
       return new MappedCommand<T>(commandText, ParseCommandText(commandText), settings);
     }
 
-    public static MappedCommand<T> Compile<T>(string commandText, IList<string> paramNames, FromTypeOption option = FromTypeOption.Both)
+    public static MappedCommand<T> Compile<T>(string commandText, IList<string> paramNames, FromTypeOption fromTypeOption = FromTypeOption.Both)
     {
-      return new MappedCommand<T>(commandText, paramNames, FieldSettings.FromType<T>(option));
+      return new MappedCommand<T>(commandText, paramNames, FieldSettings.FromType<T>(fromTypeOption));
     }
 
-    public static MappedCommand<T> Compile<T>(string commandText, FromTypeOption option = FromTypeOption.Both)
+    public static MappedCommand<T> Compile<T>(string commandText, FromTypeOption fromTypeOption = FromTypeOption.Both)
     {
-      return new MappedCommand<T>(commandText, ParseCommandText(commandText), FieldSettings.FromType<T>(option));
+      return new MappedCommand<T>(commandText, ParseCommandText(commandText), FieldSettings.FromType<T>(fromTypeOption));
     }
 
-    public static MappedCommand<T> Compile<T>(T proto, string commandText, IList<string> paramNames, FromTypeOption option = FromTypeOption.Both)
+    public static MappedCommand<T> Compile<T>(T proto, string commandText, IList<string> paramNames, FromTypeOption fromTypeOption = FromTypeOption.Both)
     {
-      return new MappedCommand<T>(commandText, paramNames, FieldSettings.FromType(proto, option));
+      return new MappedCommand<T>(commandText, paramNames, FieldSettings.FromType(proto, fromTypeOption));
     }
 
-    public static MappedCommand<T> Compile<T>(T proto, string commandText, FromTypeOption option = FromTypeOption.Both)
+    public static MappedCommand<T> Compile<T>(T proto, string commandText, FromTypeOption fromTypeOption = FromTypeOption.Both)
     {
-      return new MappedCommand<T>(commandText, ParseCommandText(commandText), FieldSettings.FromType(proto, option));
+      return new MappedCommand<T>(commandText, ParseCommandText(commandText), FieldSettings.FromType(proto, fromTypeOption));
     }
 
     #endregion

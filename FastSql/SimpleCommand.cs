@@ -119,7 +119,7 @@ namespace Gerakul.FastSql
     }
 
     private static AEnumerable<AsyncState<T>, T> CreateAsyncEnumerable<T>(CancellationToken cancellationToken,
-      Func<IDataReader, ReadInfo<T>> readInfoGetter, ExecutionOptions options,
+      Func<IDataReader, ReadInfo<T>> readInfoGetter, QueryOptions queryOptions,
       string connectionString, string commandText, object[] parameters)
     {
       return Helpers.CreateAsyncEnumerable<T>(
@@ -145,7 +145,7 @@ namespace Gerakul.FastSql
             await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
             state.InternalConnection = conn;
             SqlScope scope = new SqlScope(conn);
-            var reader = await scope.CreateSimple(options?.QueryOptions, commandText, parameters).ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            var reader = await scope.CreateSimple(queryOptions, commandText, parameters).ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             state.ReadInfo = readInfoGetter(reader);
           }
           catch
@@ -182,7 +182,7 @@ namespace Gerakul.FastSql
     public static IAsyncEnumerable<object[]> ExecuteQueryAsync(ExecutionOptions options, CancellationToken cancellationToken, 
       string connectionString, string commandText, params object[] parameters)
     {
-      return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateObjects(r), options, connectionString, commandText, parameters);
+      return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateObjects(r), options?.QueryOptions, connectionString, commandText, parameters);
     }
 
     public static IAsyncEnumerable<object[]> ExecuteQueryAsync(string connectionString, string commandText, params object[] parameters)
@@ -197,7 +197,7 @@ namespace Gerakul.FastSql
         conn.Open();
         SqlScope scope = new SqlScope(conn);
 
-        foreach (var item in scope.CreateSimple(null, commandText, parameters).ExecuteQuery<T>(options))
+        foreach (var item in scope.CreateSimple(options?.QueryOptions, commandText, parameters).ExecuteQuery<T>(options?.ReadOptions))
         {
           yield return item;
         }
@@ -212,7 +212,8 @@ namespace Gerakul.FastSql
     public static IAsyncEnumerable<T> ExecuteQueryAsync<T>(ExecutionOptions options, CancellationToken cancellationToken, 
       string connectionString, string commandText, params object[] parameters) where T : new()
     {
-      return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateByType<T>(r, options?.ReadOptions), options, connectionString, commandText, parameters);
+      return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateByType<T>(r, options?.ReadOptions), options?.QueryOptions, 
+        connectionString, commandText, parameters);
     }
 
     public static IAsyncEnumerable<T> ExecuteQueryAsync<T>(string connectionString, string commandText, params object[] parameters) where T : new()
@@ -226,7 +227,7 @@ namespace Gerakul.FastSql
       {
         conn.Open();
         SqlScope scope = new SqlScope(conn);
-        foreach (var item in scope.CreateSimple(commandText, parameters).ExecuteQueryAnonymous(proto, options))
+        foreach (var item in scope.CreateSimple(options?.QueryOptions, commandText, parameters).ExecuteQueryAnonymous(proto, options?.ReadOptions))
         {
           yield return item;
         }
@@ -242,7 +243,7 @@ namespace Gerakul.FastSql
       string connectionString, string commandText, params object[] parameters)
     {
       return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateAnonymous(r, proto, options?.ReadOptions),
-        options, connectionString, commandText, parameters);
+        options?.QueryOptions, connectionString, commandText, parameters);
     }
 
     public static IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(T proto, string connectionString, string commandText, params object[] parameters)
@@ -256,7 +257,7 @@ namespace Gerakul.FastSql
       {
         conn.Open();
         SqlScope scope = new SqlScope(conn);
-        foreach (var item in scope.CreateSimple(commandText, parameters).ExecuteQueryFirstColumn(options))
+        foreach (var item in scope.CreateSimple(options?.QueryOptions, commandText, parameters).ExecuteQueryFirstColumn())
         {
           yield return item;
         }
@@ -271,7 +272,7 @@ namespace Gerakul.FastSql
     public static IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(ExecutionOptions options, CancellationToken cancellationToken, 
       string connectionString, string commandText, params object[] parameters)
     {
-      return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateFirstColumn(r), options, connectionString, commandText, parameters);
+      return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateFirstColumn(r), options?.QueryOptions, connectionString, commandText, parameters);
     }
 
     public static IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(string connectionString, string commandText, params object[] parameters)
@@ -285,7 +286,7 @@ namespace Gerakul.FastSql
       {
         conn.Open();
         SqlScope scope = new SqlScope(conn);
-        foreach (var item in scope.CreateSimple(commandText, parameters).ExecuteQueryFirstColumn<T>(options))
+        foreach (var item in scope.CreateSimple(options?.QueryOptions, commandText, parameters).ExecuteQueryFirstColumn<T>())
         {
           yield return item;
         }
@@ -300,7 +301,7 @@ namespace Gerakul.FastSql
     public static IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(ExecutionOptions options, CancellationToken cancellationToken, 
       string connectionString, string commandText, params object[] parameters)
     {
-      return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateFirstColumn<T>(r), options, connectionString, commandText, parameters);
+      return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateFirstColumn<T>(r), options?.QueryOptions, connectionString, commandText, parameters);
     }
 
     public static IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(string connectionString, string commandText, params object[] parameters)

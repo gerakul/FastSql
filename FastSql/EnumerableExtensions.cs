@@ -30,14 +30,14 @@ namespace Gerakul.FastSql
       return new UniversalDataReader<T>(values, settings);
     }
 
-    public static UniversalDataReader<T> ToDataReader<T>(this IEnumerable<T> values, FromTypeOption option)
+    public static UniversalDataReader<T> ToDataReader<T>(this IEnumerable<T> values, FromTypeOption fromTypeOption)
     {
-      return new UniversalDataReader<T>(values, FieldSettings.FromType<T>(option));
+      return new UniversalDataReader<T>(values, FieldSettings.FromType<T>(fromTypeOption));
     }
 
-    public static UniversalDataReader<T> ToDataReader<T>(this IAsyncEnumerable<T> values, FromTypeOption option)
+    public static UniversalDataReader<T> ToDataReader<T>(this IAsyncEnumerable<T> values, FromTypeOption fromTypeOption)
     {
-      return new UniversalDataReader<T>(values, FieldSettings.FromType<T>(option));
+      return new UniversalDataReader<T>(values, FieldSettings.FromType<T>(fromTypeOption));
     }
 
     public static UniversalDataReader<T> ToDataReader<T>(this IEnumerable<T> values)

@@ -426,7 +426,9 @@ namespace Gerakul.FastSql
             await conn.OpenAsync(executeReaderCT).ConfigureAwait(false);
             state.InternalConnection = conn;
             SqlExecutor executor = new SqlExecutor(conn);
-            var reader = await executor.CreateCommand(commandText, parameters).ExecuteReaderAsync(options?.QueryOptions, executeReaderCT).ConfigureAwait(false);
+            var cmd = executor.CreateCommand(commandText, parameters);
+            Helpers.ApplyQueryOptions(cmd, options?.QueryOptions);
+            var reader = await cmd.ExecuteReaderAsync(executeReaderCT).ConfigureAwait(false);
             state.ReadInfo = readInfoGetter(reader);
           }
           catch
@@ -664,9 +666,9 @@ namespace Gerakul.FastSql
       return result;
     }
 
-    public static string GetColumnString<T>(string preffix = null, FromTypeOption option = FromTypeOption.PublicField | FromTypeOption.PublicProperty)
+    public static string GetColumnString<T>(string preffix = null, FromTypeOption fromTypeOption = FromTypeOption.PublicField | FromTypeOption.PublicProperty)
     {
-      return GetColumnString(typeof(T), preffix, option);
+      return GetColumnString(typeof(T), preffix, fromTypeOption);
     }
 
     public static void UsingTransaction(Action<SqlExecutor> action, SqlConnection connection, IsolationLevel? isolationLevel = null)

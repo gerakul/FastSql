@@ -7,36 +7,32 @@ Light-weight, fast and easy to use C# library to retrieve, write (including bulk
 
   ```csharp
   // simple command
-  var q1 = SimpleCommand.Compile("select * from Employee where CompanyID = @p0 and Age > @p1", 1, 40)
-      .ExecuteQuery<Employee>(connStr).ToArray();
+  var q1 = SimpleCommand.ExecuteQuery<Employee>(connStr, "select * from Employee where CompanyID = @p0 and Age > @p1", 1, 40).ToArray();
 
   // mapped command with anonymous type
-  var a = new { CompanyID = 1, Age = 40 };
-  var q3 = MappedCommand.Compile(a, "select * from Employee where CompanyID = @CompanyID and Age > @Age")
-      .ExecuteQuery<Employee>(connStr, a).ToArray();
+  var q2 = MappedCommand.ExecuteQuery<OtherEmployee, Employee>(connStr,
+    "select * from Employee where CompanyID = @CompanyID and Age > @Age", new OtherEmployee() { CompanyID = 1, Age = 40 }).ToArray();
   ```  
   or asynchronously
   ```csharp
   // simple command
-  var q1 = await SimpleCommand.Compile("select * from Employee where CompanyID = @p0 and Age > @p1", 1, 40)
-      .ExecuteQueryAsync<Employee>(connStr).ToArray();
+  var q1 = await SimpleCommand.ExecuteQueryAsync<Employee>(connStr, "select * from Employee where CompanyID = @p0 and Age > @p1", 1, 40).ToArray();
 
   // mapped command with anonymous type
-  var a = new { CompanyID = 1, Age = 40 };
-  var q3 = await MappedCommand.Compile(a, "select * from Employee where CompanyID = @CompanyID and Age > @Age")
-      .ExecuteQueryAsync<Employee>(connStr, a).ToArray();
+  var q2 = await MappedCommand.ExecuteQueryAsync<OtherEmployee, Employee>(connStr,
+    "select * from Employee where CompanyID = @CompanyID and Age > @Age", new OtherEmployee() { CompanyID = 1, Age = 40 }).ToArray();
   ```  
 
 2. Retrieving anonimous entities
 
   ```csharp
-  var q1 = SimpleCommand.Compile("select E.Name as Emp, C.Name as Company from Employee E join Company C on E.CompanyID = C.ID")
-      .ExecuteQueryAnonymous(new { Company = default(string), Emp = default(string) }, connStr);
+  var proto = new { Company = default(string), Emp = default(string) };
+  var q1 = SimpleCommand.ExecuteQueryAnonymous(proto, connStr, "select E.Name as Emp, C.Name as Company from Employee E join Company C on E.CompanyID = C.ID").ToArray();
   ```
   or asynchronously
   ```csharp
-  var q1 = await SimpleCommand.Compile("select E.Name as Emp, C.Name as Company from Employee E join Company C on E.CompanyID = C.ID")
-      .ExecuteQueryAnonymousAsync(new { Company = default(string), Emp = default(string) }, connStr);
+  var proto = new { Company = default(string), Emp = default(string) };
+  var q1 = await SimpleCommand.ExecuteQueryAnonymousAsync(proto, connStr, "select E.Name as Emp, C.Name as Company from Employee E join Company C on E.CompanyID = C.ID").ToArray();
   ```
   
 

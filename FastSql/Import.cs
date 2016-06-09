@@ -47,7 +47,7 @@ namespace Gerakul.FastSql
     public void Execute(ImportOptions options, string commandText, string destinationTable, params object[] commandParameters)
     {
       SqlScope scope = TransactionFrom == null ? new SqlScope(ConnectionFrom) : new SqlScope(TransactionFrom);
-      using (DbDataReader reader = scope.CreateSimple(commandText, commandParameters).ExecuteReader(options.QueryOptions))
+      using (DbDataReader reader = scope.CreateSimple(options.QueryOptions, commandText, commandParameters).ExecuteReader())
       {
         if (TransactionTo == null)
         {
@@ -63,7 +63,7 @@ namespace Gerakul.FastSql
     public async Task ExecuteAsync(CancellationToken cancellationToken, ImportOptions options, string commandText, string destinationTable, params object[] commandParameters)
     {
       SqlScope scope = TransactionFrom == null ? new SqlScope(ConnectionFrom) : new SqlScope(TransactionFrom);
-      using (DbDataReader reader = await scope.CreateSimple(commandText, commandParameters).ExecuteReaderAsync(options.QueryOptions).ConfigureAwait(false))
+      using (DbDataReader reader = await scope.CreateSimple(options.QueryOptions, commandText, commandParameters).ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
       {
         if (TransactionTo == null)
         {

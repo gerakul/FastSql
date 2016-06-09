@@ -60,19 +60,19 @@ namespace Gerakul.FastSql
 
   public static class FieldSettings
   {
-    public static FieldSettings<T>[] FromType<T>(FromTypeOption option = FromTypeOption.Both)
+    public static FieldSettings<T>[] FromType<T>(FromTypeOption fromTypeOption = FromTypeOption.Both)
     {
       List<FieldSettings<T>> fieldSettings = new List<FieldSettings<T>>();
 
       Type type = typeof(T);
 
-      if ((option & FromTypeOption.PublicField) == FromTypeOption.PublicField)
+      if ((fromTypeOption & FromTypeOption.PublicField) == FromTypeOption.PublicField)
       {
         FieldInfo[] fi = type.GetFields(BindingFlags.Instance | BindingFlags.Public);
         fieldSettings.AddRange(fi.Select(x => new FieldSettings<T>(x.Name, x.FieldType, y => x.GetValue(y))));
       }
 
-      if ((option & FromTypeOption.PublicProperty) == FromTypeOption.PublicProperty)
+      if ((fromTypeOption & FromTypeOption.PublicProperty) == FromTypeOption.PublicProperty)
       {
         PropertyInfo[] pi = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
         fieldSettings.AddRange(pi.Select(x => new FieldSettings<T>(x.Name, x.PropertyType, y => x.GetValue(y))));
@@ -81,9 +81,9 @@ namespace Gerakul.FastSql
       return fieldSettings.ToArray();
     }
 
-    public static FieldSettings<T>[] FromType<T>(T proto, FromTypeOption option = FromTypeOption.Both)
+    public static FieldSettings<T>[] FromType<T>(T proto, FromTypeOption fromTypeOption = FromTypeOption.Both)
     {
-      return FromType<T>(option);
+      return FromType<T>(fromTypeOption);
     }
   }
 }

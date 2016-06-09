@@ -10,44 +10,8 @@ namespace Gerakul.FastSql
 {
   public static class DbCommandExtensions
   {
-    public static int ExecuteNonQuery(this DbCommand cmd, QueryOptions queryOptions)
-    {
-      Helpers.ApplyQueryOptions(cmd, queryOptions);
-      return cmd.ExecuteNonQuery();
-    }
-
-    public static Task<int> ExecuteNonQueryAsync(this DbCommand cmd, QueryOptions queryOptions, CancellationToken cancellationToken = default(CancellationToken))
-    {
-      Helpers.ApplyQueryOptions(cmd, queryOptions);
-      return cmd.ExecuteNonQueryAsync(cancellationToken);
-    }
-
-    public static object ExecuteScalar(this DbCommand cmd, QueryOptions queryOptions)
-    {
-      Helpers.ApplyQueryOptions(cmd, queryOptions);
-      return cmd.ExecuteScalar();
-    }
-
-    public static Task<object> ExecuteScalarAsync(this DbCommand cmd, QueryOptions queryOptions, CancellationToken cancellationToken = default(CancellationToken))
-    {
-      Helpers.ApplyQueryOptions(cmd, queryOptions);
-      return cmd.ExecuteScalarAsync(cancellationToken);
-    }
-
-    public static DbDataReader ExecuteReader(this DbCommand cmd, QueryOptions queryOptions)
-    {
-      Helpers.ApplyQueryOptions(cmd, queryOptions);
-      return cmd.ExecuteReader();
-    }
-
-    public static Task<DbDataReader> ExecuteReaderAsync(this DbCommand cmd, QueryOptions queryOptions, CancellationToken cancellationToken = default(CancellationToken))
-    {
-      Helpers.ApplyQueryOptions(cmd, queryOptions);
-      return cmd.ExecuteReaderAsync(cancellationToken);
-    }
-
     private static AEnumerable<AsyncState<T>, T> CreateAsyncEnumerable<T>(DbCommand cmd, CancellationToken cancellationToken,
-      Func<IDataReader, ReadInfo<T>> readInfoGetter, ExecutionOptions options)
+      Func<IDataReader, ReadInfo<T>> readInfoGetter)
     {
       return Helpers.CreateAsyncEnumerable<T>(
         state =>
@@ -60,14 +24,14 @@ namespace Gerakul.FastSql
 
         async (state, ct) =>
         {
-          var reader = await cmd.ExecuteReaderAsync(options?.QueryOptions, cancellationToken).ConfigureAwait(false);
+          var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
           state.ReadInfo = readInfoGetter(reader);
         });
     }
 
-    public static IEnumerable<object[]> ExecuteQuery(this DbCommand cmd, ExecutionOptions options = null)
+    public static IEnumerable<object[]> ExecuteQuery(this DbCommand cmd)
     {
-      using (DbDataReader reader = cmd.ExecuteReader(options?.QueryOptions))
+      using (DbDataReader reader = cmd.ExecuteReader())
       {
         foreach (var item in reader.ReadAll())
         {
@@ -76,49 +40,48 @@ namespace Gerakul.FastSql
       }
     }
 
-    public static IAsyncEnumerable<object[]> ExecuteQueryAsync(this DbCommand cmd, ExecutionOptions options = null, CancellationToken cancellationToken = default(CancellationToken))
+    public static IAsyncEnumerable<object[]> ExecuteQueryAsync(this DbCommand cmd, CancellationToken cancellationToken = default(CancellationToken))
     {
-      return CreateAsyncEnumerable(cmd, cancellationToken, r => ReadInfoFactory.CreateObjects(r), options);
+      return CreateAsyncEnumerable(cmd, cancellationToken, r => ReadInfoFactory.CreateObjects(r));
     }
 
-    public static IEnumerable<T> ExecuteQuery<T>(this DbCommand cmd, ExecutionOptions options = null) where T : new()
+    public static IEnumerable<T> ExecuteQuery<T>(this DbCommand cmd, ReadOptions readOptions = null) where T : new()
     {
-      using (DbDataReader reader = cmd.ExecuteReader(options?.QueryOptions))
+      using (DbDataReader reader = cmd.ExecuteReader())
       {
-        foreach (var item in reader.ReadAll<T>(options?.ReadOptions))
+        foreach (var item in reader.ReadAll<T>(readOptions))
         {
           yield return item;
         }
       }
     }
 
-    public static IAsyncEnumerable<T> ExecuteQueryAsync<T>(this DbCommand cmd, ExecutionOptions options = null, 
+    public static IAsyncEnumerable<T> ExecuteQueryAsync<T>(this DbCommand cmd, ReadOptions readOptions = null, 
       CancellationToken cancellationToken = default(CancellationToken)) where T : new()
     {
-      return CreateAsyncEnumerable(cmd, cancellationToken, r => ReadInfoFactory.CreateByType<T>(r, options?.ReadOptions), options);
+      return CreateAsyncEnumerable(cmd, cancellationToken, r => ReadInfoFactory.CreateByType<T>(r, readOptions));
     }
 
-    public static IEnumerable<T> ExecuteQueryAnonymous<T>(this DbCommand cmd, T proto, ExecutionOptions options = null)
+    public static IEnumerable<T> ExecuteQueryAnonymous<T>(this DbCommand cmd, T proto, ReadOptions readOptions = null)
     {
-      using (DbDataReader reader = cmd.ExecuteReader(options?.QueryOptions))
+      using (DbDataReader reader = cmd.ExecuteReader())
       {
-        foreach (var item in reader.ReadAllAnonymous(proto, options?.ReadOptions))
+        foreach (var item in reader.ReadAllAnonymous(proto, readOptions))
         {
           yield return item;
         }
       }
     }
 
-    public static IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(this DbCommand cmd, T proto, ExecutionOptions options = null, 
+    public static IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(this DbCommand cmd, T proto, ReadOptions readOptions = null, 
       CancellationToken cancellationToken = default(CancellationToken))
     {
-      return CreateAsyncEnumerable(cmd, cancellationToken, r => ReadInfoFactory.CreateAnonymous<T>(r, proto, options?.ReadOptions), 
-        options);
+      return CreateAsyncEnumerable(cmd, cancellationToken, r => ReadInfoFactory.CreateAnonymous<T>(r, proto, readOptions));
     }
 
-    public static IEnumerable ExecuteQueryFirstColumn(this DbCommand cmd, ExecutionOptions options = null)
+    public static IEnumerable ExecuteQueryFirstColumn(this DbCommand cmd)
     {
-      using (DbDataReader reader = cmd.ExecuteReader(options?.QueryOptions))
+      using (DbDataReader reader = cmd.ExecuteReader())
       {
         foreach (var item in reader.ReadAllFirstColumn())
         {
@@ -127,15 +90,15 @@ namespace Gerakul.FastSql
       }
     }
 
-    public static IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(this DbCommand cmd, ExecutionOptions options = null, 
+    public static IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(this DbCommand cmd, 
       CancellationToken cancellationToken = default(CancellationToken))
     {
-      return CreateAsyncEnumerable(cmd, cancellationToken, r => ReadInfoFactory.CreateFirstColumn(r), options);
+      return CreateAsyncEnumerable(cmd, cancellationToken, r => ReadInfoFactory.CreateFirstColumn(r));
     }
 
-    public static IEnumerable<T> ExecuteQueryFirstColumn<T>(this DbCommand cmd, ExecutionOptions options = null)
+    public static IEnumerable<T> ExecuteQueryFirstColumn<T>(this DbCommand cmd)
     {
-      using (DbDataReader reader = cmd.ExecuteReader(options?.QueryOptions))
+      using (DbDataReader reader = cmd.ExecuteReader())
       {
         foreach (var item in reader.ReadAllFirstColumn<T>())
         {
@@ -144,10 +107,10 @@ namespace Gerakul.FastSql
       }
     }
 
-    public static IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(this DbCommand cmd, ExecutionOptions options = null,
+    public static IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(this DbCommand cmd,
       CancellationToken cancellationToken = default(CancellationToken))
     {
-      return CreateAsyncEnumerable(cmd, cancellationToken, r => ReadInfoFactory.CreateFirstColumn<T>(r), options);
+      return CreateAsyncEnumerable(cmd, cancellationToken, r => ReadInfoFactory.CreateFirstColumn<T>(r));
     }
   }
 }
