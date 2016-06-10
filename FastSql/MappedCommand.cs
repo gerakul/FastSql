@@ -312,7 +312,7 @@ namespace Gerakul.FastSql
 
     public static MappedCommand<T> CompileInsert<T>(string tableName, IList<FieldSettings<T>> settings, bool getIdentity, params string[] ignoreFields)
     {
-      var fields = settings.Select(x => x.Name).Except(ignoreFields).ToArray();
+      var fields = settings.Select(x => x.Name.ToLowerInvariant()).Except(ignoreFields.Select(x => x.ToLowerInvariant())).ToArray();
       string query = CommandTextGenerator.Insert(tableName, getIdentity, fields);
       return new MappedCommand<T>(query, fields, settings);
     }
@@ -343,8 +343,8 @@ namespace Gerakul.FastSql
 
     public static MappedCommand<T> CompileUpdate<T>(string tableName, IList<FieldSettings<T>> settings, IList<string> keyFields, IList<string> notKeyIgnoreFields)
     {
-      var fields = settings.Select(x => x.Name).Except(notKeyIgnoreFields).ToArray();
-      var fieldsToUpdate = fields.Except(keyFields).ToArray();
+      var fields = settings.Select(x => x.Name.ToLowerInvariant()).Except(notKeyIgnoreFields.Select(x => x.ToLowerInvariant())).ToArray();
+      var fieldsToUpdate = fields.Except(keyFields.Select(x => x.ToLowerInvariant())).ToArray();
       string query = CommandTextGenerator.Update(tableName, keyFields, fieldsToUpdate);
       return new MappedCommand<T>(query, fields, settings);
     }
