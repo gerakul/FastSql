@@ -43,7 +43,7 @@ namespace Gerakul.FastSql
 
     #region Creation
 
-    public static SimpleCommand Compile(string commandText)
+    internal static SimpleCommand Compile(string commandText)
     {
       return new SimpleCommand(commandText);
     }
