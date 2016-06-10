@@ -482,6 +482,68 @@ namespace Samples
       // Simple import
       await Import.ExecuteAsync(connStr, connStr2, "select Name, Age from Employee where Age <= @p0", "Person", 30);
     }
+
+    // Insert
+    static void Sample17()
+    {
+      var emp = new Employee() { CompanyID = 2, Name = "New inserted", Phone = "111" };
+
+      MappedCommand.Insert(connStr, "Employee", emp, "ID");
+      var id = MappedCommand.InsertAndGetId(connStr, "Employee", emp, "ID");
+
+      // using transaction
+      SqlScope.UsingTransaction(connStr, scope =>
+      {
+        emp.Name += "1";
+        scope.CreateInsert("Employee", emp, false, "ID").ExecuteNonQuery();
+        var id1 = scope.CreateInsert("Employee", emp, true, "ID").ExecuteScalar();
+      });
+    }
+
+    static async Task Sample17Async()
+    {
+      var emp = new Employee() { CompanyID = 2, Name = "New inserted", Phone = "111" };
+
+      await MappedCommand.InsertAsync(connStr, "Employee", emp, "ID");
+      var id = await MappedCommand.InsertAndGetIdAsync(connStr, "Employee", emp, "ID");
+
+      // using transaction
+      await SqlScope.UsingTransactionAsync(connStr, async scope =>
+      {
+        emp.Name += "1";
+        await scope.CreateInsert("Employee", emp, false, "ID").ExecuteNonQueryAsync();
+        var id1 = await scope.CreateInsert("Employee", emp, true, "ID").ExecuteScalarAsync();
+      });
+    }
+
+    // Update
+    static void Sample18()
+    {
+      var emp = new Employee() { ID = 2, CompanyID = 2, Name = "Updated", Phone = "111" };
+
+      MappedCommand.Update(connStr, "Employee", emp, "ID");
+
+      // using transaction
+      SqlScope.UsingTransaction(connStr, scope =>
+      {
+        emp.Name += "1";
+        scope.CreateUpdate("Employee", emp, "ID").ExecuteNonQuery();
+      });
+    }
+
+    static async Task Sample18Async()
+    {
+      var emp = new Employee() { ID = 4, CompanyID = 2, Name = "Updated", Phone = "111" };
+
+      await MappedCommand.UpdateAsync(connStr, "Employee", emp, "ID");
+
+      // using transaction
+      await SqlScope.UsingTransactionAsync(connStr, async scope =>
+      {
+        emp.Name += "1";
+        await scope.CreateUpdate("Employee", emp, "ID").ExecuteNonQueryAsync();
+      });
+    }
   }
 
   public class C

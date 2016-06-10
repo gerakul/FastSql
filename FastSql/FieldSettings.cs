@@ -85,5 +85,23 @@ namespace Gerakul.FastSql
     {
       return FromType<T>(fromTypeOption);
     }
+
+    public static string[] GetFields<T>(FromTypeOption fromTypeOption = FromTypeOption.Both)
+    {
+      return FromType<T>(fromTypeOption).GetNames();
+    }
+
+    public static string[] GetFields<T>(T proto, FromTypeOption fromTypeOption = FromTypeOption.Both)
+    {
+      return FromType(proto, fromTypeOption).GetNames();
+    }
+  }
+
+  public static class FieldSettingsExtension
+  {
+    public static string[] GetNames<T>(this IEnumerable<FieldSettings<T>> values)
+    {
+      return values.Select(x => x.Name).ToArray();
+    }
   }
 }

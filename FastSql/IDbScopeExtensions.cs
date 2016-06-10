@@ -60,6 +60,40 @@ namespace Gerakul.FastSql
       return MappedCommand.Compile<T>(commandText, fromTypeOption).Create(scope, value, queryOptions);
     }
 
+    #region Special commands
+
+
+    #region Insert
+
+    public static DbCommand CreateInsert<T>(this IDbScope scope, QueryOptions queryOptions, string tableName, T value, bool getIdentity, params string[] ignoreFields)
+    {
+      return MappedCommand.CompileInsert<T>(tableName, getIdentity, ignoreFields).Create(scope, value, queryOptions);
+    }
+
+    public static DbCommand CreateInsert<T>(this IDbScope scope, string tableName, T value, bool getIdentity, params string[] ignoreFields)
+    {
+      return MappedCommand.CompileInsert<T>(tableName, getIdentity, ignoreFields).Create(scope, value);
+    }
+
+    #endregion
+
+    #region Update
+
+    public static DbCommand CreateUpdate<T>(this IDbScope scope, QueryOptions queryOptions, string tableName, T value, params string[] keyFields)
+    {
+      return MappedCommand.CompileUpdate<T>(tableName, keyFields).Create(scope, value, queryOptions);
+    }
+
+    public static DbCommand CreateUpdate<T>(this IDbScope scope, string tableName, T value, params string[] keyFields)
+    {
+      return MappedCommand.CompileUpdate<T>(tableName, keyFields).Create(scope, value);
+    }
+
+    #endregion
+
+
+    #endregion
+
     #endregion
   }
 }

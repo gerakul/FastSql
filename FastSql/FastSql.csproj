@@ -45,6 +45,7 @@
     <Compile Include="AEnumerable.cs" />
     <Compile Include="AsyncState.cs" />
     <Compile Include="BulkCopy.cs" />
+    <Compile Include="CommandTextGenerator.cs" />
     <Compile Include="DataReaderExtensions.cs" />
     <Compile Include="EnumerableExtensions.cs" />
     <Compile Include="DbCommandExtensions.cs" />

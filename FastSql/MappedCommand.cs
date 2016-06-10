@@ -306,6 +306,98 @@ namespace Gerakul.FastSql
       return new MappedCommand<T>(commandText, ParseCommandText(commandText), FieldSettings.FromType(proto, fromTypeOption));
     }
 
+    #region Special commands
+
+    #region Insert
+
+    public static MappedCommand<T> CompileInsert<T>(string tableName, IList<FieldSettings<T>> settings, bool getIdentity, params string[] ignoreFields)
+    {
+      var fields = settings.Select(x => x.Name).Except(ignoreFields).ToArray();
+      string query = CommandTextGenerator.Insert(tableName, getIdentity, fields);
+      return new MappedCommand<T>(query, fields, settings);
+    }
+
+    public static MappedCommand<T> CompileInsert<T>(string tableName, FromTypeOption fromTypeOption, bool getIdentity, params string[] ignoreFields)
+    {
+      return CompileInsert(tableName, FieldSettings.FromType<T>(fromTypeOption), getIdentity, ignoreFields);
+    }
+
+    public static MappedCommand<T> CompileInsert<T>(string tableName, bool getIdentity, params string[] ignoreFields)
+    {
+      return CompileInsert(tableName, FieldSettings.FromType<T>(FromTypeOption.Both), getIdentity, ignoreFields);
+    }
+
+    public static MappedCommand<T> CompileInsert<T>(T proto, string tableName, FromTypeOption fromTypeOption, bool getIdentity, params string[] ignoreFields)
+    {
+      return CompileInsert(tableName, FieldSettings.FromType(proto, fromTypeOption), getIdentity, ignoreFields);
+    }
+
+    public static MappedCommand<T> CompileInsert<T>(T proto, string tableName, bool getIdentity, params string[] ignoreFields)
+    {
+      return CompileInsert(tableName, FieldSettings.FromType(proto, FromTypeOption.Both), getIdentity, ignoreFields);
+    }
+
+    #endregion
+
+    #region Update
+
+    public static MappedCommand<T> CompileUpdate<T>(string tableName, IList<FieldSettings<T>> settings, IList<string> keyFields, IList<string> notKeyIgnoreFields)
+    {
+      var fields = settings.Select(x => x.Name).Except(notKeyIgnoreFields).ToArray();
+      var fieldsToUpdate = fields.Except(keyFields).ToArray();
+      string query = CommandTextGenerator.Update(tableName, keyFields, fieldsToUpdate);
+      return new MappedCommand<T>(query, fields, settings);
+    }
+
+    public static MappedCommand<T> CompileUpdate<T>(string tableName, IList<FieldSettings<T>> settings, params string[] keyFields)
+    {
+      return CompileUpdate(tableName, settings, keyFields, new List<string>());
+    }
+
+    public static MappedCommand<T> CompileUpdate<T>(string tableName, FromTypeOption fromTypeOption, IList<string> keyFields, IList<string> notKeyIgnoreFields)
+    {
+      return CompileUpdate(tableName, FieldSettings.FromType<T>(fromTypeOption), keyFields, notKeyIgnoreFields);
+    }
+
+    public static MappedCommand<T> CompileUpdate<T>(string tableName, FromTypeOption fromTypeOption, params string[] keyFields)
+    {
+      return CompileUpdate(tableName, FieldSettings.FromType<T>(fromTypeOption), keyFields, new List<string>());
+    }
+
+    public static MappedCommand<T> CompileUpdate<T>(string tableName, IList<string> keyFields, IList<string> notKeyIgnoreFields)
+    {
+      return CompileUpdate(tableName, FieldSettings.FromType<T>(), keyFields, notKeyIgnoreFields);
+    }
+
+    public static MappedCommand<T> CompileUpdate<T>(string tableName, params string[] keyFields)
+    {
+      return CompileUpdate(tableName, FieldSettings.FromType<T>(), keyFields, new List<string>());
+    }
+
+    public static MappedCommand<T> CompileUpdate<T>(T proto, string tableName, FromTypeOption fromTypeOption, IList<string> keyFields, IList<string> notKeyIgnoreFields)
+    {
+      return CompileUpdate(tableName, FieldSettings.FromType(proto, fromTypeOption), keyFields, notKeyIgnoreFields);
+    }
+
+    public static MappedCommand<T> CompileUpdate<T>(T proto, string tableName, FromTypeOption fromTypeOption, params string[] keyFields)
+    {
+      return CompileUpdate(tableName, FieldSettings.FromType(proto, fromTypeOption), keyFields, new List<string>());
+    }
+
+    public static MappedCommand<T> CompileUpdate<T>(T proto, string tableName, IList<string> keyFields, IList<string> notKeyIgnoreFields)
+    {
+      return CompileUpdate(tableName, FieldSettings.FromType(proto), keyFields, notKeyIgnoreFields);
+    }
+
+    public static MappedCommand<T> CompileUpdate<T>(T proto, string tableName, params string[] keyFields)
+    {
+      return CompileUpdate(tableName, FieldSettings.FromType(proto), keyFields, new List<string>());
+    }
+
+    #endregion
+
+    #endregion
+
     #endregion
 
     #region Execution
@@ -393,6 +485,85 @@ namespace Gerakul.FastSql
     {
       return Compile<T>(commandText, typeOption).ExecuteQueryFirstColumnAsync<R>(connectionString, value, options, cancellationToken);
     }
+
+    #region Special commands
+
+    #region Insert
+
+    public static int Insert<T>(QueryOptions queryOptions, string connectionString, string tableName, T value, params string[] ignoreFields)
+    {
+      return CompileInsert<T>(tableName, false, ignoreFields).ExecuteNonQuery(connectionString, value, queryOptions);
+    }
+
+    public static int Insert<T>(string connectionString, string tableName, T value, params string[] ignoreFields)
+    {
+      return CompileInsert<T>(tableName, false, ignoreFields).ExecuteNonQuery(connectionString, value);
+    }
+
+    public static Task<int> InsertAsync<T>(QueryOptions queryOptions, CancellationToken cancellationToken,
+      string connectionString, string tableName, T value, params string[] ignoreFields)
+    {
+      return CompileInsert<T>(tableName, false, ignoreFields).ExecuteNonQueryAsync(connectionString, value, queryOptions, cancellationToken);
+    }
+
+    public static Task<int> InsertAsync<T>(string connectionString, string tableName, T value, params string[] ignoreFields)
+    {
+      return CompileInsert<T>(tableName, false, ignoreFields).ExecuteNonQueryAsync(connectionString, value);
+    }
+
+    #endregion
+
+    #region Insert and get identity
+
+    public static decimal InsertAndGetId<T>(QueryOptions queryOptions, string connectionString, string tableName, T value, params string[] ignoreFields)
+    {
+      return (decimal)CompileInsert<T>(tableName, true, ignoreFields).ExecuteScalar(connectionString, value, queryOptions);
+    }
+
+    public static decimal InsertAndGetId<T>(string connectionString, string tableName, T value, params string[] ignoreFields)
+    {
+      return (decimal)CompileInsert<T>(tableName, true, ignoreFields).ExecuteScalar(connectionString, value);
+    }
+
+    public static async Task<decimal> InsertAndGetIdAsync<T>(QueryOptions queryOptions, CancellationToken cancellationToken,
+      string connectionString, string tableName, T value, params string[] ignoreFields)
+    {
+      return (decimal)(await CompileInsert<T>(tableName, true, ignoreFields).ExecuteScalarAsync(connectionString, value, queryOptions, cancellationToken));
+    }
+
+    public static async Task<decimal> InsertAndGetIdAsync<T>(string connectionString, string tableName, T value, params string[] ignoreFields)
+    {
+      return (decimal)(await CompileInsert<T>(tableName, true, ignoreFields).ExecuteScalarAsync(connectionString, value));
+    }
+
+    #endregion
+
+    #region Update
+
+    public static int Update<T>(QueryOptions queryOptions, string connectionString, string tableName, T value, params string[] keyFields)
+    {
+      return CompileUpdate<T>(tableName, keyFields).ExecuteNonQuery(connectionString, value, queryOptions);
+    }
+
+    public static int Update<T>(string connectionString, string tableName, T value, params string[] keyFields)
+    {
+      return CompileUpdate<T>(tableName, keyFields).ExecuteNonQuery(connectionString, value);
+    }
+
+    public static Task<int> UpdateAsync<T>(QueryOptions queryOptions, CancellationToken cancellationToken, 
+      string connectionString, string tableName, T value, params string[] keyFields)
+    {
+      return CompileUpdate<T>(tableName, keyFields).ExecuteNonQueryAsync(connectionString, value, queryOptions, cancellationToken);
+    }
+
+    public static Task<int> UpdateAsync<T>(string connectionString, string tableName, T value, params string[] keyFields)
+    {
+      return CompileUpdate<T>(tableName, keyFields).ExecuteNonQueryAsync(connectionString, value);
+    }
+
+    #endregion
+
+    #endregion
 
     #endregion
   }
