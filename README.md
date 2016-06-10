@@ -57,6 +57,21 @@ or asynchronously
   
   await newEmployees.WriteToServerAsync(connStr, "Employee");
   ```
+  
+
+3. Insert and update entities
+
+  ```csharp
+  var emp = new Employee() { ID = 2, CompanyID = 1, Name = "New name", Phone = "111" };
+  MappedCommand.Insert(connStr, "Employee", emp, "ID");
+  MappedCommand.Update(connStr, "Employee", emp, "ID");
+  ```
+or asynchronously
+  ```csharp
+  var emp = new Employee() { ID = 2, CompanyID = 1, Name = "New name", Phone = "111" };
+  await MappedCommand.InsertAsync(connStr, "Employee", emp, "ID");
+  await MappedCommand.UpdateAsync(connStr, "Employee", emp, "ID");
+  ```
 
 More samples contains in Samples project. 
 
