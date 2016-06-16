@@ -29,7 +29,7 @@ namespace Gerakul.FastSql
 
     public static string Insert(string tableName, bool getIdentity, params string[] fields)
     {
-      var query = $"insert into [{tableName}] ({ColumnList(fields)}) values ({ParamList(fields)});";
+      var query = $"insert into {tableName} ({ColumnList(fields)}) values ({ParamList(fields)});";
       if (getIdentity)
       {
         query += " select scope_identity();";
@@ -40,7 +40,7 @@ namespace Gerakul.FastSql
 
     public static string Update(string tableName, string whereClause, params string[] fields)
     {
-      return $"update [{tableName}] set {SetClause(fields)} where {whereClause};";
+      return $"update {tableName} set {SetClause(fields)} where {whereClause};";
     }
 
     public static string Update(string tableName, IEnumerable<string> keyFields, params string[] fields)
