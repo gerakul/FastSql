@@ -240,8 +240,7 @@ namespace Gerakul.FastSql
       return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateFirstColumn(r), options?.QueryOptions, connectionString, value);
     }
 
-    public IEnumerable<R> ExecuteQueryFirstColumn<R>(string connectionString, T value, ExecutionOptions options = null,
-      CancellationToken cancellationToken = default(CancellationToken))
+    public IEnumerable<R> ExecuteQueryFirstColumn<R>(string connectionString, T value, ExecutionOptions options = null)
     {
       using (SqlConnection conn = new SqlConnection(connectionString))
       {
@@ -305,6 +304,34 @@ namespace Gerakul.FastSql
     {
       return new MappedCommand<T>(commandText, ParseCommandText(commandText), FieldSettings.FromType(proto, fromTypeOption));
     }
+
+    #region Preparation
+
+    public static PreparedMappedCommand<T> Prepare<T>(string connectionString, string commandText, T value, 
+      IList<string> paramNames, IList<FieldSettings<T>> settings)
+    {
+      return new PreparedMappedCommand<T>(Compile(commandText, paramNames, settings), connectionString, value);
+    }
+
+    public static PreparedMappedCommand<T> Prepare<T>(string connectionString, string commandText, T value, 
+      IList<FieldSettings<T>> settings)
+    {
+      return new PreparedMappedCommand<T>(Compile(commandText, settings), connectionString, value);
+    }
+
+    public static PreparedMappedCommand<T> Prepare<T>(string connectionString, string commandText, T value, 
+      IList<string> paramNames, FromTypeOption fromTypeOption = FromTypeOption.Both)
+    {
+      return new PreparedMappedCommand<T>(Compile<T>(commandText, paramNames, fromTypeOption), connectionString, value);
+    }
+
+    public static PreparedMappedCommand<T> Prepare<T>(string connectionString, string commandText, T value, 
+      FromTypeOption fromTypeOption = FromTypeOption.Both)
+    {
+      return new PreparedMappedCommand<T>(Compile<T>(commandText, fromTypeOption), connectionString, value);
+    }
+
+    #endregion
 
     #region Special commands
 

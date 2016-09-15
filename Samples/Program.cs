@@ -26,7 +26,7 @@ namespace Samples
     // put here your connection strings
     static string connStr = @"Data Source=localhost;Initial Catalog=SampleDB1;Persist Security Info=True;User ID=****;Password=****";
     static string connStr2 = @"Data Source=localhost;Initial Catalog=SampleDB2;Persist Security Info=True;User ID=****;Password=****";
-
+    
     static void Main(string[] args)
     {
       // change sample name to one's you interested in
@@ -543,6 +543,23 @@ namespace Samples
         emp.Name += "1";
         await scope.CreateUpdate("Employee", emp, "ID").ExecuteNonQueryAsync();
       });
+    }
+
+    // using parametrized query with MappedCommand.Prepare
+    static void Sample19()
+    {
+      var q = MappedCommand.Prepare(connStr, "select * from Employee where CompanyID = @CompanyID and Age > @Age", 
+        new { CompanyID = 1, Age = 40 }).ExecuteQuery<Employee>();
+
+      var arr = q.ToArray();
+    }
+
+    static async Task Sample19Async()
+    {
+      var q = MappedCommand.Prepare(connStr, "select * from Employee where CompanyID = @CompanyID and Age > @Age",
+        new { CompanyID = 1, Age = 40 }).ExecuteQueryAsync<Employee>();
+
+      var arr = await q.ToArray();
     }
   }
 

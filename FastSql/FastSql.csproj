@@ -57,6 +57,7 @@
     <Compile Include="IDbScopeExtensions.cs" />
     <Compile Include="Import.cs" />
     <Compile Include="MappedCommand.cs" />
+    <Compile Include="PreparedMappedCommand.cs" />
     <Compile Include="SimpleCommand.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="QueryOptions.cs" />
