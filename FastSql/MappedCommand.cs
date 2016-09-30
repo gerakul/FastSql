@@ -66,6 +66,11 @@ namespace Gerakul.FastSql
           paramValue = m.Settings.IsNullGetter(value) ? DBNull.Value : m.Settings.Getter(value);
         }
 
+        if (m.Settings.FieldType.Equals(typeof(byte[])) && paramValue == DBNull.Value)
+        {
+          paramValue = System.Data.SqlTypes.SqlBytes.Null;
+        }
+
         scope.AddParamWithValue(cmd, m.ParameterName, paramValue);
       }
 
