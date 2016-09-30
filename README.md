@@ -10,8 +10,11 @@ Light-weight, fast and easy to use C# library to retrieve, write (including bulk
   var q1 = SimpleCommand.ExecuteQuery<Employee>(connStr, "select * from Employee where CompanyID = @p0 and Age > @p1", 1, 40).ToArray();
 
   // mapped command
-  var q2 = MappedCommand.ExecuteQuery<OtherEmployee, Employee>(connStr,
-    "select * from Employee where CompanyID = @CompanyID and Age > @Age", new OtherEmployee() { CompanyID = 1, Age = 40 }).ToArray();
+  var q2 = MappedCommand.ExecuteQuery<OtherEmployee, Employee>(connStr, "select * from Employee where CompanyID = @CompanyID and Age > @Age", 
+   new OtherEmployee() { CompanyID = 1, Age = 40 }).ToArray();
+  
+  var q3 = MappedCommand.Prepare(connStr, "select * from Employee where CompanyID = @CompanyID and Age > @Age", 
+    new { CompanyID = 1, Age = 40 }).ExecuteQuery<Employee>().ToArray();
   ```  
   or asynchronously
   ```csharp
@@ -19,9 +22,12 @@ Light-weight, fast and easy to use C# library to retrieve, write (including bulk
   var q1 = await SimpleCommand.ExecuteQueryAsync<Employee>(connStr, "select * from Employee where CompanyID = @p0 and Age > @p1", 1, 40).ToArray();
 
   // mapped command
-  var q2 = await MappedCommand.ExecuteQueryAsync<OtherEmployee, Employee>(connStr,
-    "select * from Employee where CompanyID = @CompanyID and Age > @Age", new OtherEmployee() { CompanyID = 1, Age = 40 }).ToArray();
-  ```  
+  var q2 = await MappedCommand.ExecuteQueryAsync<OtherEmployee, Employee>(connStr, "select * from Employee where CompanyID = @CompanyID and Age > @Age", 
+   new OtherEmployee() { CompanyID = 1, Age = 40 }).ToArray();
+  
+  var q3 = await MappedCommand.Prepare(connStr, "select * from Employee where CompanyID = @CompanyID and Age > @Age", 
+    new { CompanyID = 1, Age = 40 }).ExecuteQueryAsync<Employee>().ToArray();
+```  
 
 2. Retrieving anonimous entities
 
