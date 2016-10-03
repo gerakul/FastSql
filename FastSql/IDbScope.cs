@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 
 namespace Gerakul.FastSql
 {
-  public interface IDbScope
-  {
-    DbCommand CreateCommand(string commandText);
-    DbParameter AddParamWithValue(DbCommand cmd, string paramName, object value);
-  }
+    public interface IDbScope
+    {
+        DbCommand CreateCommand(string commandText);
+        DbParameter AddParamWithValue(DbCommand cmd, string paramName, object value);
+    }
 }

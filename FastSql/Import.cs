@@ -5,171 +5,171 @@ using System.Threading.Tasks;
 
 namespace Gerakul.FastSql
 {
-  public class Import
-  {
-    public SqlConnection ConnectionFrom { get; private set; }
-    public SqlTransaction TransactionFrom { get; private set; }
-    public SqlConnection ConnectionTo { get; private set; }
-    public SqlTransaction TransactionTo { get; private set; }
-
-    public Import(SqlConnection connectionFrom, SqlConnection connectionTo)
+    public class Import
     {
-      this.ConnectionFrom = connectionFrom;
-      this.TransactionFrom = null;
-      this.ConnectionTo = connectionTo;
-      this.TransactionTo = null;
-    }
+        public SqlConnection ConnectionFrom { get; private set; }
+        public SqlTransaction TransactionFrom { get; private set; }
+        public SqlConnection ConnectionTo { get; private set; }
+        public SqlTransaction TransactionTo { get; private set; }
 
-    public Import(SqlConnection connectionFrom, SqlTransaction transactionTo)
-    {
-      this.ConnectionFrom = connectionFrom;
-      this.TransactionFrom = null;
-      this.ConnectionTo = transactionTo.Connection;
-      this.TransactionTo = transactionTo;
-    }
-
-    public Import(SqlTransaction transactionFrom, SqlConnection connectionTo)
-    {
-      this.ConnectionFrom = transactionFrom.Connection;
-      this.TransactionFrom = transactionFrom;
-      this.ConnectionTo = connectionTo;
-      this.TransactionTo = null;
-    }
-
-    public Import(SqlTransaction transactionFrom, SqlTransaction transactionTo)
-    {
-      this.ConnectionFrom = transactionFrom.Connection;
-      this.TransactionFrom = transactionFrom;
-      this.ConnectionTo = transactionTo.Connection;
-      this.TransactionTo = transactionTo;
-    }
-
-    public void Execute(ImportOptions options, string commandText, string destinationTable, params object[] commandParameters)
-    {
-      SqlScope scope = TransactionFrom == null ? new SqlScope(ConnectionFrom) : new SqlScope(TransactionFrom);
-      using (DbDataReader reader = scope.CreateSimple(options.QueryOptions, commandText, commandParameters).ExecuteReader())
-      {
-        if (TransactionTo == null)
+        public Import(SqlConnection connectionFrom, SqlConnection connectionTo)
         {
-          reader.WriteToServer(options.BulkOptions, ConnectionTo, destinationTable);
+            this.ConnectionFrom = connectionFrom;
+            this.TransactionFrom = null;
+            this.ConnectionTo = connectionTo;
+            this.TransactionTo = null;
         }
-        else
+
+        public Import(SqlConnection connectionFrom, SqlTransaction transactionTo)
         {
-          reader.WriteToServer(options.BulkOptions, TransactionTo, destinationTable);
+            this.ConnectionFrom = connectionFrom;
+            this.TransactionFrom = null;
+            this.ConnectionTo = transactionTo.Connection;
+            this.TransactionTo = transactionTo;
         }
-      }
-    }
 
-    public async Task ExecuteAsync(CancellationToken cancellationToken, ImportOptions options, string commandText, string destinationTable, params object[] commandParameters)
-    {
-      SqlScope scope = TransactionFrom == null ? new SqlScope(ConnectionFrom) : new SqlScope(TransactionFrom);
-      using (DbDataReader reader = await scope.CreateSimple(options.QueryOptions, commandText, commandParameters).ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
-      {
-        if (TransactionTo == null)
+        public Import(SqlTransaction transactionFrom, SqlConnection connectionTo)
         {
-          await reader.WriteToServerAsync(cancellationToken, options.BulkOptions, ConnectionTo, destinationTable).ConfigureAwait(false);
+            this.ConnectionFrom = transactionFrom.Connection;
+            this.TransactionFrom = transactionFrom;
+            this.ConnectionTo = connectionTo;
+            this.TransactionTo = null;
         }
-        else
+
+        public Import(SqlTransaction transactionFrom, SqlTransaction transactionTo)
         {
-          await reader.WriteToServerAsync(cancellationToken, options.BulkOptions, TransactionTo, destinationTable).ConfigureAwait(false);
+            this.ConnectionFrom = transactionFrom.Connection;
+            this.TransactionFrom = transactionFrom;
+            this.ConnectionTo = transactionTo.Connection;
+            this.TransactionTo = transactionTo;
         }
-      }
-    }
 
-    public Task ExecuteAsync(ImportOptions options, string commandText, string destinationTable, params object[] commandParameters)
-    {
-      return ExecuteAsync(CancellationToken.None, options, commandText, destinationTable, commandParameters);
-    }
-
-    public void Execute(string commandText, string destinationTable, params object[] commandParameters)
-    {
-      Execute(new ImportOptions(), commandText, destinationTable, commandParameters);
-    }
-
-    public Task ExecuteAsync(CancellationToken cancellationToken, string commandText, string destinationTable, params object[] commandParameters)
-    {
-      return ExecuteAsync(cancellationToken, new ImportOptions(), commandText, destinationTable, commandParameters);
-    }
-
-    public Task ExecuteAsync(string commandText, string destinationTable, params object[] commandParameters)
-    {
-      return ExecuteAsync(CancellationToken.None, new ImportOptions(), commandText, destinationTable, commandParameters);
-    }
-
-    #region Static
-
-    public static void Execute(ImportOptions options, string connectionStringFrom, string connectionStringTo, string commandText, string destinationTable, params object[] commandParameters)
-    {
-      using (SqlConnection connFrom = new SqlConnection(connectionStringFrom))
-      {
-        connFrom.Open();
-
-        using (SqlConnection connTo = new SqlConnection(connectionStringTo))
+        public void Execute(ImportOptions options, string commandText, string destinationTable, params object[] commandParameters)
         {
-          connTo.Open();
-
-          Import import = new Import(connFrom, connTo);
-          import.Execute(options, commandText, destinationTable, commandParameters);
+            SqlScope scope = TransactionFrom == null ? new SqlScope(ConnectionFrom) : new SqlScope(TransactionFrom);
+            using (DbDataReader reader = scope.CreateSimple(options.QueryOptions, commandText, commandParameters).ExecuteReader())
+            {
+                if (TransactionTo == null)
+                {
+                    reader.WriteToServer(options.BulkOptions, ConnectionTo, destinationTable);
+                }
+                else
+                {
+                    reader.WriteToServer(options.BulkOptions, TransactionTo, destinationTable);
+                }
+            }
         }
-      }
-    }
 
-    public static async Task ExecuteAsync(CancellationToken cancellationToken, ImportOptions options, 
-      string connectionStringFrom, string connectionStringTo, string commandText, string destinationTable, params object[] commandParameters)
-    {
-      using (SqlConnection connFrom = new SqlConnection(connectionStringFrom))
-      {
-        await connFrom.OpenAsync().ConfigureAwait(false);
-
-        using (SqlConnection connTo = new SqlConnection(connectionStringTo))
+        public async Task ExecuteAsync(CancellationToken cancellationToken, ImportOptions options, string commandText, string destinationTable, params object[] commandParameters)
         {
-          await connTo.OpenAsync().ConfigureAwait(false);
-
-          Import import = new Import(connFrom, connTo);
-          await import.ExecuteAsync(cancellationToken, options, commandText, destinationTable, commandParameters).ConfigureAwait(false);
+            SqlScope scope = TransactionFrom == null ? new SqlScope(ConnectionFrom) : new SqlScope(TransactionFrom);
+            using (DbDataReader reader = await scope.CreateSimple(options.QueryOptions, commandText, commandParameters).ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
+            {
+                if (TransactionTo == null)
+                {
+                    await reader.WriteToServerAsync(cancellationToken, options.BulkOptions, ConnectionTo, destinationTable).ConfigureAwait(false);
+                }
+                else
+                {
+                    await reader.WriteToServerAsync(cancellationToken, options.BulkOptions, TransactionTo, destinationTable).ConfigureAwait(false);
+                }
+            }
         }
-      }
+
+        public Task ExecuteAsync(ImportOptions options, string commandText, string destinationTable, params object[] commandParameters)
+        {
+            return ExecuteAsync(CancellationToken.None, options, commandText, destinationTable, commandParameters);
+        }
+
+        public void Execute(string commandText, string destinationTable, params object[] commandParameters)
+        {
+            Execute(new ImportOptions(), commandText, destinationTable, commandParameters);
+        }
+
+        public Task ExecuteAsync(CancellationToken cancellationToken, string commandText, string destinationTable, params object[] commandParameters)
+        {
+            return ExecuteAsync(cancellationToken, new ImportOptions(), commandText, destinationTable, commandParameters);
+        }
+
+        public Task ExecuteAsync(string commandText, string destinationTable, params object[] commandParameters)
+        {
+            return ExecuteAsync(CancellationToken.None, new ImportOptions(), commandText, destinationTable, commandParameters);
+        }
+
+        #region Static
+
+        public static void Execute(ImportOptions options, string connectionStringFrom, string connectionStringTo, string commandText, string destinationTable, params object[] commandParameters)
+        {
+            using (SqlConnection connFrom = new SqlConnection(connectionStringFrom))
+            {
+                connFrom.Open();
+
+                using (SqlConnection connTo = new SqlConnection(connectionStringTo))
+                {
+                    connTo.Open();
+
+                    Import import = new Import(connFrom, connTo);
+                    import.Execute(options, commandText, destinationTable, commandParameters);
+                }
+            }
+        }
+
+        public static async Task ExecuteAsync(CancellationToken cancellationToken, ImportOptions options,
+          string connectionStringFrom, string connectionStringTo, string commandText, string destinationTable, params object[] commandParameters)
+        {
+            using (SqlConnection connFrom = new SqlConnection(connectionStringFrom))
+            {
+                await connFrom.OpenAsync().ConfigureAwait(false);
+
+                using (SqlConnection connTo = new SqlConnection(connectionStringTo))
+                {
+                    await connTo.OpenAsync().ConfigureAwait(false);
+
+                    Import import = new Import(connFrom, connTo);
+                    await import.ExecuteAsync(cancellationToken, options, commandText, destinationTable, commandParameters).ConfigureAwait(false);
+                }
+            }
+        }
+
+        public static Task ExecuteAsync(ImportOptions options, string connectionStringFrom, string connectionStringTo, string commandText, string destinationTable, params object[] commandParameters)
+        {
+            return ExecuteAsync(CancellationToken.None, options, connectionStringFrom, connectionStringTo, commandText, destinationTable, commandParameters);
+        }
+
+        public static void Execute(string connectionStringFrom, string connectionStringTo, string commandText, string destinationTable, params object[] commandParameters)
+        {
+            Execute(new ImportOptions(), connectionStringFrom, connectionStringTo, commandText, destinationTable, commandParameters);
+        }
+
+        public static Task ExecuteAsync(CancellationToken cancellationToken,
+          string connectionStringFrom, string connectionStringTo, string commandText, string destinationTable, params object[] commandParameters)
+        {
+            return ExecuteAsync(cancellationToken, new ImportOptions(), connectionStringFrom, connectionStringTo, commandText, destinationTable, commandParameters);
+        }
+
+        public static Task ExecuteAsync(string connectionStringFrom, string connectionStringTo, string commandText, string destinationTable, params object[] commandParameters)
+        {
+            return ExecuteAsync(CancellationToken.None, new ImportOptions(), connectionStringFrom, connectionStringTo, commandText, destinationTable, commandParameters);
+        }
+
+        #endregion
     }
 
-    public static Task ExecuteAsync(ImportOptions options, string connectionStringFrom, string connectionStringTo, string commandText, string destinationTable, params object[] commandParameters)
+    public class ImportOptions
     {
-      return ExecuteAsync(CancellationToken.None, options, connectionStringFrom, connectionStringTo, commandText, destinationTable, commandParameters);
+        public QueryOptions QueryOptions { get; private set; }
+        public BulkOptions BulkOptions { get; private set; }
+
+        public ImportOptions(QueryOptions queryOptions, BulkOptions bulkOptions = null)
+        {
+            this.QueryOptions = queryOptions == null ? new QueryOptions() : queryOptions;
+            this.BulkOptions = bulkOptions == null ? new BulkOptions() : bulkOptions;
+        }
+
+        public ImportOptions(int? commandTimeoutSeconds = null, int? batchSize = null, int? bulkCopyTimeout = null, SqlBulkCopyOptions sqlBulkCopyOptions = SqlBulkCopyOptions.Default,
+          FieldsSelector fieldsSelector = FieldsSelector.Source, bool? caseSensitive = null)
+          : this(new QueryOptions(commandTimeoutSeconds), new BulkOptions(batchSize, bulkCopyTimeout, sqlBulkCopyOptions, fieldsSelector, caseSensitive))
+        {
+        }
     }
-
-    public static void Execute(string connectionStringFrom, string connectionStringTo, string commandText, string destinationTable, params object[] commandParameters)
-    {
-      Execute(new ImportOptions(), connectionStringFrom, connectionStringTo, commandText, destinationTable, commandParameters);
-    }
-
-    public static Task ExecuteAsync(CancellationToken cancellationToken,
-      string connectionStringFrom, string connectionStringTo, string commandText, string destinationTable, params object[] commandParameters)
-    {
-      return ExecuteAsync(cancellationToken, new ImportOptions(), connectionStringFrom, connectionStringTo, commandText, destinationTable, commandParameters);
-    }
-
-    public static Task ExecuteAsync(string connectionStringFrom, string connectionStringTo, string commandText, string destinationTable, params object[] commandParameters)
-    {
-      return ExecuteAsync(CancellationToken.None, new ImportOptions(), connectionStringFrom, connectionStringTo, commandText, destinationTable, commandParameters);
-    }
-
-    #endregion
-  }
-
-  public class ImportOptions
-  {
-    public QueryOptions QueryOptions { get; private set; }
-    public BulkOptions BulkOptions { get; private set; }
-
-    public ImportOptions(QueryOptions queryOptions, BulkOptions bulkOptions = null)
-    {
-      this.QueryOptions = queryOptions == null ? new QueryOptions() : queryOptions;
-      this.BulkOptions = bulkOptions == null ? new BulkOptions() : bulkOptions;
-    }
-
-    public ImportOptions(int? commandTimeoutSeconds = null, int? batchSize = null, int? bulkCopyTimeout = null, SqlBulkCopyOptions sqlBulkCopyOptions = SqlBulkCopyOptions.Default, 
-      FieldsSelector fieldsSelector = FieldsSelector.Source, bool? caseSensitive = null)
-      : this(new QueryOptions(commandTimeoutSeconds), new BulkOptions(batchSize, bulkCopyTimeout, sqlBulkCopyOptions, fieldsSelector, caseSensitive))
-    {
-    }
-  }
 }

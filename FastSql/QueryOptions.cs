@@ -6,13 +6,13 @@ using System.Threading.Tasks;
 
 namespace Gerakul.FastSql
 {
-  public class QueryOptions
-  {
-    public int? CommandTimeoutSeconds { get; set; }
-
-    public QueryOptions(int? commandTimeoutSeconds = null)
+    public class QueryOptions
     {
-      this.CommandTimeoutSeconds = commandTimeoutSeconds;
+        public int? CommandTimeoutSeconds { get; set; }
+
+        public QueryOptions(int? commandTimeoutSeconds = null)
+        {
+            this.CommandTimeoutSeconds = commandTimeoutSeconds;
+        }
     }
-  }
 }

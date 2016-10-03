@@ -10,10 +10,10 @@ using System.Threading.Tasks;
 
 namespace Gerakul.FastSql
 {
-  internal class AsyncState<T>
-  {
-    public T Current;
-    public ReadInfo<T> ReadInfo;
-    public DbConnection InternalConnection;
-  }
+    internal class AsyncState<T>
+    {
+        public T Current;
+        public ReadInfo<T> ReadInfo;
+        public DbConnection InternalConnection;
+    }
 }
