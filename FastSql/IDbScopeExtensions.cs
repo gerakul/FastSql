@@ -91,6 +91,20 @@ namespace Gerakul.FastSql
 
         #endregion
 
+        #region Merge
+
+        public static DbCommand CreateMerge<T>(this IDbScope scope, QueryOptions queryOptions, string tableName, T value, params string[] keyFields)
+        {
+            return MappedCommand.CompileMerge<T>(tableName, keyFields).Create(scope, value, queryOptions);
+        }
+
+        public static DbCommand CreateMerge<T>(this IDbScope scope, string tableName, T value, params string[] keyFields)
+        {
+            return MappedCommand.CompileMerge<T>(tableName, keyFields).Create(scope, value);
+        }
+
+        #endregion
+
 
         #endregion
 

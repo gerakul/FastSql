@@ -561,6 +561,37 @@ namespace Samples
 
             var arr = await q.ToArray();
         }
+
+
+        // Merge
+        static void Sample20()
+        {
+            var emp = new Employee() { ID = 2, CompanyID = 2, Name = "Merged", Phone = "444" };
+
+            MappedCommand.Merge(connStr, "Employee", emp, "ID");
+
+            // using transaction
+            SqlScope.UsingTransaction(connStr, scope =>
+            {
+                emp.Name += "1";
+                scope.CreateMerge("Employee", emp, "ID").ExecuteNonQuery();
+            });
+        }
+
+        static async Task Sample20Async()
+        {
+            var emp = new Employee() { ID = 4, CompanyID = 2, Name = "Merged", Phone = "777" };
+
+            await MappedCommand.MergeAsync(connStr, "Employee", emp, "ID");
+
+            // using transaction
+            await SqlScope.UsingTransactionAsync(connStr, async scope =>
+            {
+                emp.Name += "2";
+                await scope.CreateMerge("Employee", emp, "ID").ExecuteNonQueryAsync();
+            });
+        }
+
     }
 
     public class C

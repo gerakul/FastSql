@@ -428,6 +428,63 @@ namespace Gerakul.FastSql
 
         #endregion
 
+        #region Merge
+
+        public static MappedCommand<T> CompileMerge<T>(string tableName, IList<FieldSettings<T>> settings, IList<string> keyFields, IList<string> notKeyIgnoreFields)
+        {
+            var fields = settings.Select(x => x.Name.ToLowerInvariant()).Except(notKeyIgnoreFields.Select(x => x.ToLowerInvariant())).ToArray();
+            var fieldsToUpdate = fields.Except(keyFields.Select(x => x.ToLowerInvariant())).ToArray();
+            string query = CommandTextGenerator.Merge(tableName, keyFields, fieldsToUpdate);
+            return new MappedCommand<T>(query, fields, settings);
+        }
+
+        public static MappedCommand<T> CompileMerge<T>(string tableName, IList<FieldSettings<T>> settings, params string[] keyFields)
+        {
+            return CompileMerge(tableName, settings, keyFields, new List<string>());
+        }
+
+        public static MappedCommand<T> CompileMerge<T>(string tableName, FromTypeOption fromTypeOption, IList<string> keyFields, IList<string> notKeyIgnoreFields)
+        {
+            return CompileMerge(tableName, FieldSettings.FromType<T>(fromTypeOption), keyFields, notKeyIgnoreFields);
+        }
+
+        public static MappedCommand<T> CompileMerge<T>(string tableName, FromTypeOption fromTypeOption, params string[] keyFields)
+        {
+            return CompileMerge(tableName, FieldSettings.FromType<T>(fromTypeOption), keyFields, new List<string>());
+        }
+
+        public static MappedCommand<T> CompileMerge<T>(string tableName, IList<string> keyFields, IList<string> notKeyIgnoreFields)
+        {
+            return CompileMerge(tableName, FieldSettings.FromType<T>(), keyFields, notKeyIgnoreFields);
+        }
+
+        public static MappedCommand<T> CompileMerge<T>(string tableName, params string[] keyFields)
+        {
+            return CompileMerge(tableName, FieldSettings.FromType<T>(), keyFields, new List<string>());
+        }
+
+        public static MappedCommand<T> CompileMerge<T>(T proto, string tableName, FromTypeOption fromTypeOption, IList<string> keyFields, IList<string> notKeyIgnoreFields)
+        {
+            return CompileMerge(tableName, FieldSettings.FromType(proto, fromTypeOption), keyFields, notKeyIgnoreFields);
+        }
+
+        public static MappedCommand<T> CompileMerge<T>(T proto, string tableName, FromTypeOption fromTypeOption, params string[] keyFields)
+        {
+            return CompileMerge(tableName, FieldSettings.FromType(proto, fromTypeOption), keyFields, new List<string>());
+        }
+
+        public static MappedCommand<T> CompileMerge<T>(T proto, string tableName, IList<string> keyFields, IList<string> notKeyIgnoreFields)
+        {
+            return CompileMerge(tableName, FieldSettings.FromType(proto), keyFields, notKeyIgnoreFields);
+        }
+
+        public static MappedCommand<T> CompileMerge<T>(T proto, string tableName, params string[] keyFields)
+        {
+            return CompileMerge(tableName, FieldSettings.FromType(proto), keyFields, new List<string>());
+        }
+
+        #endregion
+
         #endregion
 
         #endregion
@@ -591,6 +648,31 @@ namespace Gerakul.FastSql
         public static Task<int> UpdateAsync<T>(string connectionString, string tableName, T value, params string[] keyFields)
         {
             return CompileUpdate<T>(tableName, keyFields).ExecuteNonQueryAsync(connectionString, value);
+        }
+
+        #endregion
+
+        #region Merge
+
+        public static int Merge<T>(QueryOptions queryOptions, string connectionString, string tableName, T value, params string[] keyFields)
+        {
+            return CompileMerge<T>(tableName, keyFields).ExecuteNonQuery(connectionString, value, queryOptions);
+        }
+
+        public static int Merge<T>(string connectionString, string tableName, T value, params string[] keyFields)
+        {
+            return CompileMerge<T>(tableName, keyFields).ExecuteNonQuery(connectionString, value);
+        }
+
+        public static Task<int> MergeAsync<T>(QueryOptions queryOptions, CancellationToken cancellationToken,
+          string connectionString, string tableName, T value, params string[] keyFields)
+        {
+            return CompileMerge<T>(tableName, keyFields).ExecuteNonQueryAsync(connectionString, value, queryOptions, cancellationToken);
+        }
+
+        public static Task<int> MergeAsync<T>(string connectionString, string tableName, T value, params string[] keyFields)
+        {
+            return CompileMerge<T>(tableName, keyFields).ExecuteNonQueryAsync(connectionString, value);
         }
 
         #endregion
