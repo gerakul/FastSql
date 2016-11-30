@@ -237,6 +237,39 @@ namespace Gerakul.FastSql
                 yield return name;
             }
         }
+
+        public static IEnumerable<ColumnDefinition> GetColumnDefinitions(this IDataReader reader, ColumnDefinitionOptions options = null, bool ignoreSchemaTable = false)
+        {
+            if (reader is SqlDataReader && !ignoreSchemaTable)
+            {
+                var schema = reader.GetSchemaTable();
+                var optionKeys = options?.PrimaryKey?.Select(x => x.ToLowerInvariant()).ToArray() ?? new string[0];
+
+                foreach (var row in schema.Rows.Cast<DataRow>())
+                {
+                    string name = (string)row["ColumnName"];
+                    yield return new ColumnDefinition()
+                    {
+                        Name = name,
+                        TypeName = (string)row["DataTypeName"],
+                        IsPrimaryKey = row.IsNull("IsKey") ? optionKeys.Contains(name.ToLowerInvariant()) : (bool)row["IsKey"],
+                        MaxLength = checked((short)((bool)row["IsLong"] ? -1 : (int)row["ColumnSize"])),
+                        Precision = checked((byte)((short)row["NumericPrecision"])),
+                        Scale = checked((byte)((short)row["NumericScale"])),
+                        IsNullable = (bool)row["AllowDBNull"]
+                    };
+                }
+            }
+            else
+            {
+                for (int i = 0; i < reader.FieldCount; i++)
+                {
+                    Type type = reader.GetFieldType(i);
+                    string name = reader.GetName(i);
+                    yield return ColumnDefinition.FromFieldType(type, name, options);
+                }
+            }
+        }
     }
 
     public class ReadOptions

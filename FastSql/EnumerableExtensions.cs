@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Threading;
@@ -186,6 +187,53 @@ namespace Gerakul.FastSql
         public static Task WriteToServerAsync<T>(this IEnumerable<T> values, string connectionString, string destinationTable, params string[] fields)
         {
             return values.WriteToServerAsync(CancellationToken.None, connectionString, destinationTable, fields);
+        }
+
+        #endregion
+
+        #region Helpers
+
+        public static FieldSettings<T>[] GetFieldSettings<T>(this IEnumerable<T> values, FromTypeOption fromTypeOption = FromTypeOption.Both)
+        {
+            return FieldSettings.FromType<T>(fromTypeOption);
+        }
+
+        public static IEnumerable<ColumnDefinition> GetColumnDefinitions<T>(this IEnumerable<T> values, ColumnDefinitionOptions options = null,
+            FromTypeOption fromTypeOption = FromTypeOption.Both)
+        {
+            return GetFieldSettings(values, fromTypeOption).GetColumnDefinitions(options);
+        }
+
+        public static string GetCreateTableScript<T>(this IEnumerable<T> values, string tableName, bool checkIfNotExists = false, 
+            ColumnDefinitionOptions options = null, FromTypeOption fromTypeOption = FromTypeOption.Both)
+        {
+            return GetColumnDefinitions(values, options, fromTypeOption).CreateTableScript(tableName, checkIfNotExists);
+        }
+
+        public static IEnumerable<T> ExecuteAction<T>(this IEnumerable<T> values, Action<T> action)
+        {
+            if (values is ICollection<T>)
+            {
+                foreach (var item in values)
+                {
+                    action(item);
+                }
+
+                return values;
+            }
+            else
+            {
+                return ExecuteActionOnIterator(values, action);
+            }
+        }
+
+        private static IEnumerable<T> ExecuteActionOnIterator<T>(IEnumerable<T> values, Action<T> action)
+        {
+            foreach (var item in values)
+            {
+                action(item);
+                yield return item;
+            }
         }
 
         #endregion

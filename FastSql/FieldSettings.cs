@@ -95,6 +95,14 @@ namespace Gerakul.FastSql
         {
             return FromType(proto, fromTypeOption).GetNames();
         }
+
+        public static IEnumerable<ColumnDefinition> GetColumnDefinitions<T>(this IEnumerable<FieldSettings<T>> fieldSettings, ColumnDefinitionOptions options = null)
+        {
+            foreach (var item in fieldSettings)
+            {
+                yield return ColumnDefinition.FromFieldType(item.FieldType, item.Name, options);
+            }
+        }
     }
 
     public static class FieldSettingsExtension
