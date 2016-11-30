@@ -167,8 +167,11 @@ namespace Gerakul.FastSql
         }
 
         public ImportOptions(int? commandTimeoutSeconds = null, int? batchSize = null, int? bulkCopyTimeout = null, SqlBulkCopyOptions sqlBulkCopyOptions = SqlBulkCopyOptions.Default,
-          FieldsSelector fieldsSelector = FieldsSelector.Source, bool? caseSensitive = null)
-          : this(new QueryOptions(commandTimeoutSeconds), new BulkOptions(batchSize, bulkCopyTimeout, sqlBulkCopyOptions, fieldsSelector, caseSensitive))
+          FieldsSelector fieldsSelector = FieldsSelector.Source, bool? caseSensitive = null, bool? enableStreaming = null,
+          bool createTable = false, ColumnDefinitionOptions columnDefinitionOptions = null, bool? ignoreDataReaderSchemaTable = null,
+          bool? checkTableIfNotExistsBeforeCreation = null)
+          : this(new QueryOptions(commandTimeoutSeconds), new BulkOptions(batchSize, bulkCopyTimeout, sqlBulkCopyOptions, fieldsSelector, caseSensitive,
+              enableStreaming, createTable, columnDefinitionOptions, ignoreDataReaderSchemaTable, checkTableIfNotExistsBeforeCreation))
         {
         }
     }

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Data.SqlClient;
@@ -36,6 +37,11 @@ namespace Gerakul.FastSql
         public void WriteToServer()
         {
             string[] sourceFields = fields.Length > 0 ? fields.ToArray() : reader.GetColumnNames().ToArray();
+
+            if (bulkOptions.CreateTable)
+            {
+                CreateTable(sourceFields);
+            }
 
             Mapping[] map;
 
@@ -88,6 +94,11 @@ namespace Gerakul.FastSql
         {
             string[] sourceFields = fields.Length > 0 ? fields.ToArray() : reader.GetColumnNames().ToArray();
 
+            if (bulkOptions.CreateTable)
+            {
+                await CreateTableAsync(sourceFields);
+            }
+
             Mapping[] map;
 
             if (bulkOptions.FieldsSelector == FieldsSelector.Source && !bulkOptions.CaseSensitive.HasValue)
@@ -135,6 +146,37 @@ namespace Gerakul.FastSql
             }
         }
 
+        private string GetCreateTableScript(string[] sourceFields)
+        {
+            var colDefs = (bulkOptions.IgnoreDataReaderSchemaTable.HasValue ?
+                    reader.GetColumnDefinitions(bulkOptions.ColumnDefinitionOptions, bulkOptions.IgnoreDataReaderSchemaTable.Value)
+                    : reader.GetColumnDefinitions(bulkOptions.ColumnDefinitionOptions))
+                .Where(x => sourceFields.Contains(x.Name)).ToArray();
+
+            if (colDefs.Length != sourceFields.Length)
+            {
+                throw new InvalidOperationException("Can not create table with specified fields");
+            }
+
+            return bulkOptions.CheckTableIfNotExistsBeforeCreation.HasValue ?
+                colDefs.CreateTableScript(destinationTable, bulkOptions.CheckTableIfNotExistsBeforeCreation.Value)
+                : colDefs.CreateTableScript(destinationTable);
+        }
+
+        private void CreateTable(string[] sourceFields)
+        {
+            string cmd = GetCreateTableScript(sourceFields);
+            SqlScope scope = transaction == null ? new SqlScope(connection) : new SqlScope(transaction);
+            scope.CreateSimple(cmd).ExecuteNonQuery();
+        }
+
+        private async Task CreateTableAsync(string[] sourceFields)
+        {
+            string cmd = GetCreateTableScript(sourceFields);
+            SqlScope scope = transaction == null ? new SqlScope(connection) : new SqlScope(transaction);
+            await scope.CreateSimple(cmd).ExecuteNonQueryAsync();
+        }
+
         public Task WriteToServerAsync()
         {
             return WriteToServerAsync(CancellationToken.None);
@@ -179,9 +221,15 @@ namespace Gerakul.FastSql
         public FieldsSelector FieldsSelector { get; set; }
         public bool? CaseSensitive { get; set; }
         public bool? EnableStreaming { get; set; }
+        public bool CreateTable { get; set; } = false;
+        public ColumnDefinitionOptions ColumnDefinitionOptions { get; set; }
+        public bool? IgnoreDataReaderSchemaTable { get; set; }
+        public bool? CheckTableIfNotExistsBeforeCreation { get; set; }
 
         public BulkOptions(int? batchSize = null, int? bulkCopyTimeout = null, SqlBulkCopyOptions sqlBulkCopyOptions = SqlBulkCopyOptions.Default,
-          FieldsSelector fieldsSelector = FieldsSelector.Source, bool? caseSensitive = null, bool? enableStreaming = null)
+          FieldsSelector fieldsSelector = FieldsSelector.Source, bool? caseSensitive = null, bool? enableStreaming = null,
+          bool createTable = false, ColumnDefinitionOptions columnDefinitionOptions = null, bool? ignoreDataReaderSchemaTable = null,
+          bool? checkTableIfNotExistsBeforeCreation = null)
         {
             this.BatchSize = batchSize;
             this.BulkCopyTimeout = bulkCopyTimeout;
@@ -189,6 +237,10 @@ namespace Gerakul.FastSql
             this.FieldsSelector = fieldsSelector;
             this.CaseSensitive = caseSensitive;
             this.EnableStreaming = enableStreaming;
+            this.CreateTable = createTable;
+            this.ColumnDefinitionOptions = columnDefinitionOptions;
+            this.IgnoreDataReaderSchemaTable = ignoreDataReaderSchemaTable;
+            this.CheckTableIfNotExistsBeforeCreation = checkTableIfNotExistsBeforeCreation;
         }
     }
 }
