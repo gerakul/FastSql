@@ -193,19 +193,19 @@ namespace Gerakul.FastSql
 
         #region Helpers
 
-        public static FieldSettings<T>[] GetFieldSettings<T>(this IEnumerable<T> values, FromTypeOption fromTypeOption = FromTypeOption.Both)
+        public static FieldSettings<T>[] GetFieldSettings<T>(this IEnumerable<T> values, FromTypeOption fromTypeOption = FromTypeOption.Default)
         {
             return FieldSettings.FromType<T>(fromTypeOption);
         }
 
         public static IEnumerable<ColumnDefinition> GetColumnDefinitions<T>(this IEnumerable<T> values, ColumnDefinitionOptions options = null,
-            FromTypeOption fromTypeOption = FromTypeOption.Both)
+            FromTypeOption fromTypeOption = FromTypeOption.Default)
         {
             return GetFieldSettings(values, fromTypeOption).GetColumnDefinitions(options);
         }
 
         public static string GetCreateTableScript<T>(this IEnumerable<T> values, string tableName, bool checkIfNotExists = false, 
-            ColumnDefinitionOptions options = null, FromTypeOption fromTypeOption = FromTypeOption.Both)
+            ColumnDefinitionOptions options = null, FromTypeOption fromTypeOption = FromTypeOption.Default)
         {
             return GetColumnDefinitions(values, options, fromTypeOption).CreateTableScript(tableName, checkIfNotExists);
         }

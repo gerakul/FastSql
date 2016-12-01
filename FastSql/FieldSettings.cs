@@ -55,12 +55,18 @@ namespace Gerakul.FastSql
     {
         PublicField = 1,
         PublicProperty = 2,
-        Both = 3
+
+        Default = 3, 
+        Both = 3,
+
+        Collection = 4,
+
+        All = 7
     }
 
     public static class FieldSettings
     {
-        public static FieldSettings<T>[] FromType<T>(FromTypeOption fromTypeOption = FromTypeOption.Both)
+        public static FieldSettings<T>[] FromType<T>(FromTypeOption fromTypeOption = FromTypeOption.Default)
         {
             List<FieldSettings<T>> fieldSettings = new List<FieldSettings<T>>();
 
@@ -69,29 +75,41 @@ namespace Gerakul.FastSql
             if ((fromTypeOption & FromTypeOption.PublicField) == FromTypeOption.PublicField)
             {
                 FieldInfo[] fi = type.GetFields(BindingFlags.Instance | BindingFlags.Public);
+
+                if ((fromTypeOption & FromTypeOption.Collection) == 0)
+                {
+                    fi = fi.Where(x => !Helpers.IsCollection(x.FieldType)).ToArray();
+                }
+
                 fieldSettings.AddRange(fi.Select(x => new FieldSettings<T>(x.Name, x.FieldType, y => x.GetValue(y))));
             }
 
             if ((fromTypeOption & FromTypeOption.PublicProperty) == FromTypeOption.PublicProperty)
             {
                 PropertyInfo[] pi = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
+
+                if ((fromTypeOption & FromTypeOption.Collection) == 0)
+                {
+                    pi = pi.Where(x => !Helpers.IsCollection(x.PropertyType)).ToArray();
+                }
+
                 fieldSettings.AddRange(pi.Select(x => new FieldSettings<T>(x.Name, x.PropertyType, y => x.GetValue(y))));
             }
 
             return fieldSettings.ToArray();
         }
 
-        public static FieldSettings<T>[] FromType<T>(T proto, FromTypeOption fromTypeOption = FromTypeOption.Both)
+        public static FieldSettings<T>[] FromType<T>(T proto, FromTypeOption fromTypeOption = FromTypeOption.Default)
         {
             return FromType<T>(fromTypeOption);
         }
 
-        public static string[] GetFields<T>(FromTypeOption fromTypeOption = FromTypeOption.Both)
+        public static string[] GetFields<T>(FromTypeOption fromTypeOption = FromTypeOption.Default)
         {
             return FromType<T>(fromTypeOption).GetNames();
         }
 
-        public static string[] GetFields<T>(T proto, FromTypeOption fromTypeOption = FromTypeOption.Both)
+        public static string[] GetFields<T>(T proto, FromTypeOption fromTypeOption = FromTypeOption.Default)
         {
             return FromType(proto, fromTypeOption).GetNames();
         }

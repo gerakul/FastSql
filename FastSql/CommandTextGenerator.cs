@@ -97,13 +97,13 @@ end
         }
 
         public static string CreateTableScript<T>(string tableName, bool checkIfNotExists = false,
-            ColumnDefinitionOptions options = null, FromTypeOption fromTypeOption = FromTypeOption.Both)
+            ColumnDefinitionOptions options = null, FromTypeOption fromTypeOption = FromTypeOption.Default)
         {
             return FieldSettings.FromType<T>(fromTypeOption).GetColumnDefinitions(options).CreateTableScript(tableName, checkIfNotExists);
         }
 
         public static string CreateTableScript<T>(T proto, string tableName, bool checkIfNotExists = false,
-            ColumnDefinitionOptions options = null, FromTypeOption fromTypeOption = FromTypeOption.Both)
+            ColumnDefinitionOptions options = null, FromTypeOption fromTypeOption = FromTypeOption.Default)
         {
             return CreateTableScript<T>(tableName, checkIfNotExists, options, fromTypeOption);
         }

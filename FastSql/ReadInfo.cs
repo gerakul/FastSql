@@ -48,12 +48,22 @@ namespace Gerakul.FastSql
             if ((readOpt.FromTypeOption & FromTypeOption.PublicField) == FromTypeOption.PublicField)
             {
                 fiAll = type.GetFields(BindingFlags.Instance | BindingFlags.Public);
+
+                if ((readOpt.FromTypeOption & FromTypeOption.Collection) == 0)
+                {
+                    fiAll = fiAll.Where(x => !Helpers.IsCollection(x.FieldType)).ToArray();
+                }
             }
 
             PropertyInfo[] piAll = new PropertyInfo[0];
             if ((readOpt.FromTypeOption & FromTypeOption.PublicProperty) == FromTypeOption.PublicProperty)
             {
                 piAll = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
+
+                if ((readOpt.FromTypeOption & FromTypeOption.Collection) == 0)
+                {
+                    piAll = piAll.Where(x => !Helpers.IsCollection(x.PropertyType)).ToArray();
+                }
             }
 
             var fiCommon = readOpt.CaseSensitive ?

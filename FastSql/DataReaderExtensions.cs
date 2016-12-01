@@ -278,7 +278,7 @@ namespace Gerakul.FastSql
         public FromTypeOption FromTypeOption { get; set; }
         public bool CaseSensitive { get; set; }
 
-        public ReadOptions(FieldsSelector fieldsSelector = FieldsSelector.Destination, bool caseSensitive = false, FromTypeOption fromTypeOption = FromTypeOption.Both)
+        public ReadOptions(FieldsSelector fieldsSelector = FieldsSelector.Destination, bool caseSensitive = false, FromTypeOption fromTypeOption = FromTypeOption.Default)
         {
             this.FieldsSelector = fieldsSelector;
             this.FromTypeOption = fromTypeOption;

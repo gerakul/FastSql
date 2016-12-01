@@ -762,7 +762,7 @@ namespace Gerakul.FastSql
             this.ReadOptions = readOptions == null ? new ReadOptions() : readOptions;
         }
 
-        public SqlExecutorOptions(int? commandTimeoutSeconds = null, FieldsSelector fieldsSelector = FieldsSelector.Destination, bool caseSensitive = false, FromTypeOption fromTypeOption = FromTypeOption.Both)
+        public SqlExecutorOptions(int? commandTimeoutSeconds = null, FieldsSelector fieldsSelector = FieldsSelector.Destination, bool caseSensitive = false, FromTypeOption fromTypeOption = FromTypeOption.Default)
           : this(new QueryOptions(commandTimeoutSeconds), new ReadOptions(fieldsSelector, caseSensitive, fromTypeOption))
         {
         }

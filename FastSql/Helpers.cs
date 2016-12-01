@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Data.SqlClient;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace Gerakul.FastSql
 {
@@ -84,6 +86,19 @@ namespace Gerakul.FastSql
         internal static string GetSqlParameterName(this string name)
         {
             return name[0] == '@' ? name.Substring(1) : name;
+        }
+
+        internal static bool IsCollection(Type type)
+        {
+            var interfaces = type.GetInterfaces();
+
+            if (interfaces == null || interfaces.Length == 0)
+            {
+                return false;
+            }
+
+            return interfaces.Contains(typeof(System.Collections.IEnumerable)) &&
+                !interfaces.Contains(typeof(IEnumerable<byte>)) && !type.Equals(typeof(string));
         }
     }
 }

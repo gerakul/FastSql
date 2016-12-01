@@ -50,12 +50,12 @@ namespace Gerakul.FastSql
             return MappedCommand.Compile(commandText, settings).Create(scope, value, queryOptions);
         }
 
-        public static DbCommand CreateMapped<T>(this IDbScope scope, string commandText, IList<string> paramNames, T value, FromTypeOption fromTypeOption = FromTypeOption.Both, QueryOptions queryOptions = null)
+        public static DbCommand CreateMapped<T>(this IDbScope scope, string commandText, IList<string> paramNames, T value, FromTypeOption fromTypeOption = FromTypeOption.Default, QueryOptions queryOptions = null)
         {
             return MappedCommand.Compile<T>(commandText, paramNames, fromTypeOption).Create(scope, value, queryOptions);
         }
 
-        public static DbCommand CreateMapped<T>(this IDbScope scope, string commandText, T value, FromTypeOption fromTypeOption = FromTypeOption.Both, QueryOptions queryOptions = null)
+        public static DbCommand CreateMapped<T>(this IDbScope scope, string commandText, T value, FromTypeOption fromTypeOption = FromTypeOption.Default, QueryOptions queryOptions = null)
         {
             return MappedCommand.Compile<T>(commandText, fromTypeOption).Create(scope, value, queryOptions);
         }
