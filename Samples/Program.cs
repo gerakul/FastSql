@@ -241,10 +241,10 @@ namespace Samples
         static void Sample11()
         {
             Employee[] newEmployees = new Employee[] {
-        new Employee() { CompanyID = 1, Name = "New Employee1", Age = 23, StartWorking = DateTime.UtcNow },
-        new Employee() { CompanyID = 1, Name = "New Employee2", StartWorking = DateTime.UtcNow },
-        new Employee() { CompanyID = 2, Name = "New Employee1" }
-      };
+                new Employee() { CompanyID = 1, Name = "New Employee1", Age = 23, StartWorking = DateTime.UtcNow },
+                new Employee() { CompanyID = 1, Name = "New Employee2", StartWorking = DateTime.UtcNow },
+                new Employee() { CompanyID = 2, Name = "New Employee1" }
+            };
 
             newEmployees.WriteToServer(connStr, "Employee");
         }
@@ -252,10 +252,10 @@ namespace Samples
         static async Task Sample11Async()
         {
             Employee[] newEmployees = new Employee[] {
-        new Employee() { CompanyID = 1, Name = "New Employee11", Age = 23, StartWorking = DateTime.UtcNow },
-        new Employee() { CompanyID = 1, Name = "New Employee21", StartWorking = DateTime.UtcNow },
-        new Employee() { CompanyID = 2, Name = "New Employee11" }
-      };
+                new Employee() { CompanyID = 1, Name = "New Employee11", Age = 23, StartWorking = DateTime.UtcNow },
+                new Employee() { CompanyID = 1, Name = "New Employee21", StartWorking = DateTime.UtcNow },
+                new Employee() { CompanyID = 2, Name = "New Employee11" }
+            };
 
             await newEmployees.WriteToServerAsync(connStr, "Employee");
         }
@@ -264,10 +264,10 @@ namespace Samples
         static void Sample12()
         {
             Employee[] newEmployees = new Employee[] {
-        new Employee() { CompanyID = 1, Name = "New Employee1", Age = 23, StartWorking = DateTime.UtcNow },
-        new Employee() { CompanyID = 1, Name = "New Employee2", StartWorking = DateTime.UtcNow },
-        new Employee() { CompanyID = 2, Name = "New Employee1" }
-      };
+                new Employee() { CompanyID = 1, Name = "New Employee1", Age = 23, StartWorking = DateTime.UtcNow },
+                new Employee() { CompanyID = 1, Name = "New Employee2", StartWorking = DateTime.UtcNow },
+                new Employee() { CompanyID = 2, Name = "New Employee1" }
+            };
 
             newEmployees.Select(x => new
             {
@@ -277,15 +277,27 @@ namespace Samples
                 startWorking = x.StartWorking.HasValue ? x.StartWorking : DateTime.UtcNow,
                 x.Age
             }).WriteToServer(new BulkOptions(1000, 100, SqlBulkCopyOptions.Default, FieldsSelector.Source, false, true), connStr, "Employee");
+
+            // using option createTable and checkTableIfNotExistsBeforeCreation: destination table will be created 
+            // if it was not exists
+
+            newEmployees.Select(x => new
+            {
+                companyid = x.CompanyID,
+                x.Name,
+                phone = "222-222-222",
+                startWorking = x.StartWorking.HasValue ? x.StartWorking : DateTime.UtcNow,
+                x.Age
+            }).WriteToServer(new BulkOptions(createTable: true, checkTableIfNotExistsBeforeCreation: true), connStr, "Emp1");
         }
 
         static async Task Sample12Async()
         {
             Employee[] newEmployees = new Employee[] {
-        new Employee() { CompanyID = 1, Name = "New Employee12", Age = 23, StartWorking = DateTime.UtcNow },
-        new Employee() { CompanyID = 1, Name = "New Employee22", StartWorking = DateTime.UtcNow },
-        new Employee() { CompanyID = 2, Name = "New Employee12" }
-      };
+                new Employee() { CompanyID = 1, Name = "New Employee12", Age = 23, StartWorking = DateTime.UtcNow },
+                new Employee() { CompanyID = 1, Name = "New Employee22", StartWorking = DateTime.UtcNow },
+                new Employee() { CompanyID = 2, Name = "New Employee12" }
+            };
 
             await newEmployees.Select(x => new
             {
@@ -295,16 +307,28 @@ namespace Samples
                 startWorking = x.StartWorking.HasValue ? x.StartWorking : DateTime.UtcNow,
                 x.Age
             }).WriteToServerAsync(new BulkOptions(1000, 100, SqlBulkCopyOptions.Default, FieldsSelector.Source, false, true), connStr, "Employee");
+
+            // using option createTable and checkTableIfNotExistsBeforeCreation: destination table will be created 
+            // if it was not exists
+            await newEmployees.Select(x => new
+            {
+                companyid = x.CompanyID,
+                x.Name,
+                phone = "222-222-222",
+                startWorking = x.StartWorking.HasValue ? x.StartWorking : DateTime.UtcNow,
+                x.Age
+            }).WriteToServerAsync(new BulkOptions(createTable: true, checkTableIfNotExistsBeforeCreation: true), connStr, "Emp2");
+
         }
 
         // Using transaction
         static void Sample13()
         {
             Employee[] newEmployees = new Employee[] {
-        new Employee() { CompanyID = 1, Name = "New Employee1", Age = 23, StartWorking = DateTime.UtcNow },
-        new Employee() { CompanyID = 1, Name = "New Employee2", StartWorking = DateTime.UtcNow },
-        new Employee() { CompanyID = 2, Name = "New Employee1" }
-      };
+                new Employee() { CompanyID = 1, Name = "New Employee1", Age = 23, StartWorking = DateTime.UtcNow },
+                new Employee() { CompanyID = 1, Name = "New Employee2", StartWorking = DateTime.UtcNow },
+                new Employee() { CompanyID = 2, Name = "New Employee1" }
+            };
 
             var simpleQuery = "select * from Employee where Age is not null";
 
@@ -361,10 +385,10 @@ namespace Samples
         static async Task Sample13Async()
         {
             Employee[] newEmployees = new Employee[] {
-        new Employee() { CompanyID = 1, Name = "New Employee1", Age = 23, StartWorking = DateTime.UtcNow },
-        new Employee() { CompanyID = 1, Name = "New Employee2", StartWorking = DateTime.UtcNow },
-        new Employee() { CompanyID = 2, Name = "New Employee1" }
-      };
+                new Employee() { CompanyID = 1, Name = "New Employee1", Age = 23, StartWorking = DateTime.UtcNow },
+                new Employee() { CompanyID = 1, Name = "New Employee2", StartWorking = DateTime.UtcNow },
+                new Employee() { CompanyID = 2, Name = "New Employee1" }
+            };
 
             var simpleQuery = "select * from Employee where Age is not null";
 
@@ -374,11 +398,11 @@ namespace Samples
             // using method SqlScope.UsingTransaction
             await SqlScope.UsingTransactionAsync(connStr, async scope =>
             {
-          // using simple command
-          var arr = await scope.CreateSimple(simpleQuery).ExecuteQueryAsync<Employee>().ToArray();
+                // using simple command
+                var arr = await scope.CreateSimple(simpleQuery).ExecuteQueryAsync<Employee>().ToArray();
 
-          // using precompiled mapped command
-          Employee e = new Employee() { ID = 3 };
+                // using precompiled mapped command
+                Employee e = new Employee() { ID = 3 };
                 await scope.CreateMapped(precompiled2, e).ExecuteNonQueryAsync();
                 e.ID = 4;
                 await scope.CreateMapped(precompiled2, e).ExecuteNonQueryAsync();
@@ -422,10 +446,10 @@ namespace Samples
         static void Sample14()
         {
             Employee[] newEmployees = new Employee[] {
-        new Employee() { CompanyID = 1, Name = "New Employee1", Age = 23, StartWorking = DateTime.UtcNow },
-        new Employee() { CompanyID = 1, Name = "New Employee2", StartWorking = DateTime.UtcNow },
-        new Employee() { CompanyID = 2, Name = "New Employee1" }
-      };
+                new Employee() { CompanyID = 1, Name = "New Employee1", Age = 23, StartWorking = DateTime.UtcNow },
+                new Employee() { CompanyID = 1, Name = "New Employee2", StartWorking = DateTime.UtcNow },
+                new Employee() { CompanyID = 2, Name = "New Employee1" }
+            };
 
             IDataReader dataReader1 = newEmployees.ToDataReader();
 
@@ -591,7 +615,6 @@ namespace Samples
                 await scope.CreateMerge("Employee", emp, "ID").ExecuteNonQueryAsync();
             });
         }
-
     }
 
     public class C
