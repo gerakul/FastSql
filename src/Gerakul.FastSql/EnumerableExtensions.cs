@@ -55,12 +55,9 @@ namespace Gerakul.FastSql
 
         #region WriteToServer
 
-        // ::: возможно тут надо реализовывать DbDataReader чтобы добиться истинной асинхронности при записи данных на сервер
-        // ::: т.к. BulkCopy будет использовать метод Read() а не ReadAsync() исходного ридера, если он не DbDataReader
-
         public static void WriteToServer<T>(this IEnumerable<T> values, BulkOptions bulkOptions, SqlConnection connection, string destinationTable, params string[] fields)
         {
-            using (IDataReader reader = values.ToDataReader())
+            using (var reader = values.ToDataReader())
             {
                 reader.WriteToServer(bulkOptions, connection, destinationTable, fields);
             }
@@ -69,7 +66,7 @@ namespace Gerakul.FastSql
         public static async Task WriteToServerAsync<T>(this IEnumerable<T> values, CancellationToken cancellationToken,
           BulkOptions bulkOptions, SqlConnection connection, string destinationTable, params string[] fields)
         {
-            using (IDataReader reader = values.ToDataReader())
+            using (var reader = values.ToDataReader())
             {
                 await reader.WriteToServerAsync(cancellationToken, bulkOptions, connection, destinationTable, fields).ConfigureAwait(false);
             }
@@ -82,7 +79,7 @@ namespace Gerakul.FastSql
 
         public static void WriteToServer<T>(this IEnumerable<T> values, BulkOptions bulkOptions, SqlTransaction transaction, string destinationTable, params string[] fields)
         {
-            using (IDataReader reader = values.ToDataReader())
+            using (var reader = values.ToDataReader())
             {
                 reader.WriteToServer(bulkOptions, transaction, destinationTable, fields);
             }
@@ -90,7 +87,7 @@ namespace Gerakul.FastSql
 
         public static async Task WriteToServerAsync<T>(this IEnumerable<T> values, CancellationToken cancellationToken, BulkOptions bulkOptions, SqlTransaction transaction, string destinationTable, params string[] fields)
         {
-            using (IDataReader reader = values.ToDataReader())
+            using (var reader = values.ToDataReader())
             {
                 await reader.WriteToServerAsync(cancellationToken, bulkOptions, transaction, destinationTable, fields).ConfigureAwait(false);
             }
@@ -103,7 +100,7 @@ namespace Gerakul.FastSql
 
         public static void WriteToServer<T>(this IEnumerable<T> values, BulkOptions bulkOptions, string connectionString, string destinationTable, params string[] fields)
         {
-            using (IDataReader reader = values.ToDataReader())
+            using (var reader = values.ToDataReader())
             {
                 reader.WriteToServer(bulkOptions, connectionString, destinationTable, fields);
             }
@@ -112,7 +109,7 @@ namespace Gerakul.FastSql
         public static async Task WriteToServerAsync<T>(this IEnumerable<T> values, CancellationToken cancellationToken,
           BulkOptions bulkOptions, string connectionString, string destinationTable, params string[] fields)
         {
-            using (IDataReader reader = values.ToDataReader())
+            using (var reader = values.ToDataReader())
             {
                 await reader.WriteToServerAsync(cancellationToken, bulkOptions, connectionString, destinationTable, fields).ConfigureAwait(false);
             }
@@ -125,7 +122,7 @@ namespace Gerakul.FastSql
 
         public static void WriteToServer<T>(this IEnumerable<T> values, SqlConnection connection, string destinationTable, params string[] fields)
         {
-            using (IDataReader reader = values.ToDataReader())
+            using (var reader = values.ToDataReader())
             {
                 reader.WriteToServer(connection, destinationTable, fields);
             }
@@ -134,7 +131,7 @@ namespace Gerakul.FastSql
         public static async Task WriteToServerAsync<T>(this IEnumerable<T> values, CancellationToken cancellationToken,
           SqlConnection connection, string destinationTable, params string[] fields)
         {
-            using (IDataReader reader = values.ToDataReader())
+            using (var reader = values.ToDataReader())
             {
                 await reader.WriteToServerAsync(cancellationToken, connection, destinationTable, fields).ConfigureAwait(false);
             }
@@ -147,7 +144,7 @@ namespace Gerakul.FastSql
 
         public static void WriteToServer<T>(this IEnumerable<T> values, SqlTransaction transaction, string destinationTable, params string[] fields)
         {
-            using (IDataReader reader = values.ToDataReader())
+            using (var reader = values.ToDataReader())
             {
                 reader.WriteToServer(transaction, destinationTable, fields);
             }
@@ -156,7 +153,7 @@ namespace Gerakul.FastSql
         public static async Task WriteToServerAsync<T>(this IEnumerable<T> values, CancellationToken cancellationToken,
           SqlTransaction transaction, string destinationTable, params string[] fields)
         {
-            using (IDataReader reader = values.ToDataReader())
+            using (var reader = values.ToDataReader())
             {
                 await reader.WriteToServerAsync(cancellationToken, transaction, destinationTable, fields).ConfigureAwait(false);
             }
@@ -169,7 +166,7 @@ namespace Gerakul.FastSql
 
         public static void WriteToServer<T>(this IEnumerable<T> values, string connectionString, string destinationTable, params string[] fields)
         {
-            using (IDataReader reader = values.ToDataReader())
+            using (var reader = values.ToDataReader())
             {
                 reader.WriteToServer(connectionString, destinationTable, fields);
             }
@@ -178,7 +175,7 @@ namespace Gerakul.FastSql
         public static async Task WriteToServerAsync<T>(this IEnumerable<T> values, CancellationToken cancellationToken,
           string connectionString, string destinationTable, params string[] fields)
         {
-            using (IDataReader reader = values.ToDataReader())
+            using (var reader = values.ToDataReader())
             {
                 await reader.WriteToServerAsync(cancellationToken, connectionString, destinationTable, fields).ConfigureAwait(false);
             }

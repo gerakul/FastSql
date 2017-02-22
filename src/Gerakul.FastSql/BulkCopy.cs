@@ -21,10 +21,10 @@ namespace Gerakul.FastSql
         private SqlTransaction transaction;
         private BulkOptions bulkOptions;
         private string destinationTable;
-        private IDataReader reader;
+        private DbDataReader reader;
         private string[] fields;
 
-        public BulkCopy(SqlConnection connection, SqlTransaction transaction, BulkOptions bulkOptions, string destinationTable, IDataReader reader, params string[] fields)
+        public BulkCopy(SqlConnection connection, SqlTransaction transaction, BulkOptions bulkOptions, string destinationTable, DbDataReader reader, params string[] fields)
         {
             this.connection = connection;
             this.transaction = transaction;

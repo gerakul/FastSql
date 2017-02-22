@@ -1,14 +1,16 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Data;
+using System.Data.Common;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Gerakul.FastSql
 {
-    public class UniversalDataReader<T> : IDataReader
+    public class UniversalDataReader<T> : DbDataReader
     {
         private IEnumerator<T> enumerator;
         private IAsyncEnumerator<T> asyncEnumerator;
@@ -73,14 +75,14 @@ namespace Gerakul.FastSql
             }
         }
 
-        #region IDataReader
+        #region DbDataReader
 
         public void Close()
         {
             isClosed = true;
         }
 
-        public int Depth
+        public override int Depth
         {
             get
             {
@@ -88,12 +90,7 @@ namespace Gerakul.FastSql
             }
         }
 
-        public DataTable GetSchemaTable()
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool IsClosed
+        public override bool IsClosed
         {
             get
             {
@@ -101,12 +98,12 @@ namespace Gerakul.FastSql
             }
         }
 
-        public bool NextResult()
+        public override bool NextResult()
         {
             throw new NotImplementedException();
         }
 
-        public bool Read()
+        public override bool Read()
         {
             if (isClosed)
             {
@@ -133,7 +130,7 @@ namespace Gerakul.FastSql
             return false;
         }
 
-        public async Task<bool> ReadAsync(CancellationToken cancellationToken)
+        public override async Task<bool> ReadAsync(CancellationToken cancellationToken)
         {
             if (isClosed)
             {
@@ -160,12 +157,7 @@ namespace Gerakul.FastSql
             return false;
         }
 
-        public Task<bool> ReadAsync()
-        {
-            return ReadAsync(CancellationToken.None);
-        }
-
-        public int RecordsAffected
+        public override int RecordsAffected
         {
             get
             {
@@ -173,12 +165,7 @@ namespace Gerakul.FastSql
             }
         }
 
-        public void Dispose()
-        {
-            Close();
-        }
-
-        public int FieldCount
+        public override int FieldCount
         {
             get
             {
@@ -186,17 +173,25 @@ namespace Gerakul.FastSql
             }
         }
 
-        public bool GetBoolean(int i)
+        public override bool HasRows
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public override bool GetBoolean(int i)
         {
             return (bool)getters[i](curRow);
         }
 
-        public byte GetByte(int i)
+        public override byte GetByte(int i)
         {
             return (byte)getters[i](curRow);
         }
 
-        public long GetBytes(int i, long fieldOffset, byte[] buffer, int bufferOffset, int length)
+        public override long GetBytes(int i, long fieldOffset, byte[] buffer, int bufferOffset, int length)
         {
             byte[] bytes = (byte[])getters[i](curRow);
 
@@ -213,12 +208,12 @@ namespace Gerakul.FastSql
             return len;
         }
 
-        public char GetChar(int i)
+        public override char GetChar(int i)
         {
             return (char)getters[i](curRow);
         }
 
-        public long GetChars(int i, long fieldOffset, char[] buffer, int bufferOffset, int length)
+        public override long GetChars(int i, long fieldOffset, char[] buffer, int bufferOffset, int length)
         {
             char[] chars = (char[])getters[i](curRow);
 
@@ -235,82 +230,77 @@ namespace Gerakul.FastSql
             return len;
         }
 
-        public IDataReader GetData(int i)
-        {
-            return (IDataReader)getters[i](curRow);
-        }
-
-        public string GetDataTypeName(int i)
+        public override string GetDataTypeName(int i)
         {
             return dataTypeNames[i];
         }
 
-        public DateTime GetDateTime(int i)
+        public override DateTime GetDateTime(int i)
         {
             return (DateTime)getters[i](curRow);
         }
 
-        public decimal GetDecimal(int i)
+        public override decimal GetDecimal(int i)
         {
             return (decimal)getters[i](curRow);
         }
 
-        public double GetDouble(int i)
+        public override double GetDouble(int i)
         {
             return (double)getters[i](curRow);
         }
 
-        public Type GetFieldType(int i)
+        public override Type GetFieldType(int i)
         {
             return types[i];
         }
 
-        public float GetFloat(int i)
+        public override float GetFloat(int i)
         {
             return (float)getters[i](curRow);
         }
 
-        public Guid GetGuid(int i)
+        public override Guid GetGuid(int i)
         {
             return (Guid)getters[i](curRow);
         }
 
-        public short GetInt16(int i)
+        public override short GetInt16(int i)
         {
             return (short)getters[i](curRow);
         }
 
-        public int GetInt32(int i)
+        public override int GetInt32(int i)
         {
             return (int)getters[i](curRow);
         }
 
-        public long GetInt64(int i)
+        public override long GetInt64(int i)
         {
             return (long)getters[i](curRow);
         }
 
-        public string GetName(int i)
+        public override string GetName(int i)
         {
             return names[i];
         }
 
-        public int GetOrdinal(string name)
+        public override int GetOrdinal(string name)
         {
             return this.ordinals[name.ToLowerInvariant()];
         }
 
-        public string GetString(int i)
+        public override string GetString(int i)
         {
             return (string)getters[i](curRow);
         }
 
-        public object GetValue(int i)
+        public override object GetValue(int i)
         {
             return getters[i](curRow);
         }
 
-        public int GetValues(object[] values)
+        public override int GetValues(object[] values)
         {
             int res = Math.Min(values.Length, fieldCount);
             for (int i = 0; i < res; i++)
@@ -321,12 +311,17 @@ namespace Gerakul.FastSql
             return res;
         }
 
-        public bool IsDBNull(int i)
+        public override bool IsDBNull(int i)
         {
             return isNullGetters[i](curRow);
         }
 
-        public object this[string name]
+        public override IEnumerator GetEnumerator()
+        {
+            return enumerator;
+        }
+
+        public override object this[string name]
         {
             get
             {
@@ -334,7 +329,7 @@ namespace Gerakul.FastSql
             }
         }
 
-        public object this[int i]
+        public override object this[int i]
         {
             get
             {

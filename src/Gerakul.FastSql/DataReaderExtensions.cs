@@ -120,42 +120,42 @@ namespace Gerakul.FastSql
 
         #region WriteToServer
 
-        public static void WriteToServer(this IDataReader reader, BulkOptions bulkOptions, SqlConnection connection, string destinationTable, params string[] fields)
+        public static void WriteToServer(this DbDataReader reader, BulkOptions bulkOptions, SqlConnection connection, string destinationTable, params string[] fields)
         {
             BulkCopy bulk = new BulkCopy(connection, null, bulkOptions, destinationTable, reader, fields);
             bulk.WriteToServer();
         }
 
-        public static Task WriteToServerAsync(this IDataReader reader, CancellationToken cancellationToken, BulkOptions bulkOptions, SqlConnection connection, string destinationTable, params string[] fields)
+        public static Task WriteToServerAsync(this DbDataReader reader, CancellationToken cancellationToken, BulkOptions bulkOptions, SqlConnection connection, string destinationTable, params string[] fields)
         {
             BulkCopy bulk = new BulkCopy(connection, null, bulkOptions, destinationTable, reader, fields);
             return bulk.WriteToServerAsync(cancellationToken);
         }
 
-        public static Task WriteToServerAsync(this IDataReader reader, BulkOptions bulkOptions, SqlConnection connection, string destinationTable, params string[] fields)
+        public static Task WriteToServerAsync(this DbDataReader reader, BulkOptions bulkOptions, SqlConnection connection, string destinationTable, params string[] fields)
         {
             return WriteToServerAsync(reader, CancellationToken.None, bulkOptions, connection, destinationTable, fields);
         }
 
-        public static void WriteToServer(this IDataReader reader, BulkOptions bulkOptions, SqlTransaction transaction, string destinationTable, params string[] fields)
+        public static void WriteToServer(this DbDataReader reader, BulkOptions bulkOptions, SqlTransaction transaction, string destinationTable, params string[] fields)
         {
             BulkCopy bulk = new BulkCopy(transaction.Connection, transaction, bulkOptions, destinationTable, reader, fields);
             bulk.WriteToServer();
         }
 
-        public static Task WriteToServerAsync(this IDataReader reader, CancellationToken cancellationToken,
+        public static Task WriteToServerAsync(this DbDataReader reader, CancellationToken cancellationToken,
           BulkOptions bulkOptions, SqlTransaction transaction, string destinationTable, params string[] fields)
         {
             BulkCopy bulk = new BulkCopy(transaction.Connection, transaction, bulkOptions, destinationTable, reader, fields);
             return bulk.WriteToServerAsync(cancellationToken);
         }
 
-        public static Task WriteToServerAsync(this IDataReader reader, BulkOptions bulkOptions, SqlTransaction transaction, string destinationTable, params string[] fields)
+        public static Task WriteToServerAsync(this DbDataReader reader, BulkOptions bulkOptions, SqlTransaction transaction, string destinationTable, params string[] fields)
         {
             return WriteToServerAsync(reader, CancellationToken.None, bulkOptions, transaction, destinationTable, fields);
         }
 
-        public static void WriteToServer(this IDataReader reader, BulkOptions bulkOptions, string connectionString, string destinationTable, params string[] fields)
+        public static void WriteToServer(this DbDataReader reader, BulkOptions bulkOptions, string connectionString, string destinationTable, params string[] fields)
         {
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
@@ -164,7 +164,7 @@ namespace Gerakul.FastSql
             }
         }
 
-        public static async Task WriteToServerAsync(this IDataReader reader, CancellationToken cancellationToken,
+        public static async Task WriteToServerAsync(this DbDataReader reader, CancellationToken cancellationToken,
           BulkOptions bulkOptions, string connectionString, string destinationTable, params string[] fields)
         {
             using (SqlConnection connection = new SqlConnection(connectionString))
@@ -174,55 +174,55 @@ namespace Gerakul.FastSql
             }
         }
 
-        public static Task WriteToServerAsync(this IDataReader reader, BulkOptions bulkOptions, string connectionString, string destinationTable, params string[] fields)
+        public static Task WriteToServerAsync(this DbDataReader reader, BulkOptions bulkOptions, string connectionString, string destinationTable, params string[] fields)
         {
             return WriteToServerAsync(reader, CancellationToken.None, bulkOptions, connectionString, destinationTable, fields);
         }
 
-        public static void WriteToServer(this IDataReader reader, SqlConnection connection, string destinationTable, params string[] fields)
+        public static void WriteToServer(this DbDataReader reader, SqlConnection connection, string destinationTable, params string[] fields)
         {
             WriteToServer(reader, new BulkOptions(), connection, destinationTable, fields);
         }
 
-        public static Task WriteToServerAsync(this IDataReader reader, CancellationToken cancellationToken,
+        public static Task WriteToServerAsync(this DbDataReader reader, CancellationToken cancellationToken,
           SqlConnection connection, string destinationTable, params string[] fields)
         {
             return WriteToServerAsync(reader, cancellationToken, new BulkOptions(), connection, destinationTable, fields);
         }
 
-        public static Task WriteToServerAsync(this IDataReader reader, SqlConnection connection, string destinationTable, params string[] fields)
+        public static Task WriteToServerAsync(this DbDataReader reader, SqlConnection connection, string destinationTable, params string[] fields)
         {
             return WriteToServerAsync(reader, CancellationToken.None, new BulkOptions(), connection, destinationTable, fields);
         }
 
-        public static void WriteToServer(this IDataReader reader, SqlTransaction transaction, string destinationTable, params string[] fields)
+        public static void WriteToServer(this DbDataReader reader, SqlTransaction transaction, string destinationTable, params string[] fields)
         {
             WriteToServer(reader, new BulkOptions(), transaction, destinationTable, fields);
         }
 
-        public static Task WriteToServerAsync(this IDataReader reader, CancellationToken cancellationToken,
+        public static Task WriteToServerAsync(this DbDataReader reader, CancellationToken cancellationToken,
           SqlTransaction transaction, string destinationTable, params string[] fields)
         {
             return WriteToServerAsync(reader, cancellationToken, new BulkOptions(), transaction, destinationTable, fields);
         }
 
-        public static Task WriteToServerAsync(this IDataReader reader, SqlTransaction transaction, string destinationTable, params string[] fields)
+        public static Task WriteToServerAsync(this DbDataReader reader, SqlTransaction transaction, string destinationTable, params string[] fields)
         {
             return WriteToServerAsync(reader, CancellationToken.None, new BulkOptions(), transaction, destinationTable, fields);
         }
 
-        public static void WriteToServer(this IDataReader reader, string connectionString, string destinationTable, params string[] fields)
+        public static void WriteToServer(this DbDataReader reader, string connectionString, string destinationTable, params string[] fields)
         {
             WriteToServer(reader, new BulkOptions(), connectionString, destinationTable, fields);
         }
 
-        public static Task WriteToServerAsync(this IDataReader reader, CancellationToken cancellationToken,
+        public static Task WriteToServerAsync(this DbDataReader reader, CancellationToken cancellationToken,
           string connectionString, string destinationTable, params string[] fields)
         {
             return WriteToServerAsync(reader, cancellationToken, new BulkOptions(), connectionString, destinationTable, fields);
         }
 
-        public static Task WriteToServerAsync(this IDataReader reader, string connectionString, string destinationTable, params string[] fields)
+        public static Task WriteToServerAsync(this DbDataReader reader, string connectionString, string destinationTable, params string[] fields)
         {
             return WriteToServerAsync(reader, CancellationToken.None, new BulkOptions(), connectionString, destinationTable, fields);
         }
