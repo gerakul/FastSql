@@ -1,11 +1,21 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.31101.0
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FastSql", "FastSql\FastSql.csproj", "{3E0C1B09-5920-4B27-BF5D-83B60F1BD111}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{E820F0CC-A860-4BC2-8FD9-73BE421DCFF9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Samples", "Samples\Samples.csproj", "{A94BCD5C-941C-4C71-81A9-C7442519EE82}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{F8129045-C639-405A-A794-71DDE481EBCE}"
+	ProjectSection(SolutionItems) = preProject
+		global.json = global.json
+		NuGet.config = NuGet.config
+	EndProjectSection
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Gerakul.FastSql", "src\Gerakul.FastSql\Gerakul.FastSql.xproj", "{756C04C8-53F5-47AF-BE3E-3C5F137B7109}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{9E06D4F8-7EAD-40C5-8AA7-A91095A1C685}"
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Samples", "test\Samples\Samples.xproj", "{09F408A4-34DC-44A9-A64F-5CCE89124DA0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,16 +23,20 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{3E0C1B09-5920-4B27-BF5D-83B60F1BD111}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{3E0C1B09-5920-4B27-BF5D-83B60F1BD111}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3E0C1B09-5920-4B27-BF5D-83B60F1BD111}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{3E0C1B09-5920-4B27-BF5D-83B60F1BD111}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A94BCD5C-941C-4C71-81A9-C7442519EE82}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A94BCD5C-941C-4C71-81A9-C7442519EE82}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A94BCD5C-941C-4C71-81A9-C7442519EE82}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A94BCD5C-941C-4C71-81A9-C7442519EE82}.Release|Any CPU.Build.0 = Release|Any CPU
+		{756C04C8-53F5-47AF-BE3E-3C5F137B7109}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{756C04C8-53F5-47AF-BE3E-3C5F137B7109}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{756C04C8-53F5-47AF-BE3E-3C5F137B7109}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{756C04C8-53F5-47AF-BE3E-3C5F137B7109}.Release|Any CPU.Build.0 = Release|Any CPU
+		{09F408A4-34DC-44A9-A64F-5CCE89124DA0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{09F408A4-34DC-44A9-A64F-5CCE89124DA0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{09F408A4-34DC-44A9-A64F-5CCE89124DA0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{09F408A4-34DC-44A9-A64F-5CCE89124DA0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{756C04C8-53F5-47AF-BE3E-3C5F137B7109} = {E820F0CC-A860-4BC2-8FD9-73BE421DCFF9}
+		{09F408A4-34DC-44A9-A64F-5CCE89124DA0} = {9E06D4F8-7EAD-40C5-8AA7-A91095A1C685}
 	EndGlobalSection
 EndGlobal
