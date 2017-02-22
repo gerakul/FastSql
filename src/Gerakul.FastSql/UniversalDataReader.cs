@@ -82,6 +82,15 @@ namespace Gerakul.FastSql
             isClosed = true;
         }
 
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            if (!isClosed)
+            {
+                Close();
+            }
+        }
+
         public override int Depth
         {
             get
