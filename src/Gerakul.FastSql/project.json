@@ -1,4 +1,4 @@
-﻿{
+{
   "version": "1.0.0",
   "packOptions": {
     "owners": [ "gerakul" ],
@@ -8,20 +8,25 @@
     },
     "summary": "Sql utils"
   },
-
   "description": "Light-weight, fast and easy to use C# library to retrieve, write (including bulk insert) and copy data in Microsoft SQL Server databases",
 
   "authors": [ "gerakul" ],
+
+  "dependencies": {
+    "System.Interactive.Async": "3.1.1"
+  },
 
   "frameworks": {
     "netstandard1.3": {
       "dependencies": {
         "NETStandard.Library": "1.6.1",
-        "System.Reflection.TypeExtensions": "4.3.0"
+        "System.Reflection.TypeExtensions": "4.3.0",
+        "System.Data.SqlClient": "4.3.0"
       }
     },
     "net460": {
       "frameworkAssemblies": {
+        "System.Data": {}
       }
     }
   }
