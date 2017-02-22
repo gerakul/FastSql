@@ -242,21 +242,22 @@ namespace Gerakul.FastSql
         {
             if (reader is SqlDataReader && !ignoreSchemaTable)
             {
-                var schema = reader.GetSchemaTable();
+                var sqlReader = (SqlDataReader)reader;
+                var schema = sqlReader.GetColumnSchema();
                 var optionKeys = options?.PrimaryKey?.Select(x => x.ToLowerInvariant()).ToArray() ?? new string[0];
 
-                foreach (var row in schema.Rows.Cast<DataRow>())
+                foreach (var row in schema)
                 {
-                    string name = (string)row["ColumnName"];
+                    string name = row.ColumnName;
                     yield return new ColumnDefinition()
                     {
                         Name = name,
-                        TypeName = (string)row["DataTypeName"],
-                        IsPrimaryKey = row.IsNull("IsKey") ? optionKeys.Contains(name.ToLowerInvariant()) : (bool)row["IsKey"],
-                        MaxLength = checked((short)((bool)row["IsLong"] ? -1 : (int)row["ColumnSize"])),
-                        Precision = checked((byte)((short)row["NumericPrecision"])),
-                        Scale = checked((byte)((short)row["NumericScale"])),
-                        IsNullable = (bool)row["AllowDBNull"]
+                        TypeName = row.DataTypeName,
+                        IsPrimaryKey = row.IsKey ?? optionKeys.Contains(name.ToLowerInvariant()),
+                        MaxLength = checked((short)((row.IsLong ?? false) ? -1 : (row.ColumnSize ?? -1))),
+                        Precision = checked((byte)(row.NumericPrecision ?? 0)),
+                        Scale = checked((byte)(row.NumericScale ?? 0)),
+                        IsNullable = row.AllowDBNull ?? false
                     };
                 }
             }
