@@ -86,8 +86,8 @@ namespace Gerakul.FastSql
             {
                 fi[i] = fiCommon[i].FieldInfo;
                 fiInd[i] = fiCommon[i].ReaderField.Ordinal;
-                fiNullable[i] = !fiCommon[i].FieldInfo.FieldType.IsValueType
-                  || (fiCommon[i].FieldInfo.FieldType.IsGenericType && fiCommon[i].FieldInfo.FieldType.GetGenericTypeDefinition().Equals(nullableTypeDef));
+                fiNullable[i] = !fiCommon[i].FieldInfo.FieldType.GetTypeInfo().IsValueType
+                  || (fiCommon[i].FieldInfo.FieldType.GetTypeInfo().IsGenericType && fiCommon[i].FieldInfo.FieldType.GetGenericTypeDefinition().Equals(nullableTypeDef));
             }
 
             PropertyInfo[] pi = new PropertyInfo[piCommon.Length];
@@ -98,8 +98,8 @@ namespace Gerakul.FastSql
             {
                 pi[i] = piCommon[i].PropertyInfo;
                 piInd[i] = piCommon[i].ReaderField.Ordinal;
-                piNullable[i] = !piCommon[i].PropertyInfo.PropertyType.IsValueType
-                  || (piCommon[i].PropertyInfo.PropertyType.IsGenericType && piCommon[i].PropertyInfo.PropertyType.GetGenericTypeDefinition().Equals(nullableTypeDef));
+                piNullable[i] = !piCommon[i].PropertyInfo.PropertyType.GetTypeInfo().IsValueType
+                  || (piCommon[i].PropertyInfo.PropertyType.GetTypeInfo().IsGenericType && piCommon[i].PropertyInfo.PropertyType.GetGenericTypeDefinition().Equals(nullableTypeDef));
             }
 
             return new ReadInfoByType<T>()
@@ -153,8 +153,8 @@ namespace Gerakul.FastSql
             {
                 pi[i] = piCommon[i].ParameterInfo;
                 piInd[i] = piCommon[i].ReaderField.Ordinal;
-                piNullable[i] = !piCommon[i].ParameterInfo.ParameterType.IsValueType
-                  || (piCommon[i].ParameterInfo.ParameterType.IsGenericType && piCommon[i].ParameterInfo.ParameterType.GetGenericTypeDefinition().Equals(nullableTypeDef));
+                piNullable[i] = !piCommon[i].ParameterInfo.ParameterType.GetTypeInfo().IsValueType
+                  || (piCommon[i].ParameterInfo.ParameterType.GetTypeInfo().IsGenericType && piCommon[i].ParameterInfo.ParameterType.GetGenericTypeDefinition().Equals(nullableTypeDef));
             }
 
             return new ReadInfoAnonymous<T>()
