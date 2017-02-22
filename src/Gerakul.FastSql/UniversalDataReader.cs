@@ -205,8 +205,10 @@ namespace Gerakul.FastSql
                 return 0;
             }
 
-            int len = Math.Min((int)Math.Min(bytes.Length - fieldOffset, buffer.Length - bufferOffset), length);
-            Array.Copy(bytes, fieldOffset, buffer, bufferOffset, len);
+            int fo = checked((int)fieldOffset);
+
+            int len = Math.Min(Math.Min(bytes.Length - fo, buffer.Length - bufferOffset), length);
+            Array.Copy(bytes, fo, buffer, bufferOffset, len);
 
             return len;
         }
@@ -225,8 +227,10 @@ namespace Gerakul.FastSql
                 return 0;
             }
 
-            int len = Math.Min((int)Math.Min(chars.Length - fieldOffset, buffer.Length - bufferOffset), length);
-            Array.Copy(chars, fieldOffset, buffer, bufferOffset, len);
+            int fo = checked((int)fieldOffset);
+
+            int len = Math.Min(Math.Min(chars.Length - fo, buffer.Length - bufferOffset), length);
+            Array.Copy(chars, fo, buffer, bufferOffset, len);
 
             return len;
         }
