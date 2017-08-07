@@ -20,10 +20,8 @@ namespace Gerakul.FastSql
 
         public void Dispose()
         {
-            if (Reader != null)
-            {
-                Reader.Close();
-            }
+            Reader?.Close();
+            GC.SuppressFinalize(this);
         }
 
         public abstract T GetValue();

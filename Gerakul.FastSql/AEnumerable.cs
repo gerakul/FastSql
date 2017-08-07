@@ -59,12 +59,9 @@ namespace Gerakul.FastSql
 
         public void Dispose()
         {
-            if (disposeAction != null)
-            {
-                disposeAction(state);
-            }
-
+            disposeAction?.Invoke(state);
             disposed = true;
+            GC.SuppressFinalize(this);
         }
 
         public async Task<bool> MoveNext(CancellationToken cancellationToken)

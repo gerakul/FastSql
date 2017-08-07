@@ -79,15 +79,20 @@ namespace Gerakul.FastSql
 
         public void Close()
         {
-            isClosed = true;
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
-            if (!isClosed)
+
+            if (disposing)
             {
-                Close();
+                if (!isClosed)
+                {
+                    isClosed = true;
+                }
             }
         }
 

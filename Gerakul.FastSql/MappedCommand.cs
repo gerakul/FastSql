@@ -134,15 +134,8 @@ namespace Gerakul.FastSql
             return Helpers.CreateAsyncEnumerable<R>(
               state =>
               {
-                  if (state.ReadInfo != null)
-                  {
-                      state.ReadInfo.Reader.Close();
-                  }
-
-                  if (state.InternalConnection != null)
-                  {
-                      state.InternalConnection.Close();
-                  }
+                  state?.ReadInfo?.Reader?.Close();
+                  state?.InternalConnection?.Close();
               },
 
               async (state, ct) =>
