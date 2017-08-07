@@ -34,7 +34,7 @@ namespace Samples
             Sample1Async().Wait();
 
             Console.WriteLine("End");
-            //Console.ReadKey();
+            Console.ReadKey();
         }
 
         // Simple retrieving  entities
