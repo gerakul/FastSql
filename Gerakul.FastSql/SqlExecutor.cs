@@ -132,7 +132,7 @@ namespace Gerakul.FastSql
               {
                   if (state.ReadInfo != null)
                   {
-                      state.ReadInfo.Reader.Close();
+                      state.ReadInfo.Reader.Dispose();
                   }
               },
 
@@ -408,7 +408,7 @@ namespace Gerakul.FastSql
               {
                   if (state.ReadInfo != null)
                   {
-                      state.ReadInfo.Reader.Close();
+                      state.ReadInfo.Reader.Dispose();
                   }
 
                   if (state.InternalConnection != null)

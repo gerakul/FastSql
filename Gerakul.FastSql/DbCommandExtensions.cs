@@ -16,7 +16,7 @@ namespace Gerakul.FastSql
             return Helpers.CreateAsyncEnumerable<T>(
               state =>
               {
-                  state?.ReadInfo?.Reader?.Close();
+                  state?.ReadInfo?.Reader?.Dispose();
               },
 
               async (state, ct) =>

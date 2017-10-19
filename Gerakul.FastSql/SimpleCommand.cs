@@ -125,7 +125,7 @@ namespace Gerakul.FastSql
             return Helpers.CreateAsyncEnumerable<T>(
               state =>
               {
-                  state?.ReadInfo?.Reader?.Close();
+                  state?.ReadInfo?.Reader?.Dispose();
                   state?.InternalConnection?.Close();
               },
 

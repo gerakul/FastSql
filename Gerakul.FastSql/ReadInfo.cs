@@ -20,7 +20,7 @@ namespace Gerakul.FastSql
 
         public void Dispose()
         {
-            Reader?.Close();
+            Reader?.Dispose();
             GC.SuppressFinalize(this);
         }
 
