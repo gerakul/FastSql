@@ -1,5 +1,5 @@
 # FastSql
-Light-weight, fast and easy to use C# library to retrieve, write (including bulk insert) and copy data in Microsoft SQL Server databases. There is support asynchronous operations.
+Light-weight, fast and easy to use C# library to retrieve, write (including bulk insert) and copy data in Microsoft SQL Server databases. There is support for asynchronous operations.
 
 ## Samples:
 
@@ -29,7 +29,7 @@ Light-weight, fast and easy to use C# library to retrieve, write (including bulk
     new { CompanyID = 1, Age = 40 }).ExecuteQueryAsync<Employee>().ToArray();
 ```  
 
-2. Retrieving anonimous entities
+2. Retrieving anonymous entities
 
   ```csharp
   var proto = new { Company = default(string), Emp = default(string) };
