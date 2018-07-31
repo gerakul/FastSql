@@ -79,5 +79,5 @@ or asynchronously
   await MappedCommand.UpdateAsync(connStr, "Employee", emp, "ID");
   ```
 
-Here is presented only basic features. Much more samples contains in Samples project. 
+Only basic features are presented here. Much more samples are in Samples project. 
 
