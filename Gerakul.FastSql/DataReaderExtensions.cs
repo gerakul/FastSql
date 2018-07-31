@@ -44,9 +44,9 @@ namespace Gerakul.FastSql
             }
         }
 
-        public static DbDataReaderAttachedToContext<SqlDatabaseContext, DbDataReader> AttachContext(this DbDataReader reader)
+        public static DbDataReaderAttachedToContext<DbDataReader, SqlDatabaseContext> AttachContext(this DbDataReader reader)
         {
-            return new DbDataReaderAttachedToContext<SqlDatabaseContext, DbDataReader>(SqlDatabaseContext.Instance, reader);
+            return DbDataReaderAttachedToContext.Create(reader, SqlDatabaseContext.Instance);
         }
     }
 }

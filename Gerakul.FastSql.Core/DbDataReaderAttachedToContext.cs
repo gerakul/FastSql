@@ -8,17 +8,16 @@ using System.Threading.Tasks;
 
 namespace Gerakul.FastSql.Core
 {
-    public class DbDataReaderAttachedToContext<C, R> where C: DatabaseContext where R: DbDataReader
+    public class DbDataReaderAttachedToContext<R, C> where R: DbDataReader where C: DatabaseContext
     {
-        private C context;
         private R reader;
+        private C context;
 
-        public DbDataReaderAttachedToContext(C context, R reader)
+        public DbDataReaderAttachedToContext(R reader, C context)
         {
-            this.context = context;
             this.reader = reader;
+            this.context = context;
         }
-
 
         #region WriteToServer
 
@@ -130,5 +129,13 @@ namespace Gerakul.FastSql.Core
         }
 
         #endregion
+    }
+
+    public static class DbDataReaderAttachedToContext
+    {
+        public static DbDataReaderAttachedToContext<R, C> Create<R, C>(R reader, C context) where R : DbDataReader where C : DatabaseContext
+        {
+            return new DbDataReaderAttachedToContext<R, C>(reader, context);
+        }
     }
 }
