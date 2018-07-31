@@ -5,7 +5,11 @@ VisualStudioVersion = 15.0.26430.16
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gerakul.FastSql", "Gerakul.FastSql\Gerakul.FastSql.csproj", "{913A856C-EF2A-4316-AC2F-1CAD53931B36}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Samples", "Samples\Samples.csproj", "{7F53280E-C118-4328-AE6F-7E20D2B42B6A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Samples", "Samples\Samples.csproj", "{7F53280E-C118-4328-AE6F-7E20D2B42B6A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gerakul.FastSql.Core", "Gerakul.FastSql.Core\Gerakul.FastSql.Core.csproj", "{DA969E3F-DB0E-463E-BD58-0C42AA2D1362}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClassLibrary1", "ClassLibrary1\ClassLibrary1.csproj", "{947D23DD-7A45-4353-BD55-D9F6470DE6E8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,8 +25,19 @@ Global
 		{7F53280E-C118-4328-AE6F-7E20D2B42B6A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7F53280E-C118-4328-AE6F-7E20D2B42B6A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7F53280E-C118-4328-AE6F-7E20D2B42B6A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DA969E3F-DB0E-463E-BD58-0C42AA2D1362}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DA969E3F-DB0E-463E-BD58-0C42AA2D1362}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DA969E3F-DB0E-463E-BD58-0C42AA2D1362}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DA969E3F-DB0E-463E-BD58-0C42AA2D1362}.Release|Any CPU.Build.0 = Release|Any CPU
+		{947D23DD-7A45-4353-BD55-D9F6470DE6E8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{947D23DD-7A45-4353-BD55-D9F6470DE6E8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{947D23DD-7A45-4353-BD55-D9F6470DE6E8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{947D23DD-7A45-4353-BD55-D9F6470DE6E8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {BA6D22C1-3A66-452B-A295-218525B79A4B}
 	EndGlobalSection
 EndGlobal

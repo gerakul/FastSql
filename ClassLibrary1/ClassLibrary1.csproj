@@ -1,10 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
+  
   <PropertyGroup>
     <TargetFrameworks>netstandard1.3;netstandard2.0;net46</TargetFrameworks>
-    <Version>1.0.3</Version>
+    <Version>1.0.0</Version>
     <Authors>gerakul</Authors>
-    <Description>Light-weight, fast and easy to use C# library to retrieve, write (including bulk insert) and copy data in Microsoft SQL Server databases</Description>
+    <Description>Temporary</Description>
     <RepositoryUrl>https://github.com/gerakul/FastSql</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
   </PropertyGroup>
@@ -16,10 +16,6 @@
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.3' ">
     <PackageReference Include="System.Reflection.TypeExtensions" Version="4.5.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\Gerakul.FastSql.Core\Gerakul.FastSql.Core.csproj" />
   </ItemGroup>
 
 </Project>
