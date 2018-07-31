@@ -30,5 +30,11 @@ namespace Gerakul.FastSql.Core
         }
 
         protected internal abstract string GetSqlParameterName(string name);
+
+        protected internal abstract BulkOptions GetDafaultBulkOptions();
+
+        protected internal abstract BulkCopy GetBulkCopy(DbConnection connection, DbTransaction transaction, BulkOptions bulkOptions, string destinationTable, DbDataReader reader, params string[] fields);
+
+        protected internal abstract DbConnection GetConnection(string connectionString);
     }
 }

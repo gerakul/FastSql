@@ -9,9 +9,9 @@ using System.Reflection;
 
 namespace Gerakul.FastSql.Core
 {
-    internal static class Helpers
+    public static class Helpers
     {
-        internal static void CheckFieldSelection(FieldsSelector fieldSelector, int sourceNum, int destinationNum, int commonNum)
+        public static void CheckFieldSelection(FieldsSelector fieldSelector, int sourceNum, int destinationNum, int commonNum)
         {
             switch (fieldSelector)
             {
