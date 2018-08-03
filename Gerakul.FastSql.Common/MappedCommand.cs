@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
-using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -14,11 +13,14 @@ namespace Gerakul.FastSql.Common
 {
     public class MappedCommand<T>
     {
-        public string CommandText { get; private set; }
+        private DbContext context;
         private ParMap<T>[] map;
 
-        internal MappedCommand(string commandText, IList<string> parameters, IList<FieldSettings<T>> settings)
+        public string CommandText { get; private set; }
+
+        internal MappedCommand(DbContext context, string commandText, IList<string> parameters, IList<FieldSettings<T>> settings)
         {
+            this.context = context;
             this.CommandText = commandText;
 
             if (parameters == null || parameters.Count == 0)
@@ -26,7 +28,7 @@ namespace Gerakul.FastSql.Common
                 map = new ParMap<T>[0];
             }
 
-            if (parameters.GroupBy(x => x.GetSqlParameterName().ToLowerInvariant()).Any(x => x.Count() > 1))
+            if (parameters.GroupBy(x => context.GetSqlParameterName(x).ToLowerInvariant()).Any(x => x.Count() > 1))
             {
                 throw new ArgumentException("Parameter names has been duplicated");
             }
@@ -38,7 +40,7 @@ namespace Gerakul.FastSql.Common
 
             map = parameters
               .Join(settings,
-                x => x.GetSqlParameterName().ToLowerInvariant(),
+                x => context.GetSqlParameterName(x).ToLowerInvariant(),
                 x => x.Name.ToLowerInvariant(),
                 (x, y) => new ParMap<T>() { ParameterName = x, Settings = y }).ToArray();
 
@@ -63,18 +65,13 @@ namespace Gerakul.FastSql.Common
                 }
                 else
                 {
-                    paramValue = m.Settings.IsNullGetter(value) ? DBNull.Value : m.Settings.Getter(value);
-                }
-
-                if (m.Settings.FieldType.Equals(typeof(byte[])) && paramValue == DBNull.Value)
-                {
-                    paramValue = System.Data.SqlTypes.SqlBytes.Null;
+                    paramValue = m.Settings.IsNullGetter(value) ? context.GetDbNull(m.Settings.FieldType) : m.Settings.Getter(value);
                 }
 
                 scope.AddParamWithValue(cmd, m.ParameterName, paramValue);
             }
 
-            Helpers.ApplyQueryOptions(cmd, queryOptions ?? new QueryOptions());
+            context.ApplyQueryOptions(cmd, queryOptions ?? context.DefaultQueryOptions);
 
             return cmd;
         }
