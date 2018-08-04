@@ -7,6 +7,7 @@ namespace Gerakul.FastSql.Common
 {
     public abstract class DbContext
     {
+        protected internal abstract CommandTextGenerator CommandTextGenerator { get; }
         public abstract QueryOptions DefaultQueryOptions { get; }
 
         public ExecutionOptions DefaultExecutionOptions { get; }
@@ -41,5 +42,7 @@ namespace Gerakul.FastSql.Common
         protected internal abstract DbConnection GetConnection();
 
         protected internal abstract object GetDbNull(Type type);
+
+        protected internal abstract string[] ParseCommandText(string commandText);
     }
 }
