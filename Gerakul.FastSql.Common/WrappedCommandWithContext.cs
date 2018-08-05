@@ -60,7 +60,6 @@ namespace Gerakul.FastSql.Common
               });
         }
 
-
         #region IWrappedCommand
 
         public IAsyncEnumerable<T> ExecuteQueryAsync<T>(ReadOptions readOptions = null, CancellationToken cancellationToken = default(CancellationToken)) where T : new()
