@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Gerakul.FastSql.Common
 {
-    internal class CommandCompilator
+    public class CommandCompilator
     {
         private DbContext context;
 
@@ -16,7 +16,7 @@ namespace Gerakul.FastSql.Common
 
         #region Simple
 
-        internal SimpleCommand Compile(string commandText)
+        public SimpleCommand Compile(string commandText)
         {
             return new SimpleCommand(context, commandText);
         }

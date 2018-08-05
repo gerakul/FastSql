@@ -22,7 +22,7 @@ namespace Gerakul.FastSql.Common
             this.CommandText = commandText;
         }
 
-        internal DbCommand Create(IDbScope scope, QueryOptions queryOptions, object[] parameters)
+        internal DbCommand Create(DbScope scope, QueryOptions queryOptions, object[] parameters)
         {
             var cmd = scope.CreateCommand(CommandText);
 
@@ -34,7 +34,7 @@ namespace Gerakul.FastSql.Common
                 }
                 else
                 {
-                    scope.AddParamWithValue(cmd, "@p" + i.ToString(), (object)parameters[i] ?? DBNull.Value);
+                    context.AddParamWithValue(cmd, "@p" + i.ToString(), (object)parameters[i] ?? DBNull.Value);
                 }
             }
 

@@ -6,6 +6,8 @@ namespace Gerakul.FastSql.Common
 {
     public interface ICommandCreator
     {
+        IWrappedCommand CreateSimple(QueryOptions queryOptions, SimpleCommand precompiledCommand, params object[] parameters);
+        IWrappedCommand CreateSimple(SimpleCommand precompiledCommand, params object[] parameters);
         IWrappedCommand CreateSimple(QueryOptions queryOptions, string commandText, params object[] parameters);
         IWrappedCommand CreateSimple(string commandText, params object[] parameters);
 
