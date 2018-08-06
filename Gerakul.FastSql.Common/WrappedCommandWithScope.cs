@@ -10,19 +10,19 @@ namespace Gerakul.FastSql.Common
 {
     internal class WrappedCommandWithScope : WCBase, IWrappedCommand
     {
-        private DbScope scope;
+        private ScopedContext scopedContext;
         private DbCommand command;
 
-        internal WrappedCommandWithScope(DbScope scope)
+        internal WrappedCommandWithScope(ScopedContext scopedContext)
         {
-            this.scope = scope;
+            this.scopedContext = scopedContext;
         }
 
         #region WCBase
 
-        public override IWrappedCommand Set(Func<DbScope, DbCommand> commandGetter)
+        public override IWrappedCommand Set(Func<ScopedContext, DbCommand> commandGetter)
         {
-            command = commandGetter(scope);
+            command = commandGetter(scopedContext);
             return this;
         }
 

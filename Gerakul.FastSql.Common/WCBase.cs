@@ -14,12 +14,12 @@ namespace Gerakul.FastSql.Common
             return new WrappedCommandWithContext(context);
         }
 
-        internal static WCBase Create(DbScope scope)
+        internal static WCBase Create(ScopedContext context)
         {
-            return new WrappedCommandWithScope(scope);
+            return new WrappedCommandWithScope(context);
         }
 
-        public abstract IWrappedCommand Set(Func<DbScope, DbCommand> commandGetter);
+        public abstract IWrappedCommand Set(Func<ScopedContext, DbCommand> commandGetter);
 
         #region Creation
 

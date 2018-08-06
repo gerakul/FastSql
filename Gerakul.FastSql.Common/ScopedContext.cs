@@ -5,24 +5,22 @@ using System.Text;
 
 namespace Gerakul.FastSql.Common
 {
-    public abstract class DbScope : ICommandCreator
+    public abstract class ScopedContext : ContextBase, ICommandCreator
     {
-        public DbContext Context { get; }
-
-        public CommandCompilator CommandCompilator
+        internal CommandCompilator CommandCompilator
         {
             get
             {
-                return Context.CommandCompilator;
+                return ContextProvider.CommandCompilator;
             }
         }
 
-        public DbScope(DbContext context)
+        public ScopedContext(ContextProvider contextProvider) 
+            : base(contextProvider)
         {
-            this.Context = context;
         }
 
-        public abstract DbCommand CreateCommand(string commandText);
+        protected internal abstract DbCommand CreateCommand(string commandText);
 
         private WCBase GetWC()
         {

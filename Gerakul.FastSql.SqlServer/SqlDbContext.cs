@@ -11,50 +11,14 @@ namespace Gerakul.FastSql.SqlServer
 {
     public class SqlDbContext : DbContext
     {
-        protected override CommandTextGenerator CommandTextGenerator { get; } = new SqlCommandTextGenerator();
-        public override QueryOptions DefaultQueryOptions { get; } = new SqlQueryOptions();
-
-        public SqlDbContext(string connectionString) 
-            : base(connectionString)
+        public SqlDbContext(ContextProvider contextProvider, string connectionString) 
+            : base(contextProvider, connectionString)
         {
         }
 
-        //protected override void ApplyQueryOptions(DbCommand cmd, QueryOptions queryOptions)
-        //{
-        //    base.ApplyQueryOptions(cmd, queryOptions);
-        //}
-
-        protected override DbParameter AddParamWithValue(DbCommand cmd, string paramName, object value)
-        {
-            return ((SqlCommand)cmd).Parameters.AddWithValue(paramName, value);
-        }
-
-        protected override DbConnection GetConnection()
+        protected override DbConnection CreateConnection()
         {
             return new SqlConnection(ConnectionString);
-        }
-
-        protected override object GetDbNull(Type type)
-        {
-            if (type.Equals(typeof(byte[])))
-            {
-                return System.Data.SqlTypes.SqlBytes.Null;
-            }
-
-            return DBNull.Value;
-        }
-
-        protected override string GetSqlParameterName(string name)
-        {
-            return name[0] == '@' ? name.Substring(1) : name;
-        }
-
-        private static Regex regName = new Regex("(([^@]@)|(^@))(?<Name>([a-z]|[A-Z]|[0-9]|[$#_])+)", RegexOptions.Multiline);
-        protected override string[] ParseCommandText(string commandText)
-        {
-            return regName.Matches(commandText).Cast<Match>()
-              .Select(x => "@" + x.Groups["Name"].ToString().ToLowerInvariant())
-              .Distinct().ToArray();
         }
     }
 }

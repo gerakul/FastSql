@@ -13,14 +13,14 @@ namespace Gerakul.FastSql.Common
 {
     public class MappedCommand<T>
     {
-        private DbContext context;
+        private ContextProvider contextProvider;
         private ParMap<T>[] map;
 
         public string CommandText { get; private set; }
 
-        internal MappedCommand(DbContext context, string commandText, IList<string> parameters, IList<FieldSettings<T>> settings)
+        internal MappedCommand(ContextProvider contextProvider, string commandText, IList<string> parameters, IList<FieldSettings<T>> settings)
         {
-            this.context = context;
+            this.contextProvider = contextProvider;
             this.CommandText = commandText;
 
             if (parameters == null || parameters.Count == 0)
@@ -28,7 +28,7 @@ namespace Gerakul.FastSql.Common
                 map = new ParMap<T>[0];
             }
 
-            if (parameters.GroupBy(x => context.GetSqlParameterName(x).ToLowerInvariant()).Any(x => x.Count() > 1))
+            if (parameters.GroupBy(x => contextProvider.GetSqlParameterName(x).ToLowerInvariant()).Any(x => x.Count() > 1))
             {
                 throw new ArgumentException("Parameter names has been duplicated");
             }
@@ -40,7 +40,7 @@ namespace Gerakul.FastSql.Common
 
             map = parameters
               .Join(settings,
-                x => context.GetSqlParameterName(x).ToLowerInvariant(),
+                x => contextProvider.GetSqlParameterName(x).ToLowerInvariant(),
                 x => x.Name.ToLowerInvariant(),
                 (x, y) => new ParMap<T>() { ParameterName = x, Settings = y }).ToArray();
 
@@ -50,9 +50,9 @@ namespace Gerakul.FastSql.Common
             }
         }
 
-        internal DbCommand Create(DbScope scope, T value, QueryOptions queryOptions = null)
+        internal DbCommand Create(ScopedContext scopedContext, T value, QueryOptions queryOptions = null)
         {
-            var cmd = scope.CreateCommand(CommandText);
+            var cmd = scopedContext.CreateCommand(CommandText);
 
             for (int i = 0; i < map.Length; i++)
             {
@@ -65,13 +65,13 @@ namespace Gerakul.FastSql.Common
                 }
                 else
                 {
-                    paramValue = m.Settings.IsNullGetter(value) ? context.GetDbNull(m.Settings.FieldType) : m.Settings.Getter(value);
+                    paramValue = m.Settings.IsNullGetter(value) ? contextProvider.GetDbNull(m.Settings.FieldType) : m.Settings.Getter(value);
                 }
 
-                context.AddParamWithValue(cmd, m.ParameterName, paramValue);
+                contextProvider.AddParamWithValue(cmd, m.ParameterName, paramValue);
             }
 
-            context.ApplyQueryOptions(cmd, queryOptions ?? context.DefaultQueryOptions);
+            contextProvider.ApplyQueryOptions(cmd, queryOptions ?? contextProvider.DefaultQueryOptions);
 
             return cmd;
         }

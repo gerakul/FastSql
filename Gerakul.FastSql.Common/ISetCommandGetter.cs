@@ -7,6 +7,6 @@ namespace Gerakul.FastSql.Common
 {
     internal interface ISetCommandGetter
     {
-        IWrappedCommand Set(Func<DbScope, DbCommand> commandGetter);
+        IWrappedCommand Set(Func<ScopedContext, DbCommand> commandGetter);
     }
 }

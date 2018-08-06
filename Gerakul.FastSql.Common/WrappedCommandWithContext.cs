@@ -11,7 +11,7 @@ namespace Gerakul.FastSql.Common
     internal class WrappedCommandWithContext : WCBase, IWrappedCommand
     {
         private DbContext context;
-        private Func<DbScope, DbCommand> commandGetter;
+        private Func<ScopedContext, DbCommand> commandGetter;
 
         internal WrappedCommandWithContext(DbContext context)
         {
@@ -20,7 +20,7 @@ namespace Gerakul.FastSql.Common
 
         #region WCBase
 
-        public override IWrappedCommand Set(Func<DbScope, DbCommand> commandGetter)
+        public override IWrappedCommand Set(Func<ScopedContext, DbCommand> commandGetter)
         {
             this.commandGetter = commandGetter;
             return this;
@@ -43,11 +43,11 @@ namespace Gerakul.FastSql.Common
                   DbConnection conn = null;
                   try
                   {
-                      conn = context.GetConnection();
+                      conn = context.CreateConnection();
                       await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
                       state.InternalConnection = conn;
-                      var scope = new ConnectionScope(context, conn);
-                      var reader = await commandGetter(scope).ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                      var connectionContext = context.ContextProvider.CreateConnectionContext(conn);
+                      var reader = await commandGetter(connectionContext).ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
                       state.ReadInfo = readInfoGetter(reader);
                   }
                   catch
@@ -110,11 +110,11 @@ namespace Gerakul.FastSql.Common
 
         public IEnumerable<object[]> ExecuteQuery()
         {
-            using (var conn = context.GetConnection())
+            using (var conn = context.CreateConnection())
             {
                 conn.Open();
-                var scope = new ConnectionScope(context, conn);
-                foreach (var item in commandGetter(scope).ExecuteQuery())
+                var connectionContext = context.ContextProvider.CreateConnectionContext(conn);
+                foreach (var item in commandGetter(connectionContext).ExecuteQuery())
                 {
                     yield return item;
                 }
@@ -128,11 +128,11 @@ namespace Gerakul.FastSql.Common
 
         public IEnumerable<T> ExecuteQuery<T>(ReadOptions readOptions = null) where T : new()
         {
-            using (var conn = context.GetConnection())
+            using (var conn = context.CreateConnection())
             {
                 conn.Open();
-                var scope = new ConnectionScope(context, conn);
-                foreach (var item in commandGetter(scope).ExecuteQuery<T>(readOptions))
+                var connectionContext = context.ContextProvider.CreateConnectionContext(conn);
+                foreach (var item in commandGetter(connectionContext).ExecuteQuery<T>(readOptions))
                 {
                     yield return item;
                 }
@@ -146,11 +146,11 @@ namespace Gerakul.FastSql.Common
 
         public IEnumerable<T> ExecuteQueryAnonymous<T>(T proto, ReadOptions readOptions = null)
         {
-            using (var conn = context.GetConnection())
+            using (var conn = context.CreateConnection())
             {
                 conn.Open();
-                var scope = new ConnectionScope(context, conn);
-                foreach (var item in commandGetter(scope).ExecuteQueryAnonymous<T>(proto, readOptions))
+                var connectionContext = context.ContextProvider.CreateConnectionContext(conn);
+                foreach (var item in commandGetter(connectionContext).ExecuteQueryAnonymous<T>(proto, readOptions))
                 {
                     yield return item;
                 }
@@ -164,11 +164,11 @@ namespace Gerakul.FastSql.Common
 
         public IEnumerable ExecuteQueryFirstColumn()
         {
-            using (var conn = context.GetConnection())
+            using (var conn = context.CreateConnection())
             {
                 conn.Open();
-                var scope = new ConnectionScope(context, conn);
-                foreach (var item in commandGetter(scope).ExecuteQueryFirstColumn())
+                var connectionContext = context.ContextProvider.CreateConnectionContext(conn);
+                foreach (var item in commandGetter(connectionContext).ExecuteQueryFirstColumn())
                 {
                     yield return item;
                 }
@@ -182,11 +182,11 @@ namespace Gerakul.FastSql.Common
 
         public IEnumerable<T> ExecuteQueryFirstColumn<T>()
         {
-            using (var conn = context.GetConnection())
+            using (var conn = context.CreateConnection())
             {
                 conn.Open();
-                var scope = new ConnectionScope(context, conn);
-                foreach (var item in commandGetter(scope).ExecuteQueryFirstColumn<T>())
+                var connectionContext = context.ContextProvider.CreateConnectionContext(conn);
+                foreach (var item in commandGetter(connectionContext).ExecuteQueryFirstColumn<T>())
                 {
                     yield return item;
                 }

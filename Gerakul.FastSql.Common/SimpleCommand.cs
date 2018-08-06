@@ -12,19 +12,19 @@ namespace Gerakul.FastSql.Common
 {
     public class SimpleCommand
     {
-        private DbContext context;
+        private ContextProvider contextProvider;
 
         public string CommandText { get; private set; }
 
-        internal SimpleCommand(DbContext context, string commandText)
+        internal SimpleCommand(ContextProvider contextProvider, string commandText)
         {
-            this.context = context;
+            this.contextProvider = contextProvider;
             this.CommandText = commandText;
         }
 
-        internal DbCommand Create(DbScope scope, QueryOptions queryOptions, object[] parameters)
+        internal DbCommand Create(ScopedContext scopedContext, QueryOptions queryOptions, object[] parameters)
         {
-            var cmd = scope.CreateCommand(CommandText);
+            var cmd = scopedContext.CreateCommand(CommandText);
 
             for (int i = 0; i < parameters.Length; i++)
             {
@@ -34,11 +34,11 @@ namespace Gerakul.FastSql.Common
                 }
                 else
                 {
-                    context.AddParamWithValue(cmd, "@p" + i.ToString(), (object)parameters[i] ?? DBNull.Value);
+                    contextProvider.AddParamWithValue(cmd, "@p" + i.ToString(), (object)parameters[i] ?? DBNull.Value);
                 }
             }
 
-            context.ApplyQueryOptions(cmd, queryOptions ?? context.DefaultQueryOptions);
+            contextProvider.ApplyQueryOptions(cmd, queryOptions ?? contextProvider.DefaultQueryOptions);
 
             return cmd;
         }
