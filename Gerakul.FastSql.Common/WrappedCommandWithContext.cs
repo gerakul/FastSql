@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Gerakul.FastSql.Common
 {
@@ -62,9 +64,138 @@ namespace Gerakul.FastSql.Common
 
         #region IWrappedCommand
 
+        public int ExecuteNonQuery()
+        {
+            int result = default(int);
+            context.UsingConnection(x =>
+            {
+                result = commandGetter(x).ExecuteNonQuery();
+            });
+
+            return result;
+        }
+
+        public async Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken = default(CancellationToken))
+        {
+            int result = default(int);
+            await context.UsingConnectionAsync(async x =>
+            {
+                result = await commandGetter(x).ExecuteNonQueryAsync();
+            });
+
+            return result;
+        }
+
+        public object ExecuteScalar()
+        {
+            object result = default(object);
+            context.UsingConnection(x =>
+            {
+                result = commandGetter(x).ExecuteScalar();
+            });
+
+            return result;
+        }
+
+        public async Task<object> ExecuteScalarAsync(CancellationToken cancellationToken = default(CancellationToken))
+        {
+            object result = default(object);
+            await context.UsingConnectionAsync(async x =>
+            {
+                result = await commandGetter(x).ExecuteScalarAsync(cancellationToken);
+            });
+
+            return result;
+        }
+
+        public IEnumerable<object[]> ExecuteQuery()
+        {
+            using (var conn = context.GetConnection())
+            {
+                conn.Open();
+                var scope = new ConnectionScope(context, conn);
+                foreach (var item in commandGetter(scope).ExecuteQuery())
+                {
+                    yield return item;
+                }
+            }
+        }
+
+        public IAsyncEnumerable<object[]> ExecuteQueryAsync(CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateObjects(r));
+        }
+
+        public IEnumerable<T> ExecuteQuery<T>(ReadOptions readOptions = null) where T : new()
+        {
+            using (var conn = context.GetConnection())
+            {
+                conn.Open();
+                var scope = new ConnectionScope(context, conn);
+                foreach (var item in commandGetter(scope).ExecuteQuery<T>(readOptions))
+                {
+                    yield return item;
+                }
+            }
+        }
+
         public IAsyncEnumerable<T> ExecuteQueryAsync<T>(ReadOptions readOptions = null, CancellationToken cancellationToken = default(CancellationToken)) where T : new()
         {
             return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateByType<T>(r, readOptions));
+        }
+
+        public IEnumerable<T> ExecuteQueryAnonymous<T>(T proto, ReadOptions readOptions = null)
+        {
+            using (var conn = context.GetConnection())
+            {
+                conn.Open();
+                var scope = new ConnectionScope(context, conn);
+                foreach (var item in commandGetter(scope).ExecuteQueryAnonymous<T>(proto, readOptions))
+                {
+                    yield return item;
+                }
+            }
+        }
+
+        public IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(T proto, ReadOptions readOptions = null, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateAnonymous(r, proto, readOptions));
+        }
+
+        public IEnumerable ExecuteQueryFirstColumn()
+        {
+            using (var conn = context.GetConnection())
+            {
+                conn.Open();
+                var scope = new ConnectionScope(context, conn);
+                foreach (var item in commandGetter(scope).ExecuteQueryFirstColumn())
+                {
+                    yield return item;
+                }
+            }
+        }
+
+        public IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateFirstColumn(r));
+        }
+
+        public IEnumerable<T> ExecuteQueryFirstColumn<T>()
+        {
+            using (var conn = context.GetConnection())
+            {
+                conn.Open();
+                var scope = new ConnectionScope(context, conn);
+                foreach (var item in commandGetter(scope).ExecuteQueryFirstColumn<T>())
+                {
+                    yield return item;
+                }
+            }
+        }
+
+        public IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateFirstColumn<T>(r));
         }
 
         #endregion

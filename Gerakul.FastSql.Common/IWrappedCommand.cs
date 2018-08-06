@@ -16,7 +16,7 @@ namespace Gerakul.FastSql.Common
 
         IEnumerable<object[]> ExecuteQuery();
         IAsyncEnumerable<object[]> ExecuteQueryAsync(CancellationToken cancellationToken = default(CancellationToken));
-        IEnumerable<T> ExecuteQuery<T>(ReadOptions readOptions = null);
+        IEnumerable<T> ExecuteQuery<T>(ReadOptions readOptions = null) where T : new();
         IAsyncEnumerable<T> ExecuteQueryAsync<T>(ReadOptions readOptions = null, CancellationToken cancellationToken = default(CancellationToken)) where T : new();
         IEnumerable<T> ExecuteQueryAnonymous<T>(T proto, ReadOptions readOptions = null);
         IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(T proto, ReadOptions readOptions = null, CancellationToken cancellationToken = default(CancellationToken));
