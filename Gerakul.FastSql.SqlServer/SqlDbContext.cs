@@ -11,8 +11,6 @@ namespace Gerakul.FastSql.SqlServer
 {
     public class SqlDbContext : DbContext
     {
-        private readonly SqlCommandTextGenerator commandTextGenerator = new SqlCommandTextGenerator();
-
         protected override CommandTextGenerator CommandTextGenerator { get; } = new SqlCommandTextGenerator();
         public override QueryOptions DefaultQueryOptions { get; } = new SqlQueryOptions();
 
