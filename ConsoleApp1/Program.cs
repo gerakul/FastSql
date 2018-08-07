@@ -1,4 +1,5 @@
-﻿using Gerakul.FastSql.SqlServer;
+﻿using Gerakul.FastSql.Common;
+using Gerakul.FastSql.SqlServer;
 using System;
 using System.Linq;
 using System.Threading.Tasks;

@@ -19,9 +19,9 @@ namespace Gerakul.FastSql.Common
             this.CommandCompilator = new CommandCompilator(this);
         }
 
-        protected internal abstract DbContext CreateDbContext(string connectionString);
-        protected internal abstract ConnectionContext CreateConnectionContext(DbConnection connection);
-        protected internal abstract TransactionContext CreateTransactionContext(DbTransaction transaction);
+        public abstract DbContext CreateDbContext(string connectionString);
+        public abstract ConnectionContext CreateConnectionContext(DbConnection connection);
+        public abstract TransactionContext CreateTransactionContext(DbTransaction transaction);
 
         protected internal virtual void ApplyQueryOptions(DbCommand cmd, QueryOptions queryOptions)
         {

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,5 +25,8 @@ namespace Gerakul.FastSql.Common
         IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(CancellationToken cancellationToken = default(CancellationToken));
         IEnumerable<T> ExecuteQueryFirstColumn<T>();
         IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(CancellationToken cancellationToken = default(CancellationToken));
+
+        DbCommand Unwrap();
+        bool TryUnwrap(out DbCommand command);
     }
 }

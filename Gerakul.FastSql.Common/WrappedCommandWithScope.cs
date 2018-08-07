@@ -101,6 +101,17 @@ namespace Gerakul.FastSql.Common
             return command.ExecuteQueryFirstColumnAsync<T>(cancellationToken);
         }
 
+        public DbCommand Unwrap()
+        {
+            return command;
+        }
+
+        public bool TryUnwrap(out DbCommand command)
+        {
+            command = this.command;
+            return true;
+        }
+
         #endregion
     }
 }

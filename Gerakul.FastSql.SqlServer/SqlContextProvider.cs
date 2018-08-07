@@ -20,17 +20,17 @@ namespace Gerakul.FastSql.SqlServer
         public override CommandTextGenerator CommandTextGenerator { get; } = new SqlCommandTextGenerator();
         public override QueryOptions DefaultQueryOptions { get; } = new SqlQueryOptions();
 
-        protected override DbContext CreateDbContext(string connectionString)
+        public override DbContext CreateDbContext(string connectionString)
         {
             return new SqlDbContext(this, connectionString);
         }
 
-        protected override ConnectionContext CreateConnectionContext(DbConnection connection)
+        public override ConnectionContext CreateConnectionContext(DbConnection connection)
         {
             return new SqlConnectionContext(this, (SqlConnection)connection);
         }
 
-        protected override TransactionContext CreateTransactionContext(DbTransaction transaction)
+        public override TransactionContext CreateTransactionContext(DbTransaction transaction)
         {
             return new SqlTransactionContext(this, (SqlTransaction)transaction);
         }
