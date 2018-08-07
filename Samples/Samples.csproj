@@ -5,8 +5,4 @@
     <TargetFramework>netcoreapp1.1</TargetFramework>
   </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Gerakul.FastSql\Gerakul.FastSql.csproj" />
-  </ItemGroup>
-
 </Project>
