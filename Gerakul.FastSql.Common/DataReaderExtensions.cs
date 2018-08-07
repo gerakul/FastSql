@@ -125,5 +125,21 @@ namespace Gerakul.FastSql.Common
                 yield return name;
             }
         }
+
+        public static IBulkWriter AttachContext(this DbDataReader reader, ContextBase context)
+        {
+            if (context is ScopedContext)
+            {
+                return new DataReaderAttachedToScopedContext(reader, (ScopedContext)context);
+            }
+            else if (context is DbContext)
+            {
+                return new DataReaderAttachedToDbContext(reader, (DbContext)context);
+            }
+            else
+            {
+                throw new ArgumentException(@"Unknown type of context", nameof(context));
+            }
+        }
     }
 }

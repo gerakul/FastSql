@@ -6,7 +6,7 @@ namespace Gerakul.FastSql.Common
 {
     public abstract class ContextBase
     {
-        internal readonly ContextProvider ContextProvider;
+        protected internal readonly ContextProvider ContextProvider;
 
         public ContextBase(ContextProvider contextProvider)
         {

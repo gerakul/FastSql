@@ -9,12 +9,12 @@ namespace Gerakul.FastSql.Common
 {
     public abstract class ConnectionContext : ScopedContext
     {
-        protected DbConnection connection;
+        public DbConnection Connection { get; }
 
         public ConnectionContext(ContextProvider contextProvider, DbConnection connection) 
             : base(contextProvider)
         {
-            this.connection = connection;
+            this.Connection = connection;
         }
 
         public void UsingTransaction(IsolationLevel isolationLevel, Action<TransactionContext> action)
@@ -22,7 +22,7 @@ namespace Gerakul.FastSql.Common
             DbTransaction tran = null;
             try
             {
-                tran = connection.BeginTransaction(isolationLevel);
+                tran = Connection.BeginTransaction(isolationLevel);
                 action(ContextProvider.CreateTransactionContext(tran));
                 tran.Commit();
             }
@@ -47,7 +47,7 @@ namespace Gerakul.FastSql.Common
             DbTransaction tran = null;
             try
             {
-                tran = connection.BeginTransaction(isolationLevel);
+                tran = Connection.BeginTransaction(isolationLevel);
                 await action(ContextProvider.CreateTransactionContext(tran)).ConfigureAwait(false);
                 tran.Commit();
             }

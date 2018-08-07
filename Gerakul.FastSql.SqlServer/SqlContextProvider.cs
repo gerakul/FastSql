@@ -19,6 +19,7 @@ namespace Gerakul.FastSql.SqlServer
 
         public override CommandTextGenerator CommandTextGenerator { get; } = new SqlCommandTextGenerator();
         public override QueryOptions DefaultQueryOptions { get; } = new SqlQueryOptions();
+        public override BulkOptions DefaultBulkOptions { get; } = new SqlBulkOptions();
 
         public override DbContext CreateDbContext(string connectionString)
         {
@@ -81,6 +82,11 @@ namespace Gerakul.FastSql.SqlServer
         public static SqlTransactionContext FromTransaction(SqlTransaction transaction)
         {
             return new SqlTransactionContext(Instance, transaction);
+        }
+
+        protected override BulkCopy GetBulkCopy(ScopedContext context, BulkOptions bulkOptions, string destinationTable, DbDataReader reader, params string[] fields)
+        {
+            return new MsSqlBulkCopy(context, (SqlBulkOptions)bulkOptions, destinationTable, reader, fields);
         }
     }
 }

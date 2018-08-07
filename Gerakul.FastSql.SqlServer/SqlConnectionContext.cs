@@ -16,7 +16,7 @@ namespace Gerakul.FastSql.SqlServer
 
         protected override DbCommand CreateCommand(string commandText)
         {
-            return new SqlCommand(commandText, (SqlConnection)connection);
+            return new SqlCommand(commandText, (SqlConnection)Connection);
         }
     }
 }

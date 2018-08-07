@@ -8,6 +8,7 @@ namespace Gerakul.FastSql.Common
     public abstract class ContextProvider
     {
         public abstract QueryOptions DefaultQueryOptions { get; }
+        public abstract BulkOptions DefaultBulkOptions { get; }
         public ExecutionOptions DefaultExecutionOptions { get; }
 
         public abstract CommandTextGenerator CommandTextGenerator { get; }
@@ -44,9 +45,6 @@ namespace Gerakul.FastSql.Common
 
         protected internal abstract string[] ParseCommandText(string commandText);
 
-        // :::
-        //protected internal abstract BulkOptions GetDafaultBulkOptions();
-
-        //protected internal abstract BulkCopy GetBulkCopy(DbConnection connection, DbTransaction transaction, BulkOptions bulkOptions, string destinationTable, DbDataReader reader, params string[] fields);
+        protected internal abstract BulkCopy GetBulkCopy(ScopedContext context, BulkOptions bulkOptions, string destinationTable, DbDataReader reader, params string[] fields);
     }
 }
