@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Gerakul.FastSql.Common
 {
-    public abstract class QueryOptions
+    public class QueryOptions
     {
         public int? CommandTimeoutSeconds { get; set; }
     }
