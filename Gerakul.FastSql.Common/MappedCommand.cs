@@ -61,14 +61,21 @@ namespace Gerakul.FastSql.Common
                 if (m.Settings.DetermineNullByValue)
                 {
                     var val = m.Settings.Getter(value);
-                    paramValue = val == null ? DBNull.Value : val;
+                    paramValue = val == null ? contextProvider.GetDbNull(m.Settings.FieldType) : val;
                 }
                 else
                 {
                     paramValue = m.Settings.IsNullGetter(value) ? contextProvider.GetDbNull(m.Settings.FieldType) : m.Settings.Getter(value);
                 }
 
-                contextProvider.AddParamWithValue(cmd, m.ParameterName, paramValue);
+                if (paramValue is DbParameter)
+                {
+                    cmd.Parameters.Add(paramValue);
+                }
+                else
+                {
+                    contextProvider.AddParamWithValue(cmd, m.ParameterName, paramValue);
+                }
             }
 
             contextProvider.ApplyQueryOptions(cmd, queryOptions ?? contextProvider.DefaultQueryOptions);
