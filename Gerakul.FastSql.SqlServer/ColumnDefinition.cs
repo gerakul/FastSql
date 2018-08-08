@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Gerakul.FastSql.Common;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -266,5 +267,26 @@ end
             }
 
         }
+
+        public static IEnumerable<ColumnDefinition> GetColumnDefinitions<T>(this IEnumerable<FieldSettings<T>> fieldSettings, ColumnDefinitionOptions options = null)
+        {
+            foreach (var item in fieldSettings)
+            {
+                yield return ColumnDefinition.FromFieldType(item.FieldType, item.Name, options);
+            }
+        }
+
+        public static string CreateTableScript<T>(string tableName, bool checkIfNotExists = false,
+            ColumnDefinitionOptions options = null, FromTypeOption fromTypeOption = FromTypeOption.Default)
+        {
+            return FieldSettings.FromType<T>(fromTypeOption).GetColumnDefinitions(options).CreateTableScript(tableName, checkIfNotExists);
+        }
+
+        public static string CreateTableScript<T>(T proto, string tableName, bool checkIfNotExists = false,
+            ColumnDefinitionOptions options = null, FromTypeOption fromTypeOption = FromTypeOption.Default)
+        {
+            return CreateTableScript<T>(tableName, checkIfNotExists, options, fromTypeOption);
+        }
+
     }
 }

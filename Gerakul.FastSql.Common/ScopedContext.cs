@@ -20,7 +20,7 @@ namespace Gerakul.FastSql.Common
         {
         }
 
-        protected internal abstract DbCommand CreateCommand(string commandText);
+        public abstract DbCommand CreateCommand(string commandText);
 
         private WCBase GetWC()
         {
