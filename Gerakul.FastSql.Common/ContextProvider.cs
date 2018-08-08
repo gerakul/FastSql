@@ -9,14 +9,12 @@ namespace Gerakul.FastSql.Common
     {
         public abstract QueryOptions DefaultQueryOptions { get; }
         public abstract BulkOptions DefaultBulkOptions { get; }
-        public ExecutionOptions DefaultExecutionOptions { get; }
 
         public abstract CommandTextGenerator CommandTextGenerator { get; }
         public CommandCompilator CommandCompilator { get; }
 
         public ContextProvider()
         {
-            this.DefaultExecutionOptions = new ExecutionOptions(DefaultQueryOptions, new ReadOptions());
             this.CommandCompilator = new CommandCompilator(this);
         }
 
