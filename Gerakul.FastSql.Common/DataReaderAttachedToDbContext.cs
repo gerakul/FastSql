@@ -32,8 +32,8 @@ namespace Gerakul.FastSql.Common
         {
             await DbContext.UsingConnectionAsync(async x =>
             {
-                await reader.AttachContext(x).WriteToServerAsync(cancellationToken, bulkOptions, destinationTable, fields);
-            });
+                await reader.AttachContext(x).WriteToServerAsync(cancellationToken, bulkOptions, destinationTable, fields).ConfigureAwait(false);
+            }).ConfigureAwait(false);
         }
 
         #endregion

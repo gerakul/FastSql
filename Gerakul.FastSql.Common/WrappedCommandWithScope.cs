@@ -101,6 +101,27 @@ namespace Gerakul.FastSql.Common
             return command.ExecuteQueryFirstColumnAsync<T>(cancellationToken);
         }
 
+        public void UseReader(Action<DbDataReader> action)
+        {
+            using (var reader = command.ExecuteReader())
+            {
+                action(reader);
+            }
+        }
+
+        public async Task UseReaderAsync(CancellationToken cancellationToken, Func<DbDataReader, Task> action)
+        {
+            using (var reader = await command.ExecuteReaderAsync().ConfigureAwait(false))
+            {
+                await action(reader).ConfigureAwait(false);
+            }
+        }
+
+        public Task UseReaderAsync(Func<DbDataReader, Task> action)
+        {
+            return UseReaderAsync(CancellationToken.None, action);
+        }
+
         public DbCommand Unwrap()
         {
             return command;

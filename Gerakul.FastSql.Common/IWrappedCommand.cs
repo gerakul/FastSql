@@ -26,6 +26,10 @@ namespace Gerakul.FastSql.Common
         IEnumerable<T> ExecuteQueryFirstColumn<T>();
         IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(CancellationToken cancellationToken = default(CancellationToken));
 
+        void UseReader(Action<DbDataReader> action);
+        Task UseReaderAsync(CancellationToken cancellationToken, Func<DbDataReader, Task> action);
+        Task UseReaderAsync(Func<DbDataReader, Task> action);
+
         DbCommand Unwrap();
         bool TryUnwrap(out DbCommand command);
     }

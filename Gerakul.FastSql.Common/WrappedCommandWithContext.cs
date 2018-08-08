@@ -80,8 +80,8 @@ namespace Gerakul.FastSql.Common
             int result = default(int);
             await context.UsingConnectionAsync(async x =>
             {
-                result = await commandGetter(x).ExecuteNonQueryAsync();
-            });
+                result = await commandGetter(x).ExecuteNonQueryAsync().ConfigureAwait(false);
+            }).ConfigureAwait(false);
 
             return result;
         }
@@ -102,8 +102,8 @@ namespace Gerakul.FastSql.Common
             object result = default(object);
             await context.UsingConnectionAsync(async x =>
             {
-                result = await commandGetter(x).ExecuteScalarAsync(cancellationToken);
-            });
+                result = await commandGetter(x).ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+            }).ConfigureAwait(false);
 
             return result;
         }
@@ -196,6 +196,33 @@ namespace Gerakul.FastSql.Common
         public IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(CancellationToken cancellationToken = default(CancellationToken))
         {
             return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateFirstColumn<T>(r));
+        }
+
+        public void UseReader(Action<DbDataReader> action)
+        {
+            context.UsingConnection(x =>
+            {
+                using (var reader = commandGetter(x).ExecuteReader())
+                {
+                    action(reader);
+                }
+            });
+        }
+
+        public async Task UseReaderAsync(CancellationToken cancellationToken, Func<DbDataReader, Task> action)
+        {
+            await context.UsingConnectionAsync(async x =>
+            {
+                using (var reader = await commandGetter(x).ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    await action(reader).ConfigureAwait(false);
+                }
+            }).ConfigureAwait(false);
+        }
+
+        public Task UseReaderAsync(Func<DbDataReader, Task> action)
+        {
+            return UseReaderAsync(CancellationToken.None, action);
         }
 
         public DbCommand Unwrap()
