@@ -28,7 +28,6 @@ namespace Gerakul.FastSql.Common
 
         void UseReader(Action<DbDataReader> action);
         Task UseReaderAsync(CancellationToken cancellationToken, Func<DbDataReader, Task> action);
-        Task UseReaderAsync(Func<DbDataReader, Task> action);
 
         DbCommand Unwrap();
         bool TryUnwrap(out DbCommand command);
@@ -36,6 +35,11 @@ namespace Gerakul.FastSql.Common
 
     public static class WrappedCommandExtensions
     {
+        public static Task UseReaderAsync(this IWrappedCommand cmd, Func<DbDataReader, Task> action)
+        {
+            return cmd.UseReaderAsync(CancellationToken.None, action);
+        }
+
         #region WriteToServer
 
         public static void WriteToServer(this IWrappedCommand cmd, ContextBase context, BulkOptions bulkOptions, string destinationTable, params string[] fields)

@@ -19,8 +19,7 @@ namespace ConsoleApp1
             var context = SqlContextProvider.FromConnectionString(@"data source=db4mulpj2b.database.windows.net;initial catalog=domain0;User ID=SyncServer;Password=A$e194!eW");
             var context2 = SqlContextProvider.FromConnectionString(@"Data Source=devsrv;Initial Catalog=Test;Integrated Security=True");
 
-            context.CreateSimple("select top 10 * from [User]")
-                .WriteToServerAsync(context2, "Users").Wait();
+            context.CreateSimple("select top 10 * from [User]").WriteToServer(context2, "Users");
 
 
             await context2.UsingTransactionAsync(y => context

@@ -117,11 +117,6 @@ namespace Gerakul.FastSql.Common
             }
         }
 
-        public Task UseReaderAsync(Func<DbDataReader, Task> action)
-        {
-            return UseReaderAsync(CancellationToken.None, action);
-        }
-
         public DbCommand Unwrap()
         {
             return command;

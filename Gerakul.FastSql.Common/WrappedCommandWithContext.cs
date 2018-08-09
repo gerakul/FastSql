@@ -220,11 +220,6 @@ namespace Gerakul.FastSql.Common
             }).ConfigureAwait(false);
         }
 
-        public Task UseReaderAsync(Func<DbDataReader, Task> action)
-        {
-            return UseReaderAsync(CancellationToken.None, action);
-        }
-
         public DbCommand Unwrap()
         {
             throw new InvalidOperationException($"Try to unwrap command outside the {nameof(ScopedContext)}");
