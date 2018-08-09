@@ -24,7 +24,7 @@ namespace Gerakul.FastSql.Common
         {
             DbContext.UsingConnection(x =>
             {
-                reader.AttachContext(x).WriteToServer(bulkOptions, destinationTable, fields);
+                reader.GetBulkWriter(x).WriteToServer(bulkOptions, destinationTable, fields);
             });
         }
 
@@ -32,7 +32,7 @@ namespace Gerakul.FastSql.Common
         {
             await DbContext.UsingConnectionAsync(async x =>
             {
-                await reader.AttachContext(x).WriteToServerAsync(cancellationToken, bulkOptions, destinationTable, fields).ConfigureAwait(false);
+                await reader.GetBulkWriter(x).WriteToServerAsync(cancellationToken, bulkOptions, destinationTable, fields).ConfigureAwait(false);
             }).ConfigureAwait(false);
         }
 

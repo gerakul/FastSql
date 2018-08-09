@@ -26,5 +26,21 @@ namespace Gerakul.FastSql.SqlServer
             this.EnableStreaming = enableStreaming;
             this.ColumnDefinitionOptions = columnDefinitionOptions;
         }
+
+        internal static SqlBulkOptions FromBulkOptions(BulkOptions bulkOptions)
+        {
+            if (bulkOptions is SqlBulkOptions)
+            {
+                return (SqlBulkOptions)bulkOptions;
+            }
+            else
+            {
+                return new SqlBulkOptions(fieldsSelector: bulkOptions.FieldsSelector,
+                    caseSensitive: bulkOptions.CaseSensitive,
+                    createTable: bulkOptions.CreateTable,
+                    ignoreDataReaderSchemaTable: bulkOptions.IgnoreDataReaderSchemaTable,
+                    checkTableIfNotExistsBeforeCreation: bulkOptions.CheckTableIfNotExistsBeforeCreation);
+            }
+        }
     }
 }

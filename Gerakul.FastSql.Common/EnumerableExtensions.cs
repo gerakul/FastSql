@@ -52,6 +52,40 @@ namespace Gerakul.FastSql.Common
 
         #endregion
 
+        #region WriteToServer
+
+        public static void WriteToServer<T>(this IEnumerable<T> values, ContextBase context, BulkOptions bulkOptions, string destinationTable, params string[] fields)
+        {
+            values.ToDataReader().WriteToServer(context, bulkOptions, destinationTable, fields);
+        }
+
+        public static Task WriteToServerAsync<T>(this IEnumerable<T> values, ContextBase context, CancellationToken cancellationToken, BulkOptions bulkOptions, string destinationTable, params string[] fields)
+        {
+            return values.ToDataReader().WriteToServerAsync(context, cancellationToken, bulkOptions, destinationTable, fields);
+        }
+
+        public static Task WriteToServerAsync<T>(this IEnumerable<T> values, ContextBase context, BulkOptions bulkOptions, string destinationTable, params string[] fields)
+        {
+            return values.ToDataReader().WriteToServerAsync(context, bulkOptions, destinationTable, fields);
+        }
+
+        public static void WriteToServer<T>(this IEnumerable<T> values, ContextBase context, string destinationTable, params string[] fields)
+        {
+            values.ToDataReader().WriteToServer(context, destinationTable, fields);
+        }
+
+        public static Task WriteToServerAsync<T>(this IEnumerable<T> values, ContextBase context, CancellationToken cancellationToken, string destinationTable, params string[] fields)
+        {
+            return values.ToDataReader().WriteToServerAsync(context, cancellationToken, destinationTable, fields);
+        }
+
+        public static Task WriteToServerAsync<T>(this IEnumerable<T> values, ContextBase context, string destinationTable, params string[] fields)
+        {
+            return values.ToDataReader().WriteToServerAsync(context, destinationTable, fields);
+        }
+
+        #endregion
+
         #region Helpers
 
         public static FieldSettings<T>[] GetFieldSettings<T>(this IEnumerable<T> values, FromTypeOption fromTypeOption = FromTypeOption.Default)
@@ -60,10 +94,5 @@ namespace Gerakul.FastSql.Common
         }
 
         #endregion
-
-        public static IBulkWriter AttachContext<T>(this IEnumerable<T> values, ContextBase context)
-        {
-            return new EnumerableAttachedToContext<T>(values, context);
-        }
     }
 }

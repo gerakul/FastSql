@@ -17,17 +17,15 @@ namespace ConsoleApp1
         public static async Task TestAsync()
         {
             var context = SqlContextProvider.FromConnectionString(@"data source=db4mulpj2b.database.windows.net;initial catalog=domain0;User ID=SyncServer;Password=A$e194!eW");
-            var users = context.CreateSimple("select top 10 * from [User]")
-                .ExecuteQueryAnonymousAsync(new { ID = 0, Name = "" }).ToArray().Result;
+            var context2 = SqlContextProvider.FromConnectionString(@"Data Source=devsrv;Initial Catalog=Test;Integrated Security=True");
+
+            context.CreateSimple("select top 10 * from [User]")
+                .WriteToServerAsync(context2, "Users").Wait();
 
 
-            await context.UsingTransactionAsync(async x =>
-            {
-                var uu = await x.CreateSimple("select top 10 * from [User]")
-                .ExecuteQueryAnonymousAsync(new { ID = 0, Name = "" }).ToArray();
-            });
-
-
+            await context2.UsingTransactionAsync(y => context
+                    .UsingTransactionAsync(x => x.CreateSimple("select top 5 * from [User] where ID > 100")
+                    .WriteToServerAsync(y, new BulkOptions(FieldsSelector.Common), "Person")));
         }
     }
 }

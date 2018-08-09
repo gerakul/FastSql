@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Gerakul.FastSql.Common
 {
-    public interface IBulkWriter
+    internal interface IBulkWriter
     {
         void WriteToServer(BulkOptions bulkOptions, string destinationTable, params string[] fields);
         Task WriteToServerAsync(CancellationToken cancellationToken, BulkOptions bulkOptions, string destinationTable, params string[] fields);

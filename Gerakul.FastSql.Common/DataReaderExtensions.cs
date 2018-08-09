@@ -117,16 +117,9 @@ namespace Gerakul.FastSql.Common
 
         #endregion
 
-        public static IEnumerable<string> GetColumnNames(this IDataReader reader)
-        {
-            for (int i = 0; i < reader.FieldCount; i++)
-            {
-                string name = reader.GetName(i);
-                yield return name;
-            }
-        }
+        #region WriteToServer
 
-        public static IBulkWriter AttachContext(this DbDataReader reader, ContextBase context)
+        internal static IBulkWriter GetBulkWriter(this DbDataReader reader, ContextBase context)
         {
             if (context is ScopedContext)
             {
@@ -139,6 +132,47 @@ namespace Gerakul.FastSql.Common
             else
             {
                 throw new ArgumentException(@"Unknown type of context", nameof(context));
+            }
+        }
+
+        public static void WriteToServer(this DbDataReader reader, ContextBase context, BulkOptions bulkOptions, string destinationTable, params string[] fields)
+        {
+            reader.GetBulkWriter(context).WriteToServer(bulkOptions, destinationTable, fields);
+        }
+
+        public static Task WriteToServerAsync(this DbDataReader reader, ContextBase context, CancellationToken cancellationToken, BulkOptions bulkOptions, string destinationTable, params string[] fields)
+        {
+            return reader.GetBulkWriter(context).WriteToServerAsync(cancellationToken, bulkOptions, destinationTable, fields);
+        }
+
+        public static Task WriteToServerAsync(this DbDataReader reader, ContextBase context, BulkOptions bulkOptions, string destinationTable, params string[] fields)
+        {
+            return reader.GetBulkWriter(context).WriteToServerAsync(bulkOptions, destinationTable, fields);
+        }
+
+        public static void WriteToServer(this DbDataReader reader, ContextBase context, string destinationTable, params string[] fields)
+        {
+            reader.GetBulkWriter(context).WriteToServer(destinationTable, fields);
+        }
+
+        public static Task WriteToServerAsync(this DbDataReader reader, ContextBase context, CancellationToken cancellationToken, string destinationTable, params string[] fields)
+        {
+            return reader.GetBulkWriter(context).WriteToServerAsync(cancellationToken, destinationTable, fields);
+        }
+
+        public static Task WriteToServerAsync(this DbDataReader reader, ContextBase context, string destinationTable, params string[] fields)
+        {
+            return reader.GetBulkWriter(context).WriteToServerAsync(destinationTable, fields);
+        }
+
+        #endregion
+
+        public static IEnumerable<string> GetColumnNames(this IDataReader reader)
+        {
+            for (int i = 0; i < reader.FieldCount; i++)
+            {
+                string name = reader.GetName(i);
+                yield return name;
             }
         }
     }
