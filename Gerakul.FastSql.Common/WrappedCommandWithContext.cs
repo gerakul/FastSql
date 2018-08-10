@@ -10,10 +10,10 @@ namespace Gerakul.FastSql.Common
 {
     internal class WrappedCommandWithContext : WCBase, IWrappedCommand
     {
-        private DbContext context;
+        private ConnectionStringContext context;
         private Func<ScopedContext, DbCommand> commandGetter;
 
-        internal WrappedCommandWithContext(DbContext context)
+        internal WrappedCommandWithContext(ConnectionStringContext context)
         {
             this.context = context;
         }

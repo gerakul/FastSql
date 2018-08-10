@@ -21,9 +21,9 @@ namespace Gerakul.FastSql.SqlServer
         public override QueryOptions DefaultQueryOptions { get; } = new SqlQueryOptions();
         public override BulkOptions DefaultBulkOptions { get; } = new SqlBulkOptions();
 
-        public override DbContext CreateDbContext(string connectionString)
+        public override ConnectionStringContext CreateConnectionStringContext(string connectionString)
         {
-            return new SqlDbContext(this, connectionString);
+            return new SqlConnectionStringContext(this, connectionString);
         }
 
         public override ConnectionContext CreateConnectionContext(DbConnection connection)
@@ -69,9 +69,9 @@ namespace Gerakul.FastSql.SqlServer
               .Distinct().ToArray();
         }
 
-        public static SqlDbContext FromConnectionString(string connectionString)
+        public static SqlConnectionStringContext FromConnectionString(string connectionString)
         {
-            return new SqlDbContext(Instance, connectionString);
+            return new SqlConnectionStringContext(Instance, connectionString);
         }
 
         public static SqlConnectionContext FromConnection(SqlConnection connection)

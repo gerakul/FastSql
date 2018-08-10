@@ -9,7 +9,7 @@ namespace Gerakul.FastSql.Common
 {
     internal abstract class WCBase : ISetCommandGetter
     {
-        internal static WCBase Create(DbContext context)
+        internal static WCBase Create(ConnectionStringContext context)
         {
             return new WrappedCommandWithContext(context);
         }

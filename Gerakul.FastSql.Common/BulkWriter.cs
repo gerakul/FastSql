@@ -8,9 +8,9 @@ namespace Gerakul.FastSql.Common
 {
     internal abstract class BulkWriter : IBulkWriter
     {
-        protected ContextBase context;
+        protected DbContext context;
 
-        internal BulkWriter(ContextBase context)
+        internal BulkWriter(DbContext context)
         {
             this.context = context;
         }

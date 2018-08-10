@@ -9,9 +9,9 @@ using System.Text.RegularExpressions;
 
 namespace Gerakul.FastSql.SqlServer
 {
-    public class SqlDbContext : DbContext
+    public class SqlConnectionStringContext : ConnectionStringContext
     {
-        public SqlDbContext(ContextProvider contextProvider, string connectionString) 
+        public SqlConnectionStringContext(ContextProvider contextProvider, string connectionString) 
             : base(contextProvider, connectionString)
         {
         }

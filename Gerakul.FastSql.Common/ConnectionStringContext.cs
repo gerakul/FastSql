@@ -1,26 +1,61 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.Common;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Gerakul.FastSql.Common
 {
-    public abstract class ScopedContext : DbContext, ICommandCreator
+    public abstract class ConnectionStringContext : DbContext, ICommandCreator
     {
-        internal CommandCompilator CommandCompilator
+        public string ConnectionString { get; }
+
+        public ConnectionStringContext(ContextProvider contextProvider, string connectionString)
+            : base(contextProvider)
         {
-            get
+            this.ConnectionString = connectionString;
+        }
+
+        protected internal abstract DbConnection CreateConnection();
+
+        public void UsingConnection(Action<ConnectionContext> action)
+        {
+            using (var conn = CreateConnection())
             {
-                return ContextProvider.CommandCompilator;
+                conn.Open();
+                action(ContextProvider.CreateConnectionContext(conn));
             }
         }
 
-        public ScopedContext(ContextProvider contextProvider) 
-            : base(contextProvider)
+        public async Task UsingConnectionAsync(Func<ConnectionContext, Task> action)
         {
+            using (var conn = CreateConnection())
+            {
+                await conn.OpenAsync().ConfigureAwait(false);
+                await action(ContextProvider.CreateConnectionContext(conn)).ConfigureAwait(false);
+            }
         }
 
-        public abstract DbCommand CreateCommand(string commandText);
+        public void UsingTransaction(IsolationLevel isolationLevel, Action<TransactionContext> action)
+        {
+            UsingConnection(connectionContext => connectionContext.UsingTransaction(isolationLevel, action));
+        }
+
+        public void UsingTransaction(Action<TransactionContext> action)
+        {
+            UsingTransaction(IsolationLevel.Unspecified, action);
+        }
+
+        public Task UsingTransactionAsync(IsolationLevel isolationLevel, Func<TransactionContext, Task> action)
+        {
+            return UsingConnectionAsync(connectionContext => connectionContext.UsingTransactionAsync(isolationLevel, action));
+        }
+
+        public Task UsingTransactionAsync(Func<TransactionContext, Task> action)
+        {
+            return UsingTransactionAsync(IsolationLevel.Unspecified, action);
+        }
 
         private WCBase GetWC()
         {

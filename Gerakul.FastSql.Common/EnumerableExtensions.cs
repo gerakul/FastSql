@@ -54,32 +54,32 @@ namespace Gerakul.FastSql.Common
 
         #region WriteToServer
 
-        public static void WriteToServer<T>(this IEnumerable<T> values, ContextBase context, BulkOptions bulkOptions, string destinationTable, params string[] fields)
+        public static void WriteToServer<T>(this IEnumerable<T> values, DbContext context, BulkOptions bulkOptions, string destinationTable, params string[] fields)
         {
             values.ToDataReader().WriteToServer(context, bulkOptions, destinationTable, fields);
         }
 
-        public static Task WriteToServerAsync<T>(this IEnumerable<T> values, ContextBase context, CancellationToken cancellationToken, BulkOptions bulkOptions, string destinationTable, params string[] fields)
+        public static Task WriteToServerAsync<T>(this IEnumerable<T> values, DbContext context, CancellationToken cancellationToken, BulkOptions bulkOptions, string destinationTable, params string[] fields)
         {
             return values.ToDataReader().WriteToServerAsync(context, cancellationToken, bulkOptions, destinationTable, fields);
         }
 
-        public static Task WriteToServerAsync<T>(this IEnumerable<T> values, ContextBase context, BulkOptions bulkOptions, string destinationTable, params string[] fields)
+        public static Task WriteToServerAsync<T>(this IEnumerable<T> values, DbContext context, BulkOptions bulkOptions, string destinationTable, params string[] fields)
         {
             return values.ToDataReader().WriteToServerAsync(context, bulkOptions, destinationTable, fields);
         }
 
-        public static void WriteToServer<T>(this IEnumerable<T> values, ContextBase context, string destinationTable, params string[] fields)
+        public static void WriteToServer<T>(this IEnumerable<T> values, DbContext context, string destinationTable, params string[] fields)
         {
             values.ToDataReader().WriteToServer(context, destinationTable, fields);
         }
 
-        public static Task WriteToServerAsync<T>(this IEnumerable<T> values, ContextBase context, CancellationToken cancellationToken, string destinationTable, params string[] fields)
+        public static Task WriteToServerAsync<T>(this IEnumerable<T> values, DbContext context, CancellationToken cancellationToken, string destinationTable, params string[] fields)
         {
             return values.ToDataReader().WriteToServerAsync(context, cancellationToken, destinationTable, fields);
         }
 
-        public static Task WriteToServerAsync<T>(this IEnumerable<T> values, ContextBase context, string destinationTable, params string[] fields)
+        public static Task WriteToServerAsync<T>(this IEnumerable<T> values, DbContext context, string destinationTable, params string[] fields)
         {
             return values.ToDataReader().WriteToServerAsync(context, destinationTable, fields);
         }

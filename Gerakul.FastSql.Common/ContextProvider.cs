@@ -18,7 +18,7 @@ namespace Gerakul.FastSql.Common
             this.CommandCompilator = new CommandCompilator(this);
         }
 
-        public abstract DbContext CreateDbContext(string connectionString);
+        public abstract ConnectionStringContext CreateConnectionStringContext(string connectionString);
         public abstract ConnectionContext CreateConnectionContext(DbConnection connection);
         public abstract TransactionContext CreateTransactionContext(DbTransaction transaction);
 

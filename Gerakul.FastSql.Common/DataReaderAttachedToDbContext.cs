@@ -7,12 +7,12 @@ using System.Threading.Tasks;
 
 namespace Gerakul.FastSql.Common
 {
-    internal class DataReaderAttachedToDbContext : BulkWriter
+    internal class DataReaderAttachedToConnectionStringContext : BulkWriter
     {
         private DbDataReader reader;
-        private DbContext DbContext => (DbContext)context;
+        private ConnectionStringContext ConnectionStringContext => (ConnectionStringContext)context;
 
-        internal DataReaderAttachedToDbContext(DbDataReader reader, DbContext context)
+        internal DataReaderAttachedToConnectionStringContext(DbDataReader reader, ConnectionStringContext context)
             : base(context)
         {
             this.reader = reader;
@@ -22,7 +22,7 @@ namespace Gerakul.FastSql.Common
 
         public override void WriteToServer(BulkOptions bulkOptions, string destinationTable, params string[] fields)
         {
-            DbContext.UsingConnection(x =>
+            ConnectionStringContext.UsingConnection(x =>
             {
                 reader.GetBulkWriter(x).WriteToServer(bulkOptions, destinationTable, fields);
             });
@@ -30,7 +30,7 @@ namespace Gerakul.FastSql.Common
 
         public override async Task WriteToServerAsync(CancellationToken cancellationToken, BulkOptions bulkOptions, string destinationTable, params string[] fields)
         {
-            await DbContext.UsingConnectionAsync(async x =>
+            await ConnectionStringContext.UsingConnectionAsync(async x =>
             {
                 await reader.GetBulkWriter(x).WriteToServerAsync(cancellationToken, bulkOptions, destinationTable, fields).ConfigureAwait(false);
             }).ConfigureAwait(false);
