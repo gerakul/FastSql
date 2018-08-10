@@ -30,19 +30,9 @@ namespace Gerakul.FastSql.Common
             return Set(x => precompiledCommand.Create(x, queryOptions, parameters));
         }
 
-        internal IWrappedCommand Simple(SimpleCommand precompiledCommand, params object[] parameters)
-        {
-            return Set(x => precompiledCommand.Create(x, null, parameters));
-        }
-
         internal IWrappedCommand Simple(QueryOptions queryOptions, string commandText, params object[] parameters)
         {
             return Set(x => x.CommandCompilator.Compile(commandText).Create(x, queryOptions, parameters));
-        }
-
-        internal IWrappedCommand Simple(string commandText, params object[] parameters)
-        {
-            return Set(x => x.CommandCompilator.Compile(commandText).Create(x, null, parameters));
         }
 
         #endregion
@@ -76,48 +66,20 @@ namespace Gerakul.FastSql.Common
 
         #region Special commands
 
-
-        #region Insert
-
         internal IWrappedCommand Insert<T>(QueryOptions queryOptions, string tableName, T value, bool getIdentity, params string[] ignoreFields)
         {
             return Set(x => x.CommandCompilator.CompileInsert<T>(tableName, getIdentity, ignoreFields).Create(x, value, queryOptions));
         }
-
-        internal IWrappedCommand Insert<T>(string tableName, T value, bool getIdentity, params string[] ignoreFields)
-        {
-            return Set(x => x.CommandCompilator.CompileInsert<T>(tableName, getIdentity, ignoreFields).Create(x, value));
-        }
-
-        #endregion
-
-        #region Update
 
         internal IWrappedCommand Update<T>(QueryOptions queryOptions, string tableName, T value, params string[] keyFields)
         {
             return Set(x => x.CommandCompilator.CompileUpdate<T>(tableName, keyFields).Create(x, value, queryOptions));
         }
 
-        internal IWrappedCommand Update<T>(string tableName, T value, params string[] keyFields)
-        {
-            return Set(x => x.CommandCompilator.CompileUpdate<T>(tableName, keyFields).Create(x, value));
-        }
-
-        #endregion
-
-        #region Merge
-
         internal IWrappedCommand Merge<T>(QueryOptions queryOptions, string tableName, T value, params string[] keyFields)
         {
             return Set(x => x.CommandCompilator.CompileMerge<T>(tableName, keyFields).Create(x, value, queryOptions));
         }
-
-        internal IWrappedCommand Merge<T>(string tableName, T value, params string[] keyFields)
-        {
-            return Set(x => x.CommandCompilator.CompileMerge<T>(tableName, keyFields).Create(x, value));
-        }
-
-        #endregion
 
         #endregion
 

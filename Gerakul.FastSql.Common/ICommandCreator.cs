@@ -7,10 +7,7 @@ namespace Gerakul.FastSql.Common
     public interface ICommandCreator
     {
         IWrappedCommand CreateSimple(QueryOptions queryOptions, SimpleCommand precompiledCommand, params object[] parameters);
-        IWrappedCommand CreateSimple(SimpleCommand precompiledCommand, params object[] parameters);
         IWrappedCommand CreateSimple(QueryOptions queryOptions, string commandText, params object[] parameters);
-        IWrappedCommand CreateSimple(string commandText, params object[] parameters);
-
 
         IWrappedCommand CreateMapped<T>(MappedCommand<T> precompiledCommand, T value, QueryOptions queryOptions = null);
         IWrappedCommand CreateMapped<T>(string commandText, IList<string> paramNames, IList<FieldSettings<T>> settings, T value, QueryOptions queryOptions = null);
@@ -19,12 +16,42 @@ namespace Gerakul.FastSql.Common
         IWrappedCommand CreateMapped<T>(string commandText, T value, FromTypeOption fromTypeOption = FromTypeOption.Default, QueryOptions queryOptions = null);
 
         IWrappedCommand CreateInsert<T>(QueryOptions queryOptions, string tableName, T value, bool getIdentity, params string[] ignoreFields);
-        IWrappedCommand CreateInsert<T>(string tableName, T value, bool getIdentity, params string[] ignoreFields);
 
         IWrappedCommand CreateUpdate<T>(QueryOptions queryOptions, string tableName, T value, params string[] keyFields);
-        IWrappedCommand CreateUpdate<T>(string tableName, T value, params string[] keyFields);
 
         IWrappedCommand CreateMerge<T>(QueryOptions queryOptions, string tableName, T value, params string[] keyFields);
-        IWrappedCommand CreateMerge<T>(string tableName, T value, params string[] keyFields);
+    }
+
+    public static class CommandCreatorExtensions
+    {
+        public static IWrappedCommand CreateSimple(this ICommandCreator creator, SimpleCommand precompiledCommand, params object[] parameters)
+        {
+            return creator.CreateSimple(null, precompiledCommand, parameters);
+        }
+
+        public static IWrappedCommand CreateSimple(this ICommandCreator creator, string commandText, params object[] parameters)
+        {
+            return creator.CreateSimple(null, commandText, parameters);
+        }
+
+        public static IWrappedCommand CreateInsert<T>(this ICommandCreator creator, string tableName, T value, bool getIdentity, params string[] ignoreFields)
+        {
+            return creator.CreateInsert(null, tableName, value, getIdentity, ignoreFields);
+        }
+
+        public static IWrappedCommand CreateInsert<T>(this ICommandCreator creator, string tableName, T value)
+        {
+            return creator.CreateInsert(null, tableName, value, false, new string[0]);
+        }
+
+        public static IWrappedCommand CreateUpdate<T>(this ICommandCreator creator, string tableName, T value, params string[] keyFields)
+        {
+            return creator.CreateUpdate(null, tableName, value, keyFields);
+        }
+
+        public static IWrappedCommand CreateMerge<T>(this ICommandCreator creator, string tableName, T value, params string[] keyFields)
+        {
+            return creator.CreateMerge(null, tableName, value, keyFields);
+        }
     }
 }

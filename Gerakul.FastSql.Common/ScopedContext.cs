@@ -34,19 +34,9 @@ namespace Gerakul.FastSql.Common
             return GetWC().Simple(queryOptions, precompiledCommand, parameters);
         }
 
-        public IWrappedCommand CreateSimple(SimpleCommand precompiledCommand, params object[] parameters)
-        {
-            return GetWC().Simple(precompiledCommand, parameters);
-        }
-
         public IWrappedCommand CreateSimple(QueryOptions queryOptions, string commandText, params object[] parameters)
         {
             return GetWC().Simple(queryOptions, commandText, parameters);
-        }
-
-        public IWrappedCommand CreateSimple(string commandText, params object[] parameters)
-        {
-            return GetWC().Simple(commandText, parameters);
         }
 
 
@@ -81,31 +71,14 @@ namespace Gerakul.FastSql.Common
             return GetWC().Insert(queryOptions, tableName, value, getIdentity, ignoreFields);
         }
 
-        public IWrappedCommand CreateInsert<T>(string tableName, T value, bool getIdentity, params string[] ignoreFields)
-        {
-            return GetWC().Insert(tableName, value, getIdentity, ignoreFields);
-        }
-
-
         public IWrappedCommand CreateUpdate<T>(QueryOptions queryOptions, string tableName, T value, params string[] keyFields)
         {
             return GetWC().Update(queryOptions, tableName, value, keyFields);
         }
 
-        public IWrappedCommand CreateUpdate<T>(string tableName, T value, params string[] keyFields)
-        {
-            return GetWC().Update(tableName, value, keyFields);
-        }
-
-
         public IWrappedCommand CreateMerge<T>(QueryOptions queryOptions, string tableName, T value, params string[] keyFields)
         {
             return GetWC().Merge(queryOptions, tableName, value, keyFields);
-        }
-
-        public IWrappedCommand CreateMerge<T>(string tableName, T value, params string[] keyFields)
-        {
-            return GetWC().Merge(tableName, value, keyFields);
         }
 
         #endregion
