@@ -7,30 +7,32 @@ using System.Threading.Tasks;
 
 namespace Gerakul.FastSql.Common
 {
-    internal class DataReaderAttachedToConnectionStringContext : BulkWriter
+    internal class DataReaderAttachedToConnectionStringContext : IBulkWriter
     {
         private DbDataReader reader;
-        private ConnectionStringContext ConnectionStringContext => (ConnectionStringContext)context;
+        private ConnectionStringContext connectionStringContext;
+
+        public DbContext Context => connectionStringContext;
 
         internal DataReaderAttachedToConnectionStringContext(DbDataReader reader, ConnectionStringContext context)
-            : base(context)
         {
             this.reader = reader;
+            this.connectionStringContext = context;
         }
 
-        #region BulkWriter
+        #region IBulkWriter
 
-        public override void WriteToServer(BulkOptions bulkOptions, string destinationTable, params string[] fields)
+        public void WriteToServer(BulkOptions bulkOptions, string destinationTable, params string[] fields)
         {
-            ConnectionStringContext.UsingConnection(x =>
+            connectionStringContext.UsingConnection(x =>
             {
                 reader.GetBulkWriter(x).WriteToServer(bulkOptions, destinationTable, fields);
             });
         }
 
-        public override async Task WriteToServerAsync(CancellationToken cancellationToken, BulkOptions bulkOptions, string destinationTable, params string[] fields)
+        public async Task WriteToServerAsync(CancellationToken cancellationToken, BulkOptions bulkOptions, string destinationTable, params string[] fields)
         {
-            await ConnectionStringContext.UsingConnectionAsync(async x =>
+            await connectionStringContext.UsingConnectionAsync(async x =>
             {
                 await reader.GetBulkWriter(x).WriteToServerAsync(cancellationToken, bulkOptions, destinationTable, fields).ConfigureAwait(false);
             }).ConfigureAwait(false);

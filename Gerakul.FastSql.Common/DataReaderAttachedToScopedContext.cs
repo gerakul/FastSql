@@ -7,28 +7,30 @@ using System.Threading.Tasks;
 
 namespace Gerakul.FastSql.Common
 {
-    internal class DataReaderAttachedToScopedContext : BulkWriter
+    internal class DataReaderAttachedToScopedContext : IBulkWriter
     {
         private DbDataReader reader;
-        private ScopedContext ScopedContext => (ScopedContext)context;
+        private ScopedContext scopedContext;
+
+        public DbContext Context => scopedContext;
 
         internal DataReaderAttachedToScopedContext(DbDataReader reader, ScopedContext context) 
-            : base(context)
         {
             this.reader = reader;
+            this.scopedContext = context;
         }
 
-        #region BulkWriter
+        #region IBulkWriter
 
-        public override void WriteToServer(BulkOptions bulkOptions, string destinationTable, params string[] fields)
+        public void WriteToServer(BulkOptions bulkOptions, string destinationTable, params string[] fields)
         {
-            BulkCopy bulk = context.ContextProvider.GetBulkCopy(ScopedContext, bulkOptions, destinationTable, reader, fields);
+            BulkCopy bulk = scopedContext.ContextProvider.GetBulkCopy(scopedContext, bulkOptions, destinationTable, reader, fields);
             bulk.WriteToServer();
         }
 
-        public override Task WriteToServerAsync(CancellationToken cancellationToken, BulkOptions bulkOptions, string destinationTable, params string[] fields)
+        public Task WriteToServerAsync(CancellationToken cancellationToken, BulkOptions bulkOptions, string destinationTable, params string[] fields)
         {
-            BulkCopy bulk = context.ContextProvider.GetBulkCopy(ScopedContext, bulkOptions, destinationTable, reader, fields);
+            BulkCopy bulk = scopedContext.ContextProvider.GetBulkCopy(scopedContext, bulkOptions, destinationTable, reader, fields);
             return bulk.WriteToServerAsync(cancellationToken);
         }
 
