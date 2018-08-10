@@ -117,17 +117,6 @@ namespace Gerakul.FastSql.Common
             }
         }
 
-        public DbCommand Unwrap()
-        {
-            return command;
-        }
-
-        public bool TryUnwrap(out DbCommand command)
-        {
-            command = this.command;
-            return true;
-        }
-
         #endregion
     }
 }

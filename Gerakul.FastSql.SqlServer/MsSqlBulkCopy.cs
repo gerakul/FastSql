@@ -203,14 +203,14 @@ namespace Gerakul.FastSql.SqlServer
         private IList<string> GetTableColumns()
         {
             List<string> result = new List<string>();
-            using (DbDataReader r = context.CreateSimple(string.Format("select top 0 * from {0} with(nolock)", destinationTable))
-                .Unwrap().ExecuteReader())
-            {
-                foreach (var item in r.GetColumnNames())
+            context.CreateSimple(string.Format("select top 0 * from {0} with(nolock)", destinationTable))
+                .UseReader(r =>
                 {
-                    result.Add(item);
-                }
-            }
+                    foreach (var item in r.GetColumnNames())
+                    {
+                        result.Add(item);
+                    }
+                });
 
             return result;
         }
@@ -218,14 +218,16 @@ namespace Gerakul.FastSql.SqlServer
         private async Task<IList<string>> GetTableColumnsAsync(CancellationToken cancellationToken)
         {
             List<string> result = new List<string>();
-            using (DbDataReader r = await context.CreateSimple(string.Format("select top 0 * from {0} with(nolock)", destinationTable))
-                .Unwrap().ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
-            {
-                foreach (var item in r.GetColumnNames())
+            await context.CreateSimple(string.Format("select top 0 * from {0} with(nolock)", destinationTable))
+                .UseReaderAsync(r =>
                 {
-                    result.Add(item);
-                }
-            }
+                    foreach (var item in r.GetColumnNames())
+                    {
+                        result.Add(item);
+                    }
+
+                    return Task.CompletedTask;
+                });
 
             return result;
         }

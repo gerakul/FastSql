@@ -220,17 +220,6 @@ namespace Gerakul.FastSql.Common
             }).ConfigureAwait(false);
         }
 
-        public DbCommand Unwrap()
-        {
-            throw new InvalidOperationException($"Try to unwrap command outside the {nameof(ScopedContext)}");
-        }
-
-        public bool TryUnwrap(out DbCommand command)
-        {
-            command = null;
-            return false;
-        }
-
         #endregion
     }
 }

@@ -28,9 +28,6 @@ namespace Gerakul.FastSql.Common
 
         void UseReader(Action<DbDataReader> action);
         Task UseReaderAsync(CancellationToken cancellationToken, Func<DbDataReader, Task> action);
-
-        DbCommand Unwrap();
-        bool TryUnwrap(out DbCommand command);
     }
 
     public static class WrappedCommandExtensions
