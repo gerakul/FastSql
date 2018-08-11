@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Gerakul.FastSql.SqlServer
+namespace Gerakul.FastSql.PostgreSQL
 {
-    public class SqlCommandTextGenerator : CommandTextGenerator
+    public class NpgsqlCommandTextGenerator : CommandTextGenerator
     {
         public override string ColumnList(params string[] fields)
         {
