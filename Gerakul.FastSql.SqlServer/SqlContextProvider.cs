@@ -1,10 +1,8 @@
 ﻿using Gerakul.FastSql.Common;
 using System;
-using System.Collections.Generic;
 using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Gerakul.FastSql.SqlServer

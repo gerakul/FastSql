@@ -1,7 +1,4 @@
 ﻿using Gerakul.FastSql.Common;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Gerakul.FastSql.SqlServer
 {
