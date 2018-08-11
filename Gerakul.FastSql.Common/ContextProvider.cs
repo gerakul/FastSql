@@ -44,6 +44,6 @@ namespace Gerakul.FastSql.Common
 
         protected internal abstract string[] ParamsFromSettings<T>(IEnumerable<FieldSettings<T>> settings);
 
-        protected internal abstract BulkCopy GetBulkCopy(ScopedContext context, BulkOptions bulkOptions, string destinationTable, DbDataReader reader, params string[] fields);
+        protected internal abstract BulkCopy GetBulkCopy(ScopedContext context, DbDataReader reader, string destinationTable, BulkOptions bulkOptions, params string[] fields);
     }
 }

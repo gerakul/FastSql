@@ -20,11 +20,11 @@ namespace ConsoleApp1
             var context2 = SqlContextProvider.FromConnectionString(@"Data Source=devsrv;Initial Catalog=Test;Integrated Security=True");
             var contextTest = SqlContextProvider.FromConnectionString(@"Data Source=gerasimov2;Initial Catalog=TestDB;Integrated Security=True");
 
-            //context.CreateSimple("select top 10 * from [User]").WriteToServer(context2, "Users");
+            context.CreateSimple("select top 10 * from [User]").WriteToServer(context2, "Users");
 
-            //await context2.UsingTransactionAsync(y => context
-            //        .UsingTransactionAsync(x => x.CreateSimple("select top 5 * from [User] where ID > 100")
-            //        .WriteToServerAsync(y, new BulkOptions(FieldsSelector.Common), "Person")));
+            await context2.UsingTransactionAsync(y => context
+                    .UsingTransactionAsync(x => x.CreateSimple("select top 5 * from [User] where ID > 100")
+                    .WriteToServerAsync(y, "Person", new BulkOptions(FieldsSelector.Common), CancellationToken.None)));
 
             var qq = await context2.CreateProcedure("TestProc", new { maxID = 3 }).ExecuteQueryAnonymousAsync(new { ID = 1, Name = "" }, new ReadOptions(FieldsSelector.Common)).ToArray();
 

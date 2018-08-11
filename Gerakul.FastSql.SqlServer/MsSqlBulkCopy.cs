@@ -53,8 +53,8 @@ namespace Gerakul.FastSql.SqlServer
 
         private SqlBulkOptions SqlBulkOptions => (SqlBulkOptions)bulkOptions;
 
-        internal MsSqlBulkCopy(ScopedContext context, SqlBulkOptions bulkOptions, string destinationTable, DbDataReader reader, params string[] fields)
-            : base(context, bulkOptions, destinationTable, reader, fields)
+        internal MsSqlBulkCopy(ScopedContext context, DbDataReader reader, string destinationTable, SqlBulkOptions bulkOptions, params string[] fields)
+            : base(context, reader, destinationTable, bulkOptions, fields)
         {
         }
 

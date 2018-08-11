@@ -88,9 +88,9 @@ namespace Gerakul.FastSql.SqlServer
             return new SqlTransactionContext(Instance, transaction);
         }
 
-        protected override BulkCopy GetBulkCopy(ScopedContext context, BulkOptions bulkOptions, string destinationTable, DbDataReader reader, params string[] fields)
+        protected override BulkCopy GetBulkCopy(ScopedContext context, DbDataReader reader, string destinationTable, BulkOptions bulkOptions, params string[] fields)
         {
-            return new MsSqlBulkCopy(context, SqlBulkOptions.FromBulkOptions(bulkOptions), destinationTable, reader, fields);
+            return new MsSqlBulkCopy(context, reader, destinationTable, SqlBulkOptions.FromBulkOptions(bulkOptions), fields);
         }
     }
 }

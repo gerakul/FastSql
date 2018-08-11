@@ -13,7 +13,7 @@ namespace Gerakul.FastSql.Common
         protected DbDataReader reader;
         protected string[] fields;
 
-        protected BulkCopy(ScopedContext context, BulkOptions bulkOptions, string destinationTable, DbDataReader reader, params string[] fields)
+        protected BulkCopy(ScopedContext context, DbDataReader reader, string destinationTable, BulkOptions bulkOptions, params string[] fields)
         {
             this.context = context;
             this.bulkOptions = bulkOptions;
