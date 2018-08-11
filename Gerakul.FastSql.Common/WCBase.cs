@@ -88,17 +88,17 @@ namespace Gerakul.FastSql.Common
 
         #region Special commands
 
-        internal IWrappedCommand Insert<T>(QueryOptions queryOptions, string tableName, T value, bool getIdentity, params string[] ignoreFields)
+        internal IWrappedCommand Insert<T>(string tableName, T value, QueryOptions queryOptions, bool getIdentity, params string[] ignoreFields)
         {
             return Set(x => x.CommandCompilator.CompileInsert<T>(tableName, getIdentity, ignoreFields).Create(x, value, queryOptions));
         }
 
-        internal IWrappedCommand Update<T>(QueryOptions queryOptions, string tableName, T value, params string[] keyFields)
+        internal IWrappedCommand Update<T>(string tableName, T value, QueryOptions queryOptions, params string[] keyFields)
         {
             return Set(x => x.CommandCompilator.CompileUpdate<T>(tableName, keyFields).Create(x, value, queryOptions));
         }
 
-        internal IWrappedCommand Merge<T>(QueryOptions queryOptions, string tableName, T value, params string[] keyFields)
+        internal IWrappedCommand Merge<T>(string tableName, T value, QueryOptions queryOptions, params string[] keyFields)
         {
             return Set(x => x.CommandCompilator.CompileMerge<T>(tableName, keyFields).Create(x, value, queryOptions));
         }

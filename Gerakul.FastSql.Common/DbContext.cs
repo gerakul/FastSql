@@ -2,7 +2,7 @@
 {
     public abstract class DbContext
     {
-        protected internal readonly ContextProvider ContextProvider;
+        public ContextProvider ContextProvider { get; }
 
         public DbContext(ContextProvider contextProvider)
         {
