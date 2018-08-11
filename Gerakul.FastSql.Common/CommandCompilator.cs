@@ -180,6 +180,37 @@ namespace Gerakul.FastSql.Common
 
         #endregion
 
+        #region Delete
+
+        public MappedCommand<T> CompileDelete<T>(string tableName, IList<FieldSettings<T>> settings, params string[] keyFields)
+        {
+            var keys = keyFields == null || keyFields.Length == 0 ? settings.GetNames() : keyFields;
+            string query = contextProvider.CommandTextGenerator.Delete(tableName, keys);
+            return new MappedCommand<T>(contextProvider, query, keys, settings);
+        }
+
+        public MappedCommand<T> CompileDelete<T>(string tableName, FromTypeOption fromTypeOption, params string[] keyFields)
+        {
+            return CompileDelete(tableName, FieldSettings.FromType<T>(fromTypeOption), keyFields);
+        }
+
+        public MappedCommand<T> CompileDelete<T>(string tableName, params string[] keyFields)
+        {
+            return CompileDelete(tableName, FieldSettings.FromType<T>(), keyFields);
+        }
+
+        public MappedCommand<T> CompileDelete<T>(T proto, string tableName, FromTypeOption fromTypeOption, params string[] keyFields)
+        {
+            return CompileDelete(tableName, FieldSettings.FromType(proto, fromTypeOption), keyFields);
+        }
+
+        public MappedCommand<T> CompileDelete<T>(T proto, string tableName, params string[] keyFields)
+        {
+            return CompileDelete(tableName, FieldSettings.FromType(proto), keyFields);
+        }
+
+        #endregion
+
         #region Merge
 
         public MappedCommand<T> CompileMerge<T>(string tableName, IList<FieldSettings<T>> settings, IList<string> keyFields, IList<string> notKeyIgnoreFields)

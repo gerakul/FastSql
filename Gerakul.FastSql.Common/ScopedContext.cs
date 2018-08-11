@@ -93,6 +93,11 @@ namespace Gerakul.FastSql.Common
             return GetWC().Update(tableName, value, queryOptions, keyFields);
         }
 
+        public IWrappedCommand CreateDelete<T>(string tableName, T value, QueryOptions queryOptions, params string[] keyFields)
+        {
+            return GetWC().Delete(tableName, value, queryOptions, keyFields);
+        }
+
         public IWrappedCommand CreateMerge<T>(string tableName, T value, QueryOptions queryOptions, params string[] keyFields)
         {
             return GetWC().Merge(tableName, value, queryOptions, keyFields);

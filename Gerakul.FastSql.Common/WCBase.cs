@@ -98,6 +98,11 @@ namespace Gerakul.FastSql.Common
             return Set(x => x.CommandCompilator.CompileUpdate<T>(tableName, keyFields).Create(x, value, queryOptions));
         }
 
+        internal IWrappedCommand Delete<T>(string tableName, T value, QueryOptions queryOptions, params string[] keyFields)
+        {
+            return Set(x => x.CommandCompilator.CompileDelete<T>(tableName, keyFields).Create(x, value, queryOptions));
+        }
+
         internal IWrappedCommand Merge<T>(string tableName, T value, QueryOptions queryOptions, params string[] keyFields)
         {
             return Set(x => x.CommandCompilator.CompileMerge<T>(tableName, keyFields).Create(x, value, queryOptions));

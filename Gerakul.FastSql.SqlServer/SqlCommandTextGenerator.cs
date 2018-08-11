@@ -42,6 +42,11 @@ namespace Gerakul.FastSql
             return $"update {tableName} set {SetClause(fields)} where {whereClause};";
         }
 
+        public override string Delete(string tableName, string whereClause)
+        {
+            return $"delete from {tableName} where {whereClause};";
+        }
+
         public override string Merge(string tableName, IEnumerable<string> keyFields, params string[] fields)
         {
             var allFields = keyFields.Union(fields).ToArray();

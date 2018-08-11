@@ -22,6 +22,13 @@ namespace Gerakul.FastSql
             return Update(tableName, WhereClause(keyFields.ToArray()), fields);
         }
 
+        public abstract string Delete(string tableName, string whereClause);
+
+        public string Delete(string tableName, params string[] keyFields)
+        {
+            return Delete(tableName, WhereClause(keyFields));
+        }
+
         public abstract string Merge(string tableName, IEnumerable<string> keyFields, params string[] fields);
     }
 }
