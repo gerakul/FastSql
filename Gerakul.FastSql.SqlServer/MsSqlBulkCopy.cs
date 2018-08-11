@@ -58,7 +58,7 @@ namespace Gerakul.FastSql.SqlServer
         {
         }
 
-        public override void WriteToServer()
+        protected override void WriteToServer()
         {
             string[] sourceFields = fields.Length > 0 ? fields.ToArray() : reader.GetColumnNames().ToArray();
 
@@ -81,7 +81,7 @@ namespace Gerakul.FastSql.SqlServer
                   sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping() { Source = x, Destination = y }).ToArray() :
                   sourceFields.Join(destFields, x => x.ToLowerInvariant(), x => x.ToLowerInvariant(), (x, y) => new Mapping() { Source = x, Destination = y }).ToArray();
 
-                Helpers.CheckFieldSelection(bulkOptions.FieldsSelector, sourceFields.Length, destFields.Length, map.Length);
+                CheckFieldSelection(bulkOptions.FieldsSelector, sourceFields.Length, destFields.Length, map.Length);
             }
 
             if (map.Length > 0)
@@ -114,7 +114,7 @@ namespace Gerakul.FastSql.SqlServer
             }
         }
 
-        public override async Task WriteToServerAsync(CancellationToken cancellationToken)
+        protected override async Task WriteToServerAsync(CancellationToken cancellationToken)
         {
             string[] sourceFields = fields.Length > 0 ? fields.ToArray() : reader.GetColumnNames().ToArray();
 
@@ -137,7 +137,7 @@ namespace Gerakul.FastSql.SqlServer
                   sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping() { Source = x, Destination = y }).ToArray() :
                   sourceFields.Join(destFields, x => x.ToLowerInvariant(), x => x.ToLowerInvariant(), (x, y) => new Mapping() { Source = x, Destination = y }).ToArray();
 
-                Helpers.CheckFieldSelection(bulkOptions.FieldsSelector, sourceFields.Length, destFields.Length, map.Length);
+                CheckFieldSelection(bulkOptions.FieldsSelector, sourceFields.Length, destFields.Length, map.Length);
             }
 
             if (map.Length > 0)

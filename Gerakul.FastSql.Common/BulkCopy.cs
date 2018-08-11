@@ -22,8 +22,13 @@ namespace Gerakul.FastSql.Common
             this.fields = fields;
         }
 
-        public abstract void WriteToServer();
+        protected internal abstract void WriteToServer();
 
-        public abstract Task WriteToServerAsync(CancellationToken cancellationToken = default(CancellationToken));
+        protected internal abstract Task WriteToServerAsync(CancellationToken cancellationToken = default(CancellationToken));
+
+        protected void CheckFieldSelection(FieldsSelector fieldSelector, int sourceNum, int destinationNum, int commonNum)
+        {
+            Helpers.CheckFieldSelection(fieldSelector, sourceNum, destinationNum, commonNum);
+        }
     }
 }

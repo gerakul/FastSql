@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 
 namespace Gerakul.FastSql.Common
 {
-    public static class Helpers
+    internal static class Helpers
     {
-        public static void CheckFieldSelection(FieldsSelector fieldSelector, int sourceNum, int destinationNum, int commonNum)
+        internal static void CheckFieldSelection(FieldsSelector fieldSelector, int sourceNum, int destinationNum, int commonNum)
         {
             switch (fieldSelector)
             {
