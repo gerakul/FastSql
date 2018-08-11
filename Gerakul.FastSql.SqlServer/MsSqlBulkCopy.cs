@@ -121,7 +121,7 @@ namespace Gerakul.FastSql.SqlServer
 
             if (bulkOptions.CreateTable)
             {
-                await CreateTableAsync(sourceFields);
+                await CreateTableAsync(sourceFields).ConfigureAwait(false);
             }
 
             Mapping[] map;
@@ -197,7 +197,7 @@ namespace Gerakul.FastSql.SqlServer
         private async Task CreateTableAsync(string[] sourceFields)
         {
             string cmd = GetCreateTableScript(sourceFields);
-            await context.CreateSimple(cmd).ExecuteNonQueryAsync();
+            await context.CreateSimple(cmd).ExecuteNonQueryAsync().ConfigureAwait(false);
         }
 
         private IList<string> GetTableColumns()
@@ -227,7 +227,7 @@ namespace Gerakul.FastSql.SqlServer
                     }
 
                     return Task.CompletedTask;
-                });
+                }).ConfigureAwait(false);
 
             return result;
         }
