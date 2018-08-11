@@ -7,7 +7,8 @@ using System.Linq;
 
 namespace Gerakul.FastSql.SqlServer
 {
-    public static partial class DataReaderExtensions
+    // ::: temporary internal
+    internal static partial class DataReaderExtensions
     {
         public static IEnumerable<ColumnDefinition> GetColumnDefinitions(this IDataReader reader, ColumnDefinitionOptions options = null, bool ignoreSchemaTable = false)
         {

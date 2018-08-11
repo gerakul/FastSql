@@ -3,7 +3,8 @@ using System.Collections.Generic;
 
 namespace Gerakul.FastSql.SqlServer
 {
-    public static partial class EnumerableExtensions
+    // ::: temporary internal
+    internal static partial class EnumerableExtensions
     {
         #region Helpers
 

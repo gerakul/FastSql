@@ -5,7 +5,8 @@ using System.Linq;
 
 namespace Gerakul.FastSql.SqlServer
 {
-    public class ColumnDefinition
+    // ::: temporary internal
+    internal class ColumnDefinition
     {
         public string Name { get; set; }
         public string TypeName { get; set; }
@@ -239,7 +240,7 @@ namespace Gerakul.FastSql.SqlServer
         }
     }
 
-    public static class ColumnDefinitionExtensions
+    internal static class ColumnDefinitionExtensions
     {
         public static string CreateTableScript(this IEnumerable<ColumnDefinition> columnDefinitions, string tableName, bool checkIfNotExists = false)
         {
