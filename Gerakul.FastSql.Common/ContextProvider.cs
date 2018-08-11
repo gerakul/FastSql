@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data.Common;
 
 namespace Gerakul.FastSql.Common
@@ -39,7 +40,9 @@ namespace Gerakul.FastSql.Common
 
         protected internal abstract object GetDbNull(Type type);
 
-        protected internal abstract string[] ParseCommandText(string commandText);
+        protected internal abstract string[] ParamsFromCommandText(string commandText);
+
+        protected internal abstract string[] ParamsFromSettings<T>(IEnumerable<FieldSettings<T>> settings);
 
         protected internal abstract BulkCopy GetBulkCopy(ScopedContext context, BulkOptions bulkOptions, string destinationTable, DbDataReader reader, params string[] fields);
     }

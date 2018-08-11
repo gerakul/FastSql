@@ -25,6 +25,8 @@ namespace ConsoleApp1
             await context2.UsingTransactionAsync(y => context
                     .UsingTransactionAsync(x => x.CreateSimple("select top 5 * from [User] where ID > 100")
                     .WriteToServerAsync(y, new BulkOptions(FieldsSelector.Common), "Person")));
+
+            var qq = await context2.CreateProcedure("TestProc", new { maxID = 3 }).ExecuteQueryAnonymousAsync(new { Name = "" }).ToArray();
         }
     }
 }

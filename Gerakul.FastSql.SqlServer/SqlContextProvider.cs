@@ -1,5 +1,6 @@
 ﻿using Gerakul.FastSql.Common;
 using System;
+using System.Collections.Generic;
 using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
@@ -60,11 +61,16 @@ namespace Gerakul.FastSql.SqlServer
         }
 
         private static Regex regName = new Regex("(([^@]@)|(^@))(?<Name>([a-z]|[A-Z]|[0-9]|[$#_])+)", RegexOptions.Multiline);
-        protected override string[] ParseCommandText(string commandText)
+        protected override string[] ParamsFromCommandText(string commandText)
         {
             return regName.Matches(commandText).Cast<Match>()
               .Select(x => "@" + x.Groups["Name"].ToString().ToLowerInvariant())
               .Distinct().ToArray();
+        }
+
+        protected override string[] ParamsFromSettings<T>(IEnumerable<FieldSettings<T>> settings)
+        {
+            return settings.Select(x => "@" + x.Name.ToLowerInvariant()).ToArray();
         }
 
         public static SqlConnectionStringContext FromConnectionString(string connectionString)

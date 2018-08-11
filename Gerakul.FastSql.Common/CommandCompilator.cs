@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 
 namespace Gerakul.FastSql.Common
@@ -14,7 +15,7 @@ namespace Gerakul.FastSql.Common
 
         #region Simple
 
-        public SimpleCommand Compile(string commandText)
+        public SimpleCommand CompileSimple(string commandText)
         {
             return new SimpleCommand(contextProvider, commandText);
         }
@@ -23,35 +24,71 @@ namespace Gerakul.FastSql.Common
 
         #region Mapped
 
-        public MappedCommand<T> Compile<T>(string commandText, IList<string> paramNames, IList<FieldSettings<T>> settings)
+        public MappedCommand<T> CompileMapped<T>(string commandText, IList<string> paramNames, IList<FieldSettings<T>> settings)
         {
             return new MappedCommand<T>(contextProvider, commandText, paramNames, settings);
         }
 
-        public MappedCommand<T> Compile<T>(string commandText, IList<FieldSettings<T>> settings)
+        public MappedCommand<T> CompileMapped<T>(string commandText, IList<FieldSettings<T>> settings)
         {
-            return new MappedCommand<T>(contextProvider, commandText, contextProvider.ParseCommandText(commandText), settings);
+            return new MappedCommand<T>(contextProvider, commandText, contextProvider.ParamsFromCommandText(commandText), settings);
         }
 
-        public MappedCommand<T> Compile<T>(string commandText, IList<string> paramNames, FromTypeOption fromTypeOption = FromTypeOption.Default)
+        public MappedCommand<T> CompileMapped<T>(string commandText, IList<string> paramNames, FromTypeOption fromTypeOption = FromTypeOption.Default)
         {
             return new MappedCommand<T>(contextProvider, commandText, paramNames, FieldSettings.FromType<T>(fromTypeOption));
         }
 
-        public MappedCommand<T> Compile<T>(string commandText, FromTypeOption fromTypeOption = FromTypeOption.Default)
+        public MappedCommand<T> CompileMapped<T>(string commandText, FromTypeOption fromTypeOption = FromTypeOption.Default)
         {
-            return new MappedCommand<T>(contextProvider, commandText, contextProvider.ParseCommandText(commandText), FieldSettings.FromType<T>(fromTypeOption));
+            return new MappedCommand<T>(contextProvider, commandText, contextProvider.ParamsFromCommandText(commandText), FieldSettings.FromType<T>(fromTypeOption));
         }
 
-        public MappedCommand<T> Compile<T>(T proto, string commandText, IList<string> paramNames, FromTypeOption fromTypeOption = FromTypeOption.Default)
+        public MappedCommand<T> CompileMapped<T>(T proto, string commandText, IList<string> paramNames, FromTypeOption fromTypeOption = FromTypeOption.Default)
         {
             return new MappedCommand<T>(contextProvider, commandText, paramNames, FieldSettings.FromType(proto, fromTypeOption));
         }
 
-        public MappedCommand<T> Compile<T>(T proto, string commandText, FromTypeOption fromTypeOption = FromTypeOption.Default)
+        public MappedCommand<T> CompileMapped<T>(T proto, string commandText, FromTypeOption fromTypeOption = FromTypeOption.Default)
         {
-            return new MappedCommand<T>(contextProvider, commandText, contextProvider.ParseCommandText(commandText), FieldSettings.FromType(proto, fromTypeOption));
+            return new MappedCommand<T>(contextProvider, commandText, contextProvider.ParamsFromCommandText(commandText), FieldSettings.FromType(proto, fromTypeOption));
         }
+
+        #region Stored procedures
+
+        public MappedCommand<T> CompileProcedure<T>(string name, IList<string> paramNames, IList<FieldSettings<T>> settings)
+        {
+            return new MappedCommand<T>(contextProvider, name, paramNames, settings, CommandType.StoredProcedure);
+        }
+
+        public MappedCommand<T> CompileProcedure<T>(string name, IList<FieldSettings<T>> settings)
+        {
+            return new MappedCommand<T>(contextProvider, name, contextProvider.ParamsFromSettings(settings), settings, CommandType.StoredProcedure);
+        }
+
+        public MappedCommand<T> CompileProcedure<T>(string name, IList<string> paramNames, FromTypeOption fromTypeOption = FromTypeOption.Default)
+        {
+            return new MappedCommand<T>(contextProvider, name, paramNames, FieldSettings.FromType<T>(fromTypeOption), CommandType.StoredProcedure);
+        }
+
+        public MappedCommand<T> CompileProcedure<T>(string name, FromTypeOption fromTypeOption = FromTypeOption.Default)
+        {
+            var settings = FieldSettings.FromType<T>(fromTypeOption);
+            return new MappedCommand<T>(contextProvider, name, contextProvider.ParamsFromSettings(settings), settings, CommandType.StoredProcedure);
+        }
+
+        public MappedCommand<T> CompileProcedure<T>(T proto, string name, IList<string> paramNames, FromTypeOption fromTypeOption = FromTypeOption.Default)
+        {
+            return new MappedCommand<T>(contextProvider, name, paramNames, FieldSettings.FromType(proto, fromTypeOption), CommandType.StoredProcedure);
+        }
+
+        public MappedCommand<T> CompileProcedure<T>(T proto, string name, FromTypeOption fromTypeOption = FromTypeOption.Default)
+        {
+            var settings = FieldSettings.FromType(proto, fromTypeOption);
+            return new MappedCommand<T>(contextProvider, name, contextProvider.ParamsFromSettings(settings), settings, CommandType.StoredProcedure);
+        }
+
+        #endregion
 
         #region Special commands
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.Common;
 using System.Linq;
 
@@ -11,11 +12,14 @@ namespace Gerakul.FastSql.Common
         private ParMap<T>[] map;
 
         public string CommandText { get; private set; }
+        public CommandType CommandType { get; private set; }
 
-        internal MappedCommand(ContextProvider contextProvider, string commandText, IList<string> parameters, IList<FieldSettings<T>> settings)
+        internal MappedCommand(ContextProvider contextProvider, string commandText, IList<string> parameters, 
+            IList<FieldSettings<T>> settings, CommandType commandType = CommandType.Text)
         {
             this.contextProvider = contextProvider;
             this.CommandText = commandText;
+            this.CommandType = commandType;
 
             if (parameters == null || parameters.Count == 0)
             {
@@ -44,9 +48,10 @@ namespace Gerakul.FastSql.Common
             }
         }
 
-        internal DbCommand Create(ScopedContext scopedContext, T value, QueryOptions queryOptions = null)
+        internal DbCommand Create(ScopedContext scopedContext, T value, QueryOptions queryOptions)
         {
             var cmd = scopedContext.CreateCommand(CommandText);
+            cmd.CommandType = CommandType;
 
             for (int i = 0; i < map.Length; i++)
             {

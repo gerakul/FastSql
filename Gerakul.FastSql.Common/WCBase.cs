@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.Common;
 
 namespace Gerakul.FastSql.Common
@@ -29,7 +30,7 @@ namespace Gerakul.FastSql.Common
 
         internal IWrappedCommand Simple(QueryOptions queryOptions, string commandText, params object[] parameters)
         {
-            return Set(x => x.CommandCompilator.Compile(commandText).Create(x, queryOptions, parameters));
+            return Set(x => x.CommandCompilator.CompileSimple(commandText).Create(x, queryOptions, parameters));
         }
 
         #endregion
@@ -43,23 +44,47 @@ namespace Gerakul.FastSql.Common
 
         internal IWrappedCommand Mapped<T>(string commandText, IList<string> paramNames, IList<FieldSettings<T>> settings, T value, QueryOptions queryOptions)
         {
-            return Set(x => x.CommandCompilator.Compile(commandText, paramNames, settings).Create(x, value, queryOptions));
+            return Set(x => x.CommandCompilator.CompileMapped(commandText, paramNames, settings).Create(x, value, queryOptions));
         }
 
         internal IWrappedCommand Mapped<T>(string commandText, IList<FieldSettings<T>> settings, T value, QueryOptions queryOptions)
         {
-            return Set(x => x.CommandCompilator.Compile(commandText, settings).Create(x, value, queryOptions));
+            return Set(x => x.CommandCompilator.CompileMapped(commandText, settings).Create(x, value, queryOptions));
         }
 
         internal IWrappedCommand Mapped<T>(string commandText, IList<string> paramNames, T value, FromTypeOption fromTypeOption, QueryOptions queryOptions)
         {
-            return Set(x => x.CommandCompilator.Compile<T>(commandText, paramNames, fromTypeOption).Create(x, value, queryOptions));
+            return Set(x => x.CommandCompilator.CompileMapped<T>(commandText, paramNames, fromTypeOption).Create(x, value, queryOptions));
         }
 
         internal IWrappedCommand Mapped<T>(string commandText, T value, FromTypeOption fromTypeOption, QueryOptions queryOptions)
         {
-            return Set(x => x.CommandCompilator.Compile<T>(commandText, fromTypeOption).Create(x, value, queryOptions));
+            return Set(x => x.CommandCompilator.CompileMapped<T>(commandText, fromTypeOption).Create(x, value, queryOptions));
         }
+
+        #region Stored procedures
+
+        internal IWrappedCommand Procedure<T>(string name, IList<string> paramNames, IList<FieldSettings<T>> settings, T value, QueryOptions queryOptions)
+        {
+            return Set(x => x.CommandCompilator.CompileProcedure(name, paramNames, settings).Create(x, value, queryOptions));
+        }
+
+        internal IWrappedCommand Procedure<T>(string name, IList<FieldSettings<T>> settings, T value, QueryOptions queryOptions)
+        {
+            return Set(x => x.CommandCompilator.CompileProcedure(name, settings).Create(x, value, queryOptions));
+        }
+
+        internal IWrappedCommand Procedure<T>(string name, IList<string> paramNames, T value, FromTypeOption fromTypeOption, QueryOptions queryOptions)
+        {
+            return Set(x => x.CommandCompilator.CompileProcedure<T>(name, paramNames, fromTypeOption).Create(x, value, queryOptions));
+        }
+
+        internal IWrappedCommand Procedure<T>(string name, T value, FromTypeOption fromTypeOption, QueryOptions queryOptions)
+        {
+            return Set(x => x.CommandCompilator.CompileProcedure<T>(name, fromTypeOption).Create(x, value, queryOptions));
+        }
+
+        #endregion
 
         #region Special commands
 

@@ -99,6 +99,25 @@ namespace Gerakul.FastSql.Common
             return GetWC().Mapped(commandText, value, fromTypeOption, queryOptions);
         }
 
+        public IWrappedCommand CreateProcedure<T>(string name, IList<string> paramNames, IList<FieldSettings<T>> settings, T value, QueryOptions queryOptions = null)
+        {
+            return GetWC().Procedure(name, paramNames, settings, value, queryOptions);
+        }
+
+        public IWrappedCommand CreateProcedure<T>(string name, IList<FieldSettings<T>> settings, T value, QueryOptions queryOptions = null)
+        {
+            return GetWC().Procedure(name, settings, value, queryOptions);
+        }
+
+        public IWrappedCommand CreateProcedure<T>(string name, IList<string> paramNames, T value, FromTypeOption fromTypeOption = FromTypeOption.Both, QueryOptions queryOptions = null)
+        {
+            return GetWC().Procedure(name, paramNames, value, fromTypeOption, queryOptions);
+        }
+
+        public IWrappedCommand CreateProcedure<T>(string name, T value, FromTypeOption fromTypeOption = FromTypeOption.Both, QueryOptions queryOptions = null)
+        {
+            return GetWC().Procedure(name, value, fromTypeOption, queryOptions);
+        }
 
         public IWrappedCommand CreateInsert<T>(QueryOptions queryOptions, string tableName, T value, bool getIdentity, params string[] ignoreFields)
         {
