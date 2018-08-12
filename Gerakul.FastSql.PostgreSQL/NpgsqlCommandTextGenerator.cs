@@ -8,7 +8,7 @@ namespace Gerakul.FastSql.PostgreSQL
     {
         public override string ColumnList(params string[] fields)
         {
-            return string.Join(", ", fields.Select(x => $"[{x}]"));
+            return string.Join(", ", fields.Select(x => $"\"{x}\""));
         }
 
         public override string ParamList(params string[] fields)
@@ -18,12 +18,12 @@ namespace Gerakul.FastSql.PostgreSQL
 
         public override string WhereClause(params string[] fields)
         {
-            return string.Join(" and ", fields.Select(x => $"[{x}] = @{x}"));
+            return string.Join(" and ", fields.Select(x => $"\"{x}\" = @{x}"));
         }
 
         public override string SetClause(params string[] fields)
         {
-            return string.Join(", ", fields.Select(x => $"[{x}] = @{x}"));
+            return string.Join(", ", fields.Select(x => $"\"{x}\" = @{x}"));
         }
 
         public override string Insert(string tableName, bool getIdentity, params string[] fields)
@@ -53,9 +53,9 @@ namespace Gerakul.FastSql.PostgreSQL
 
             var usingList = ParamList(allFields);
             var sourceList = ColumnList(allFields);
-            var onClause = string.Join(" and ", keyFields.Select(x => $"target.[{x}] = source.[{x}]"));
-            var setClause = string.Join(", ", fields.Select(x => $"[{x}] = source.[{x}]"));
-            var valuesClause = string.Join(", ", allFields.Select(x => $"source.[{x}]"));
+            var onClause = string.Join(" and ", keyFields.Select(x => $"target.\"{x}\" = source.\"{x}\""));
+            var setClause = string.Join(", ", fields.Select(x => $"\"{x}\" = source.\"{x}\""));
+            var valuesClause = string.Join(", ", allFields.Select(x => $"source.\"{x}\""));
 
             var cmd = $"merge {tableName} as target"
                 + Environment.NewLine + $"using (select {usingList})"
