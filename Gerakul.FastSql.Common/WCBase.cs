@@ -33,10 +33,15 @@ namespace Gerakul.FastSql.Common
             return Set(x => x.CommandCompilator.CompileSimple(commandText).Create(x, queryOptions, parameters));
         }
 
+        internal IWrappedCommand ProcedureSimple(QueryOptions queryOptions, string name, params DbParameter[] parameters)
+        {
+            return Set(x => x.CommandCompilator.CompileProcedureSimple(name).Create(x, queryOptions, parameters));
+        }
+
         #endregion
 
         #region MappedCommand
-        
+
         internal IWrappedCommand Mapped<T>(MappedCommand<T> precompiledCommand, T value, QueryOptions queryOptions)
         {
             return Set(x => precompiledCommand.Create(x, value, queryOptions));

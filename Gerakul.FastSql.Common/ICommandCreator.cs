@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Data.Common;
 
 namespace Gerakul.FastSql.Common
 {
@@ -6,6 +7,7 @@ namespace Gerakul.FastSql.Common
     {
         IWrappedCommand CreateSimple(QueryOptions queryOptions, SimpleCommand precompiledCommand, params object[] parameters);
         IWrappedCommand CreateSimple(QueryOptions queryOptions, string commandText, params object[] parameters);
+        IWrappedCommand CreateProcedureSimple(QueryOptions queryOptions, string name, params DbParameter[] parameters);
 
         IWrappedCommand CreateMapped<T>(MappedCommand<T> precompiledCommand, T value, QueryOptions queryOptions = null);
         IWrappedCommand CreateMapped<T>(string commandText, IList<string> paramNames, IList<FieldSettings<T>> settings, T value, QueryOptions queryOptions = null);
@@ -34,6 +36,11 @@ namespace Gerakul.FastSql.Common
         public static IWrappedCommand CreateSimple(this ICommandCreator creator, string commandText, params object[] parameters)
         {
             return creator.CreateSimple(null, commandText, parameters);
+        }
+
+        public static IWrappedCommand CreateProcedureSimple(this ICommandCreator creator, string name, params DbParameter[] parameters)
+        {
+            return creator.CreateProcedureSimple(null, name, parameters);
         }
 
         public static IWrappedCommand CreateInsert<T>(this ICommandCreator creator, string tableName, T value, bool getIdentity, params string[] ignoreFields)

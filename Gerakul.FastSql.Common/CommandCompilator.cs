@@ -20,6 +20,11 @@ namespace Gerakul.FastSql.Common
             return new SimpleCommand(contextProvider, commandText);
         }
 
+        public SimpleCommand CompileProcedureSimple(string name)
+        {
+            return new SimpleCommand(contextProvider, name, CommandType.StoredProcedure);
+        }
+
         #endregion
 
         #region Mapped

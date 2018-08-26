@@ -73,6 +73,11 @@ namespace Gerakul.FastSql.Common
             return GetWC().Simple(queryOptions, commandText, parameters);
         }
 
+        public IWrappedCommand CreateProcedureSimple(QueryOptions queryOptions, string name, params DbParameter[] parameters)
+        {
+            return GetWC().ProcedureSimple(queryOptions, name, parameters);
+        }
+
 
         public IWrappedCommand CreateMapped<T>(MappedCommand<T> precompiledCommand, T value, QueryOptions queryOptions = null)
         {
