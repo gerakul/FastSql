@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Gerakul.FastSql.PostgreSQL\Gerakul.FastSql.PostgreSQL.csproj" />
     <ProjectReference Include="..\Gerakul.FastSql.SqlServer\Gerakul.FastSql.SqlServer.csproj" />
   </ItemGroup>
 

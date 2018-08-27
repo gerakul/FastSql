@@ -10,7 +10,7 @@ namespace Gerakul.FastSql.PostgreSQL
 {
     public class NpgsqlContextProvider : ContextProvider
     {
-        public static NpgsqlContextProvider Instance { get; } = new NpgsqlContextProvider();
+        public static NpgsqlContextProvider DefaultInstance { get; } = new NpgsqlContextProvider();
 
         private NpgsqlContextProvider()
         {
@@ -70,17 +70,17 @@ namespace Gerakul.FastSql.PostgreSQL
 
         public static NpgsqlConnectionStringContext FromConnectionString(string connectionString)
         {
-            return new NpgsqlConnectionStringContext(Instance, connectionString);
+            return new NpgsqlConnectionStringContext(DefaultInstance, connectionString);
         }
 
         public static NpgsqlConnectionContext FromConnection(NpgsqlConnection connection)
         {
-            return new NpgsqlConnectionContext(Instance, connection);
+            return new NpgsqlConnectionContext(DefaultInstance, connection);
         }
 
         public static NpgsqlTransactionContext FromTransaction(NpgsqlTransaction transaction)
         {
-            return new NpgsqlTransactionContext(Instance, transaction);
+            return new NpgsqlTransactionContext(DefaultInstance, transaction);
         }
 
         protected override BulkCopy GetBulkCopy(ScopedContext context, DbDataReader reader, string destinationTable, BulkOptions bulkOptions, params string[] fields)

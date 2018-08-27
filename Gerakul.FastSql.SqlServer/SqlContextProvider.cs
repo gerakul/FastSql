@@ -10,7 +10,7 @@ namespace Gerakul.FastSql.SqlServer
 {
     public class SqlContextProvider : ContextProvider
     {
-        public static SqlContextProvider Instance { get; } = new SqlContextProvider();
+        public static SqlContextProvider DefaultInstance { get; } = new SqlContextProvider();
 
         private SqlContextProvider()
         {
@@ -75,17 +75,17 @@ namespace Gerakul.FastSql.SqlServer
 
         public static SqlConnectionStringContext FromConnectionString(string connectionString)
         {
-            return new SqlConnectionStringContext(Instance, connectionString);
+            return new SqlConnectionStringContext(DefaultInstance, connectionString);
         }
 
         public static SqlConnectionContext FromConnection(SqlConnection connection)
         {
-            return new SqlConnectionContext(Instance, connection);
+            return new SqlConnectionContext(DefaultInstance, connection);
         }
 
         public static SqlTransactionContext FromTransaction(SqlTransaction transaction)
         {
-            return new SqlTransactionContext(Instance, transaction);
+            return new SqlTransactionContext(DefaultInstance, transaction);
         }
 
         protected override BulkCopy GetBulkCopy(ScopedContext context, DbDataReader reader, string destinationTable, BulkOptions bulkOptions, params string[] fields)
