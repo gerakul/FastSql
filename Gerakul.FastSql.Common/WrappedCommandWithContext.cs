@@ -131,7 +131,8 @@ namespace Gerakul.FastSql.Common
             {
                 conn.Open();
                 var connectionContext = context.ContextProvider.CreateConnectionContext(conn);
-                foreach (var item in commandGetter(connectionContext).ExecuteQuery<T>(readOptions))
+                foreach (var item in commandGetter(connectionContext)
+                    .ExecuteQuery<T>(context.ContextProvider.PrepareReadOptions(readOptions)))
                 {
                     yield return item;
                 }
@@ -140,7 +141,7 @@ namespace Gerakul.FastSql.Common
 
         public IAsyncEnumerable<T> ExecuteQueryAsync<T>(ReadOptions readOptions = null, CancellationToken cancellationToken = default(CancellationToken)) where T : new()
         {
-            return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateByType<T>(r, readOptions));
+            return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateByType<T>(r, context.ContextProvider.PrepareReadOptions(readOptions)));
         }
 
         public IEnumerable<T> ExecuteQueryAnonymous<T>(T proto, ReadOptions readOptions = null)
@@ -149,7 +150,8 @@ namespace Gerakul.FastSql.Common
             {
                 conn.Open();
                 var connectionContext = context.ContextProvider.CreateConnectionContext(conn);
-                foreach (var item in commandGetter(connectionContext).ExecuteQueryAnonymous<T>(proto, readOptions))
+                foreach (var item in commandGetter(connectionContext)
+                    .ExecuteQueryAnonymous<T>(proto, context.ContextProvider.PrepareReadOptions(readOptions)))
                 {
                     yield return item;
                 }
@@ -158,7 +160,7 @@ namespace Gerakul.FastSql.Common
 
         public IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(T proto, ReadOptions readOptions = null, CancellationToken cancellationToken = default(CancellationToken))
         {
-            return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateAnonymous(r, proto, readOptions));
+            return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateAnonymous(r, proto, context.ContextProvider.PrepareReadOptions(readOptions)));
         }
 
         public IEnumerable ExecuteQueryFirstColumn()

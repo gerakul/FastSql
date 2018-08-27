@@ -24,11 +24,22 @@ namespace Gerakul.FastSql.Common
         public abstract T GetValue();
     }
 
-    internal class ReadInfoFactory
+    internal static class ReadInfoFactory
     {
+        private static ReadOptions GetReadOptions(ReadOptions readOptions)
+        {
+            ReadOptions opt = readOptions ?? new ReadOptions();
+            if (!opt.CaseSensitive.HasValue)
+            {
+                opt.CaseSensitive = false;
+            }
+
+            return opt;
+        }
+
         public static ReadInfoByType<T> CreateByType<T>(IDataReader reader, ReadOptions readOptions) where T : new()
         {
-            ReadOptions readOpt = readOptions ?? new ReadOptions();
+            ReadOptions readOpt = GetReadOptions(readOptions);
 
             ReaderField[] readerFields = new ReaderField[reader.FieldCount];
 
@@ -61,11 +72,11 @@ namespace Gerakul.FastSql.Common
                 }
             }
 
-            var fiCommon = readOpt.CaseSensitive ?
+            var fiCommon = readOpt.CaseSensitive.Value ?
               fiAll.Join(readerFields, x => x.Name, x => x.Name, (x, y) => new { FieldInfo = x, ReaderField = y }).ToArray() :
               fiAll.Join(readerFields, x => x.Name.ToLowerInvariant(), x => x.Name.ToLowerInvariant(), (x, y) => new { FieldInfo = x, ReaderField = y }).ToArray();
 
-            var piCommon = readOpt.CaseSensitive ?
+            var piCommon = readOpt.CaseSensitive.Value ?
               piAll.Join(readerFields, x => x.Name, x => x.Name, (x, y) => new { PropertyInfo = x, ReaderField = y }).ToArray() :
               piAll.Join(readerFields, x => x.Name.ToLowerInvariant(), x => x.Name.ToLowerInvariant(), (x, y) => new { PropertyInfo = x, ReaderField = y }).ToArray();
 
@@ -120,7 +131,7 @@ namespace Gerakul.FastSql.Common
 
         public static ReadInfoAnonymous<T> CreateAnonymous<T>(IDataReader reader, T proto, ReadOptions readOptions)
         {
-            ReadOptions readOpt = readOptions ?? new ReadOptions();
+            ReadOptions readOpt = GetReadOptions(readOptions);
 
             ReaderField[] readerFields = new ReaderField[reader.FieldCount];
 
@@ -132,7 +143,7 @@ namespace Gerakul.FastSql.Common
             ConstructorInfo constructor = typeof(T).GetConstructors().First();
             ParameterInfo[] piAll = constructor.GetParameters();
 
-            var piCommon = readOpt.CaseSensitive ?
+            var piCommon = readOpt.CaseSensitive.Value ?
               piAll.Join(readerFields, x => x.Name, x => x.Name, (x, y) => new { ParameterInfo = x, ReaderField = y }).ToArray() :
               piAll.Join(readerFields, x => x.Name.ToLowerInvariant(), x => x.Name.ToLowerInvariant(), (x, y) => new { ParameterInfo = x, ReaderField = y }).ToArray();
 

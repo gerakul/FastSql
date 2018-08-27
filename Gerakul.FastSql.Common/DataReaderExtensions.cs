@@ -65,12 +65,12 @@ namespace Gerakul.FastSql.Common
 
         public static IEnumerable<T> ReadAll<T>(this IDataReader reader) where T : new()
         {
-            return ReadAll<T>(reader, new ReadOptions());
+            return ReadAll<T>(reader, null);
         }
 
         public static IAsyncEnumerable<T> ReadAllAsync<T>(this IDataReader reader) where T : new()
         {
-            return ReadAllAsync<T>(reader, new ReadOptions());
+            return ReadAllAsync<T>(reader, null);
         }
 
         public static IEnumerable<T> ReadAllAnonymous<T>(this IDataReader reader, T proto, ReadOptions readOptions)
@@ -85,12 +85,12 @@ namespace Gerakul.FastSql.Common
 
         public static IEnumerable<T> ReadAllAnonymous<T>(this IDataReader reader, T proto)
         {
-            return ReadAllAnonymous(reader, proto, new ReadOptions());
+            return ReadAllAnonymous(reader, proto, null);
         }
 
         public static IAsyncEnumerable<T> ReadAllAnonymousAsync<T>(this IDataReader reader, T proto)
         {
-            return ReadAllAnonymousAsync(reader, proto, new ReadOptions());
+            return ReadAllAnonymousAsync(reader, proto, null);
         }
 
         public static IEnumerable ReadAllFirstColumn(this IDataReader reader)

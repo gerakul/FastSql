@@ -8,6 +8,7 @@ namespace Gerakul.FastSql.Common
     {
         public abstract QueryOptions DefaultQueryOptions { get; }
         public abstract BulkOptions DefaultBulkOptions { get; }
+        public virtual ReadOptions DefaultReadOptions { get; } = new ReadOptions();
 
         public abstract CommandTextGenerator CommandTextGenerator { get; }
         public CommandCompilator CommandCompilator { get; }
@@ -15,6 +16,18 @@ namespace Gerakul.FastSql.Common
         public ContextProvider()
         {
             this.CommandCompilator = new CommandCompilator(this);
+        }
+
+        internal ReadOptions PrepareReadOptions(ReadOptions readOptions)
+        {
+            if (readOptions == null)
+            {
+                return DefaultReadOptions.Clone();
+            }
+
+            var opt = readOptions.Clone();
+            opt.SetDefaults(DefaultReadOptions);
+            return opt;
         }
 
         public abstract ConnectionStringContext CreateConnectionStringContext(string connectionString);
