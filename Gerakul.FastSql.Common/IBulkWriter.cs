@@ -20,17 +20,17 @@ namespace Gerakul.FastSql.Common
 
         public static void WriteToServer(this IBulkWriter writer, string destinationTable, params string[] fields)
         {
-            writer.WriteToServer(destinationTable, writer.Context.ContextProvider.DefaultBulkOptions, fields);
+            writer.WriteToServer(destinationTable, null, fields);
         }
 
         public static Task WriteToServerAsync(this IBulkWriter writer, string destinationTable, CancellationToken cancellationToken, params string[] fields)
         {
-            return writer.WriteToServerAsync(destinationTable, writer.Context.ContextProvider.DefaultBulkOptions, cancellationToken, fields);
+            return writer.WriteToServerAsync(destinationTable, null, cancellationToken, fields);
         }
 
         public static Task WriteToServerAsync(this IBulkWriter writer, string destinationTable, params string[] fields)
         {
-            return writer.WriteToServerAsync(destinationTable, writer.Context.ContextProvider.DefaultBulkOptions, CancellationToken.None, fields);
+            return writer.WriteToServerAsync(destinationTable, null, CancellationToken.None, fields);
         }
     }
 }

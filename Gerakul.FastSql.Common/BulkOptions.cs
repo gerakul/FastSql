@@ -18,5 +18,23 @@
             this.IgnoreDataReaderSchemaTable = ignoreDataReaderSchemaTable;
             this.CheckTableIfNotExistsBeforeCreation = checkTableIfNotExistsBeforeCreation;
         }
+
+        public virtual void SetDefaults(BulkOptions defaultOptions)
+        {
+            if (!CaseSensitive.HasValue)
+            {
+                CaseSensitive = defaultOptions.CaseSensitive;
+            }
+
+            if (!IgnoreDataReaderSchemaTable.HasValue)
+            {
+                IgnoreDataReaderSchemaTable = defaultOptions.IgnoreDataReaderSchemaTable;
+            }
+
+            if (!CheckTableIfNotExistsBeforeCreation.HasValue)
+            {
+                CheckTableIfNotExistsBeforeCreation = defaultOptions.CheckTableIfNotExistsBeforeCreation;
+            }
+        }
     }
 }

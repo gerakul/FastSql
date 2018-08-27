@@ -39,5 +39,35 @@ namespace Gerakul.FastSql.PostgreSQL
                     checkTableIfNotExistsBeforeCreation: bulkOptions.CheckTableIfNotExistsBeforeCreation);
             }
         }
+
+        public override void SetDefaults(BulkOptions defaultOptions)
+        {
+            base.SetDefaults(defaultOptions);
+            var opt = defaultOptions as NpgsqlBulkOptions;
+            if (opt == null)
+            {
+                return;
+            }
+
+            if (!BatchSize.HasValue)
+            {
+                BatchSize = opt.BatchSize;
+            }
+
+            if (!BulkCopyTimeout.HasValue)
+            {
+                BulkCopyTimeout = opt.BulkCopyTimeout;
+            }
+
+            if (!EnableStreaming.HasValue)
+            {
+                EnableStreaming = opt.EnableStreaming;
+            }
+
+            if (ColumnDefinitionOptions == null)
+            {
+                ColumnDefinitionOptions = opt.ColumnDefinitionOptions?.Clone();
+            }
+        }
     }
 }
