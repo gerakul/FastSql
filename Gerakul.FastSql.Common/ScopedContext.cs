@@ -68,11 +68,6 @@ namespace Gerakul.FastSql.Common
             return GetWC().Mapped(commandText, value, fromTypeOption, queryOptions);
         }
 
-        public IWrappedCommand CreateProcedure(string name, QueryOptions queryOptions = null)
-        {
-            throw new System.NotImplementedException();
-        }
-
         public IWrappedCommand CreateProcedure<T>(string name, IList<string> paramNames, IList<FieldSettings<T>> settings, T value, QueryOptions queryOptions = null)
         {
             return GetWC().Procedure(name, paramNames, settings, value, queryOptions);
