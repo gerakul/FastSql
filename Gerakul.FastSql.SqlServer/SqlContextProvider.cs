@@ -90,7 +90,7 @@ namespace Gerakul.FastSql.SqlServer
 
         protected override BulkCopy GetBulkCopy(ScopedContext context, DbDataReader reader, string destinationTable, BulkOptions bulkOptions, params string[] fields)
         {
-            var opt = SqlBulkOptions.FromBulkOptions(bulkOptions ?? DefaultBulkOptions);
+            var opt = new SqlBulkOptions(bulkOptions ?? DefaultBulkOptions);
             opt.SetDefaults(DefaultBulkOptions);
             return new MsSqlBulkCopy(context, reader, destinationTable, opt, fields);
         }

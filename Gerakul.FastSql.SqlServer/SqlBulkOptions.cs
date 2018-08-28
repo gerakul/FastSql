@@ -24,27 +24,31 @@ namespace Gerakul.FastSql.SqlServer
             this.ColumnDefinitionOptions = columnDefinitionOptions;
         }
 
-        internal static SqlBulkOptions FromBulkOptions(BulkOptions bulkOptions)
+        protected internal SqlBulkOptions(BulkOptions bulkOptions)
+            : base(bulkOptions)
         {
-            if (bulkOptions is SqlBulkOptions)
+            if (bulkOptions is SqlBulkOptions opt)
             {
-                return (SqlBulkOptions)bulkOptions;
+                this.BatchSize = opt.BatchSize;
+                this.BulkCopyTimeout = opt.BulkCopyTimeout;
+                this.SqlBulkCopyOptions = opt.SqlBulkCopyOptions;
+                this.EnableStreaming = opt.EnableStreaming;
+                this.ColumnDefinitionOptions = opt.ColumnDefinitionOptions;
             }
             else
             {
-                return new SqlBulkOptions(fieldsSelector: bulkOptions.FieldsSelector,
-                    caseSensitive: bulkOptions.CaseSensitive,
-                    createTable: bulkOptions.CreateTable,
-                    ignoreDataReaderSchemaTable: bulkOptions.IgnoreDataReaderSchemaTable,
-                    checkTableIfNotExistsBeforeCreation: bulkOptions.CheckTableIfNotExistsBeforeCreation);
+                this.BatchSize = null;
+                this.BulkCopyTimeout = null;
+                this.SqlBulkCopyOptions = SqlBulkCopyOptions.Default;
+                this.EnableStreaming = null;
+                this.ColumnDefinitionOptions = null;
             }
         }
 
         public override void SetDefaults(BulkOptions defaultOptions)
         {
             base.SetDefaults(defaultOptions);
-            var opt = defaultOptions as SqlBulkOptions;
-            if (opt == null)
+            if (!(defaultOptions is SqlBulkOptions opt))
             {
                 return;
             }
@@ -68,6 +72,11 @@ namespace Gerakul.FastSql.SqlServer
             {
                 ColumnDefinitionOptions = opt.ColumnDefinitionOptions?.Clone();
             }
+        }
+
+        public override BulkOptions Clone()
+        {
+            return new SqlBulkOptions(this);
         }
     }
 }

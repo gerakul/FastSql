@@ -24,27 +24,31 @@ namespace Gerakul.FastSql.PostgreSQL
             this.ColumnDefinitionOptions = columnDefinitionOptions;
         }
 
-        internal static NpgsqlBulkOptions FromBulkOptions(BulkOptions bulkOptions)
+        protected internal NpgsqlBulkOptions(BulkOptions bulkOptions)
+            : base(bulkOptions)
         {
-            if (bulkOptions is NpgsqlBulkOptions)
+            if (bulkOptions is NpgsqlBulkOptions opt)
             {
-                return (NpgsqlBulkOptions)bulkOptions;
+                this.BatchSize = opt.BatchSize;
+                this.BulkCopyTimeout = opt.BulkCopyTimeout;
+                // ::: this.SqlBulkCopyOptions = opt.SqlBulkCopyOptions;
+                this.EnableStreaming = opt.EnableStreaming;
+                this.ColumnDefinitionOptions = opt.ColumnDefinitionOptions;
             }
             else
             {
-                return new NpgsqlBulkOptions(fieldsSelector: bulkOptions.FieldsSelector,
-                    caseSensitive: bulkOptions.CaseSensitive,
-                    createTable: bulkOptions.CreateTable,
-                    ignoreDataReaderSchemaTable: bulkOptions.IgnoreDataReaderSchemaTable,
-                    checkTableIfNotExistsBeforeCreation: bulkOptions.CheckTableIfNotExistsBeforeCreation);
+                this.BatchSize = null;
+                this.BulkCopyTimeout = null;
+                // ::: this.SqlBulkCopyOptions = null;
+                this.EnableStreaming = null;
+                this.ColumnDefinitionOptions = null;
             }
         }
 
         public override void SetDefaults(BulkOptions defaultOptions)
         {
             base.SetDefaults(defaultOptions);
-            var opt = defaultOptions as NpgsqlBulkOptions;
-            if (opt == null)
+            if (!(defaultOptions is NpgsqlBulkOptions opt))
             {
                 return;
             }
@@ -68,6 +72,11 @@ namespace Gerakul.FastSql.PostgreSQL
             {
                 ColumnDefinitionOptions = opt.ColumnDefinitionOptions?.Clone();
             }
+        }
+
+        public override BulkOptions Clone()
+        {
+            return new NpgsqlBulkOptions(this);
         }
     }
 }

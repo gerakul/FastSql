@@ -13,6 +13,13 @@
             this.CaseSensitive = caseSensitive;
         }
 
+        protected ReadOptions(ReadOptions readOptions)
+        {
+            this.FieldsSelector = readOptions.FieldsSelector;
+            this.FromTypeOption = readOptions.FromTypeOption;
+            this.CaseSensitive = readOptions.CaseSensitive;
+        }
+
         public void SetDefaults(ReadOptions defaultOptions)
         {
             if (!CaseSensitive.HasValue)
@@ -21,9 +28,9 @@
             }
         }
 
-        public ReadOptions Clone()
+        public virtual ReadOptions Clone()
         {
-            return new ReadOptions(FieldsSelector, CaseSensitive, FromTypeOption);
+            return new ReadOptions(this);
         }
     }
 }

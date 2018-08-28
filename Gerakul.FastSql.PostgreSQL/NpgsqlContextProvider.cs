@@ -85,7 +85,7 @@ namespace Gerakul.FastSql.PostgreSQL
 
         protected override BulkCopy GetBulkCopy(ScopedContext context, DbDataReader reader, string destinationTable, BulkOptions bulkOptions, params string[] fields)
         {
-            var opt = NpgsqlBulkOptions.FromBulkOptions(bulkOptions ?? DefaultBulkOptions);
+            var opt = new NpgsqlBulkOptions(bulkOptions ?? DefaultBulkOptions);
             opt.SetDefaults(DefaultBulkOptions);
             return new NpgsqlBulkCopy(context, reader, destinationTable, opt, fields);
         }

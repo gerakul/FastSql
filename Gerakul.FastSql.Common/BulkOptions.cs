@@ -19,6 +19,15 @@
             this.CheckTableIfNotExistsBeforeCreation = checkTableIfNotExistsBeforeCreation;
         }
 
+        protected BulkOptions(BulkOptions bulkOptions)
+        {
+            this.FieldsSelector = bulkOptions.FieldsSelector;
+            this.CaseSensitive = bulkOptions.CaseSensitive;
+            this.CreateTable = bulkOptions.CreateTable;
+            this.IgnoreDataReaderSchemaTable = bulkOptions.IgnoreDataReaderSchemaTable;
+            this.CheckTableIfNotExistsBeforeCreation = bulkOptions.CheckTableIfNotExistsBeforeCreation;
+        }
+
         public virtual void SetDefaults(BulkOptions defaultOptions)
         {
             if (!CaseSensitive.HasValue)
@@ -35,6 +44,11 @@
             {
                 CheckTableIfNotExistsBeforeCreation = defaultOptions.CheckTableIfNotExistsBeforeCreation;
             }
+        }
+
+        public virtual BulkOptions Clone()
+        {
+            return new BulkOptions(this);
         }
     }
 }
