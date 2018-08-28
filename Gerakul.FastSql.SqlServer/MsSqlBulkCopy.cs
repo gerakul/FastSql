@@ -62,14 +62,14 @@ namespace Gerakul.FastSql.SqlServer
         {
             string[] sourceFields = fields.Length > 0 ? fields.ToArray() : reader.GetColumnNames().ToArray();
 
-            if (bulkOptions.CreateTable)
+            if (bulkOptions.CreateTable.Value)
             {
                 CreateTable(sourceFields);
             }
 
             Mapping[] map;
 
-            if (bulkOptions.FieldsSelector == FieldsSelector.Source && !bulkOptions.CaseSensitive.HasValue)
+            if (bulkOptions.FieldsSelector.Value == FieldsSelector.Source && !bulkOptions.CaseSensitive.HasValue)
             {
                 map = sourceFields.Select(x => new Mapping() { Source = x, Destination = x }).ToArray();
             }
@@ -81,12 +81,12 @@ namespace Gerakul.FastSql.SqlServer
                   sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping() { Source = x, Destination = y }).ToArray() :
                   sourceFields.Join(destFields, x => x.ToLowerInvariant(), x => x.ToLowerInvariant(), (x, y) => new Mapping() { Source = x, Destination = y }).ToArray();
 
-                CheckFieldSelection(bulkOptions.FieldsSelector, sourceFields.Length, destFields.Length, map.Length);
+                CheckFieldSelection(bulkOptions.FieldsSelector.Value, sourceFields.Length, destFields.Length, map.Length);
             }
 
             if (map.Length > 0)
             {
-                using (SqlBulkCopy bcp = new SqlBulkCopy(Connection, SqlBulkOptions.SqlBulkCopyOptions, Transaction))
+                using (SqlBulkCopy bcp = new SqlBulkCopy(Connection, SqlBulkOptions.SqlBulkCopyOptions.Value, Transaction))
                 {
                     bcp.DestinationTableName = destinationTable;
                     if (SqlBulkOptions.BatchSize.HasValue)
@@ -118,14 +118,14 @@ namespace Gerakul.FastSql.SqlServer
         {
             string[] sourceFields = fields.Length > 0 ? fields.ToArray() : reader.GetColumnNames().ToArray();
 
-            if (bulkOptions.CreateTable)
+            if (bulkOptions.CreateTable.Value)
             {
                 await CreateTableAsync(sourceFields).ConfigureAwait(false);
             }
 
             Mapping[] map;
 
-            if (bulkOptions.FieldsSelector == FieldsSelector.Source && !bulkOptions.CaseSensitive.HasValue)
+            if (bulkOptions.FieldsSelector.Value == FieldsSelector.Source && !bulkOptions.CaseSensitive.HasValue)
             {
                 map = sourceFields.Select(x => new Mapping() { Source = x, Destination = x }).ToArray();
             }
@@ -137,12 +137,12 @@ namespace Gerakul.FastSql.SqlServer
                   sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping() { Source = x, Destination = y }).ToArray() :
                   sourceFields.Join(destFields, x => x.ToLowerInvariant(), x => x.ToLowerInvariant(), (x, y) => new Mapping() { Source = x, Destination = y }).ToArray();
 
-                CheckFieldSelection(bulkOptions.FieldsSelector, sourceFields.Length, destFields.Length, map.Length);
+                CheckFieldSelection(bulkOptions.FieldsSelector.Value, sourceFields.Length, destFields.Length, map.Length);
             }
 
             if (map.Length > 0)
             {
-                using (SqlBulkCopy bcp = new SqlBulkCopy(Connection, SqlBulkOptions.SqlBulkCopyOptions, Transaction))
+                using (SqlBulkCopy bcp = new SqlBulkCopy(Connection, SqlBulkOptions.SqlBulkCopyOptions.Value, Transaction))
                 {
                     bcp.DestinationTableName = destinationTable;
                     if (SqlBulkOptions.BatchSize.HasValue)
@@ -172,9 +172,7 @@ namespace Gerakul.FastSql.SqlServer
 
         private string GetCreateTableScript(string[] sourceFields)
         {
-            var colDefs = (bulkOptions.IgnoreDataReaderSchemaTable.HasValue ?
-                    reader.GetColumnDefinitions(SqlBulkOptions.ColumnDefinitionOptions, bulkOptions.IgnoreDataReaderSchemaTable.Value)
-                    : reader.GetColumnDefinitions(SqlBulkOptions.ColumnDefinitionOptions))
+            var colDefs = reader.GetColumnDefinitions(SqlBulkOptions.ColumnDefinitionOptions, bulkOptions.IgnoreDataReaderSchemaTable.Value)
                 .Where(x => sourceFields.Contains(x.Name)).ToArray();
 
             if (colDefs.Length != sourceFields.Length)
@@ -182,9 +180,7 @@ namespace Gerakul.FastSql.SqlServer
                 throw new InvalidOperationException("Can not create table with specified fields");
             }
 
-            return bulkOptions.CheckTableIfNotExistsBeforeCreation.HasValue ?
-                colDefs.CreateTableScript(destinationTable, bulkOptions.CheckTableIfNotExistsBeforeCreation.Value)
-                : colDefs.CreateTableScript(destinationTable);
+            return colDefs.CreateTableScript(destinationTable, bulkOptions.CheckTableIfNotExistsBeforeCreation.Value);
         }
 
         private void CreateTable(string[] sourceFields)

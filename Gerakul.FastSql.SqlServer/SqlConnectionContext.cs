@@ -6,8 +6,15 @@ namespace Gerakul.FastSql.SqlServer
 {
     public class SqlConnectionContext : ConnectionContext
     {
-        public SqlConnectionContext(ContextProvider contextProvider, SqlConnection connection) 
-            : base(contextProvider, connection)
+        public SqlConnectionContext(SqlContextProvider contextProvider, SqlConnection connection)
+            : this(contextProvider, connection,
+                  contextProvider.DefaultQueryOptions, contextProvider.DefaultBulkOptions, contextProvider.DefaultReadOptions)
+        {
+        }
+
+        protected internal SqlConnectionContext(ContextProvider contextProvider, SqlConnection connection,
+            QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
+            : base(contextProvider, connection, queryOptions, bulkOptions, readOptions)
         {
         }
 

@@ -13,8 +13,9 @@ namespace Gerakul.FastSql.Common
             }
         }
 
-        public ScopedContext(ContextProvider contextProvider) 
-            : base(contextProvider)
+        protected internal ScopedContext(ContextProvider contextProvider,
+            QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
+            : base(contextProvider, queryOptions, bulkOptions, readOptions)
         {
         }
 

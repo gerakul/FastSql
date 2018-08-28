@@ -2,14 +2,18 @@
 {
     public class BulkOptions
     {
-        public FieldsSelector FieldsSelector { get; set; }
+        private static readonly BulkOptions defaultOptions = new BulkOptions(true);
+
+        public FieldsSelector? FieldsSelector { get; set; }
         public bool? CaseSensitive { get; set; }
-        public bool CreateTable { get; set; } = false;
+        public bool? CreateTable { get; set; }
         public bool? IgnoreDataReaderSchemaTable { get; set; }
         public bool? CheckTableIfNotExistsBeforeCreation { get; set; }
 
-        public BulkOptions(FieldsSelector fieldsSelector = FieldsSelector.Source, bool? caseSensitive = null,
-          bool createTable = false, bool? ignoreDataReaderSchemaTable = null,
+        protected virtual BulkOptions Default => defaultOptions;
+
+        public BulkOptions(FieldsSelector? fieldsSelector = null, bool? caseSensitive = null,
+          bool? createTable = null, bool? ignoreDataReaderSchemaTable = null,
           bool? checkTableIfNotExistsBeforeCreation = null)
         {
             this.FieldsSelector = fieldsSelector;
@@ -17,6 +21,18 @@
             this.CreateTable = createTable;
             this.IgnoreDataReaderSchemaTable = ignoreDataReaderSchemaTable;
             this.CheckTableIfNotExistsBeforeCreation = checkTableIfNotExistsBeforeCreation;
+        }
+
+        protected BulkOptions(bool defaultOptions)
+        {
+            if (defaultOptions)
+            {
+                this.FieldsSelector = Common.FieldsSelector.Source;
+                this.CaseSensitive = null;
+                this.CreateTable = false;
+                this.IgnoreDataReaderSchemaTable = false;
+                this.CheckTableIfNotExistsBeforeCreation = false;
+            }
         }
 
         protected BulkOptions(BulkOptions bulkOptions)
@@ -28,11 +44,21 @@
             this.CheckTableIfNotExistsBeforeCreation = bulkOptions.CheckTableIfNotExistsBeforeCreation;
         }
 
-        public virtual void SetDefaults(BulkOptions defaultOptions)
+        protected internal virtual BulkOptions SetDefaults(BulkOptions defaultOptions)
         {
+            if (!FieldsSelector.HasValue)
+            {
+                FieldsSelector = defaultOptions.FieldsSelector;
+            }
+
             if (!CaseSensitive.HasValue)
             {
                 CaseSensitive = defaultOptions.CaseSensitive;
+            }
+
+            if (!CreateTable.HasValue)
+            {
+                CreateTable = defaultOptions.CreateTable;
             }
 
             if (!IgnoreDataReaderSchemaTable.HasValue)
@@ -44,6 +70,13 @@
             {
                 CheckTableIfNotExistsBeforeCreation = defaultOptions.CheckTableIfNotExistsBeforeCreation;
             }
+
+            return this;
+        }
+
+        internal BulkOptions SetDefaults()
+        {
+            return SetDefaults(Default);
         }
 
         public virtual BulkOptions Clone()

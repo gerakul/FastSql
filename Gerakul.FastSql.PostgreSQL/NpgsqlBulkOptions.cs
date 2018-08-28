@@ -5,15 +5,19 @@ namespace Gerakul.FastSql.PostgreSQL
 {
     public class NpgsqlBulkOptions : BulkOptions
     {
+        private static readonly NpgsqlBulkOptions defaultOptions = new NpgsqlBulkOptions(true);
+
         public int? BatchSize { get; set; }
         public int? BulkCopyTimeout { get; set; }
         // ::: public SqlBulkCopyOptions SqlBulkCopyOptions { get; set; }
         public bool? EnableStreaming { get; set; }
         public ColumnDefinitionOptions ColumnDefinitionOptions { get; set; }
 
+        protected override BulkOptions Default => defaultOptions;
+
         public NpgsqlBulkOptions(int? batchSize = null, int? bulkCopyTimeout = null, /* ::: SqlBulkCopyOptions sqlBulkCopyOptions = SqlBulkCopyOptions.Default,*/
-          FieldsSelector fieldsSelector = FieldsSelector.Source, bool? caseSensitive = null, bool? enableStreaming = null,
-          bool createTable = false, ColumnDefinitionOptions columnDefinitionOptions = null, bool? ignoreDataReaderSchemaTable = null,
+          FieldsSelector? fieldsSelector = null, bool? caseSensitive = null, bool? enableStreaming = null,
+          bool? createTable = null, ColumnDefinitionOptions columnDefinitionOptions = null, bool? ignoreDataReaderSchemaTable = null,
           bool? checkTableIfNotExistsBeforeCreation = null)
             : base(fieldsSelector, caseSensitive, createTable, ignoreDataReaderSchemaTable, checkTableIfNotExistsBeforeCreation)
         {
@@ -22,6 +26,19 @@ namespace Gerakul.FastSql.PostgreSQL
             // ::: this.SqlBulkCopyOptions = sqlBulkCopyOptions;
             this.EnableStreaming = enableStreaming;
             this.ColumnDefinitionOptions = columnDefinitionOptions;
+        }
+
+        protected NpgsqlBulkOptions(bool defaultOptions)
+            : base(defaultOptions)
+        {
+            if (defaultOptions)
+            {
+                this.BatchSize = null;
+                this.BulkCopyTimeout = null;
+                //this.SqlBulkCopyOptions = SqlBulkCopyOptions.Default;
+                this.EnableStreaming = null;
+                this.ColumnDefinitionOptions = ColumnDefinitionOptions.Default;
+            }
         }
 
         protected internal NpgsqlBulkOptions(BulkOptions bulkOptions)
@@ -45,12 +62,12 @@ namespace Gerakul.FastSql.PostgreSQL
             }
         }
 
-        public override void SetDefaults(BulkOptions defaultOptions)
+        protected override BulkOptions SetDefaults(BulkOptions defaultOptions)
         {
             base.SetDefaults(defaultOptions);
             if (!(defaultOptions is NpgsqlBulkOptions opt))
             {
-                return;
+                return this;
             }
 
             if (!BatchSize.HasValue)
@@ -63,6 +80,11 @@ namespace Gerakul.FastSql.PostgreSQL
                 BulkCopyTimeout = opt.BulkCopyTimeout;
             }
 
+            //if (!SqlBulkCopyOptions.HasValue)
+            //{
+            //    SqlBulkCopyOptions = opt.SqlBulkCopyOptions;
+            //}
+
             if (!EnableStreaming.HasValue)
             {
                 EnableStreaming = opt.EnableStreaming;
@@ -72,6 +94,8 @@ namespace Gerakul.FastSql.PostgreSQL
             {
                 ColumnDefinitionOptions = opt.ColumnDefinitionOptions?.Clone();
             }
+
+            return this;
         }
 
         public override BulkOptions Clone()

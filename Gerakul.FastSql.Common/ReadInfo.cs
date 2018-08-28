@@ -28,13 +28,14 @@ namespace Gerakul.FastSql.Common
     {
         private static ReadOptions GetReadOptions(ReadOptions readOptions)
         {
-            ReadOptions opt = readOptions ?? new ReadOptions();
-            if (!opt.CaseSensitive.HasValue)
+            if (readOptions == null)
             {
-                opt.CaseSensitive = false;
+                return new ReadOptions(true);
             }
-
-            return opt;
+            else
+            {
+                return readOptions.SetDefaults();
+            }
         }
 
         public static ReadInfoByType<T> CreateByType<T>(IDataReader reader, ReadOptions readOptions) where T : new()
@@ -51,22 +52,22 @@ namespace Gerakul.FastSql.Common
             Type type = typeof(T);
 
             FieldInfo[] fiAll = new FieldInfo[0];
-            if ((readOpt.FromTypeOption & FromTypeOption.PublicField) == FromTypeOption.PublicField)
+            if ((readOpt.FromTypeOption.Value & FromTypeOption.PublicField) == FromTypeOption.PublicField)
             {
                 fiAll = type.GetFields(BindingFlags.Instance | BindingFlags.Public);
 
-                if ((readOpt.FromTypeOption & FromTypeOption.Collection) == 0)
+                if ((readOpt.FromTypeOption.Value & FromTypeOption.Collection) == 0)
                 {
                     fiAll = fiAll.Where(x => !Helpers.IsCollection(x.FieldType)).ToArray();
                 }
             }
 
             PropertyInfo[] piAll = new PropertyInfo[0];
-            if ((readOpt.FromTypeOption & FromTypeOption.PublicProperty) == FromTypeOption.PublicProperty)
+            if ((readOpt.FromTypeOption.Value & FromTypeOption.PublicProperty) == FromTypeOption.PublicProperty)
             {
                 piAll = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
 
-                if ((readOpt.FromTypeOption & FromTypeOption.Collection) == 0)
+                if ((readOpt.FromTypeOption.Value & FromTypeOption.Collection) == 0)
                 {
                     piAll = piAll.Where(x => !Helpers.IsCollection(x.PropertyType)).ToArray();
                 }
@@ -80,7 +81,7 @@ namespace Gerakul.FastSql.Common
               piAll.Join(readerFields, x => x.Name, x => x.Name, (x, y) => new { PropertyInfo = x, ReaderField = y }).ToArray() :
               piAll.Join(readerFields, x => x.Name.ToLowerInvariant(), x => x.Name.ToLowerInvariant(), (x, y) => new { PropertyInfo = x, ReaderField = y }).ToArray();
 
-            Helpers.CheckFieldSelection(readOpt.FieldsSelector, readerFields.Length, fiAll.Length + piAll.Length, fiCommon.Length + piCommon.Length);
+            Helpers.CheckFieldSelection(readOpt.FieldsSelector.Value, readerFields.Length, fiAll.Length + piAll.Length, fiCommon.Length + piCommon.Length);
 
             Type nullableTypeDef = typeof(Nullable<int>).GetGenericTypeDefinition();
 
@@ -147,7 +148,7 @@ namespace Gerakul.FastSql.Common
               piAll.Join(readerFields, x => x.Name, x => x.Name, (x, y) => new { ParameterInfo = x, ReaderField = y }).ToArray() :
               piAll.Join(readerFields, x => x.Name.ToLowerInvariant(), x => x.Name.ToLowerInvariant(), (x, y) => new { ParameterInfo = x, ReaderField = y }).ToArray();
 
-            Helpers.CheckFieldSelection(readOpt.FieldsSelector, readerFields.Length, piAll.Length, piCommon.Length);
+            Helpers.CheckFieldSelection(readOpt.FieldsSelector.Value, readerFields.Length, piAll.Length, piCommon.Length);
 
             Type nullableTypeDef = typeof(Nullable<int>).GetGenericTypeDefinition();
 

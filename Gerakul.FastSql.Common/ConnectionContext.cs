@@ -9,8 +9,9 @@ namespace Gerakul.FastSql.Common
     {
         public DbConnection Connection { get; }
 
-        public ConnectionContext(ContextProvider contextProvider, DbConnection connection) 
-            : base(contextProvider)
+        protected internal ConnectionContext(ContextProvider contextProvider, DbConnection connection,
+            QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
+            : base(contextProvider, queryOptions, bulkOptions, readOptions)
         {
             this.Connection = connection;
         }
@@ -21,7 +22,7 @@ namespace Gerakul.FastSql.Common
             try
             {
                 tran = Connection.BeginTransaction(isolationLevel);
-                action(ContextProvider.CreateTransactionContext(tran));
+                action(ContextProvider.GetTransactionContext(tran, DefaultQueryOptions, DefaultBulkOptions, DefaultReadOptions));
                 tran.Commit();
             }
             catch
@@ -46,7 +47,7 @@ namespace Gerakul.FastSql.Common
             try
             {
                 tran = Connection.BeginTransaction(isolationLevel);
-                await action(ContextProvider.CreateTransactionContext(tran)).ConfigureAwait(false);
+                await action(ContextProvider.GetTransactionContext(tran, DefaultQueryOptions, DefaultBulkOptions, DefaultReadOptions)).ConfigureAwait(false);
                 tran.Commit();
             }
             catch

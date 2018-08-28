@@ -45,7 +45,7 @@ namespace Gerakul.FastSql.Common
                       conn = context.CreateConnection();
                       await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
                       state.InternalConnection = conn;
-                      var connectionContext = context.ContextProvider.CreateConnectionContext(conn);
+                      var connectionContext = context.ContextProvider.GetConnectionContext(conn, context.DefaultQueryOptions, context.DefaultBulkOptions, context.DefaultReadOptions);
                       var reader = await commandGetter(connectionContext).ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
                       state.ReadInfo = readInfoGetter(reader);
                   }
@@ -112,7 +112,7 @@ namespace Gerakul.FastSql.Common
             using (var conn = context.CreateConnection())
             {
                 conn.Open();
-                var connectionContext = context.ContextProvider.CreateConnectionContext(conn);
+                var connectionContext = context.ContextProvider.GetConnectionContext(conn, context.DefaultQueryOptions, context.DefaultBulkOptions, context.DefaultReadOptions);
                 foreach (var item in commandGetter(connectionContext).ExecuteQuery())
                 {
                     yield return item;
@@ -130,9 +130,9 @@ namespace Gerakul.FastSql.Common
             using (var conn = context.CreateConnection())
             {
                 conn.Open();
-                var connectionContext = context.ContextProvider.CreateConnectionContext(conn);
+                var connectionContext = context.ContextProvider.GetConnectionContext(conn, context.DefaultQueryOptions, context.DefaultBulkOptions, context.DefaultReadOptions);
                 foreach (var item in commandGetter(connectionContext)
-                    .ExecuteQuery<T>(context.ContextProvider.PrepareReadOptions(readOptions)))
+                    .ExecuteQuery<T>(context.ContextProvider.PrepareReadOptions(readOptions, context.DefaultReadOptions)))
                 {
                     yield return item;
                 }
@@ -141,7 +141,7 @@ namespace Gerakul.FastSql.Common
 
         public IAsyncEnumerable<T> ExecuteQueryAsync<T>(ReadOptions readOptions = null, CancellationToken cancellationToken = default(CancellationToken)) where T : new()
         {
-            return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateByType<T>(r, context.ContextProvider.PrepareReadOptions(readOptions)));
+            return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateByType<T>(r, context.ContextProvider.PrepareReadOptions(readOptions, context.DefaultReadOptions)));
         }
 
         public IEnumerable<T> ExecuteQueryAnonymous<T>(T proto, ReadOptions readOptions = null)
@@ -149,9 +149,9 @@ namespace Gerakul.FastSql.Common
             using (var conn = context.CreateConnection())
             {
                 conn.Open();
-                var connectionContext = context.ContextProvider.CreateConnectionContext(conn);
+                var connectionContext = context.ContextProvider.GetConnectionContext(conn, context.DefaultQueryOptions, context.DefaultBulkOptions, context.DefaultReadOptions);
                 foreach (var item in commandGetter(connectionContext)
-                    .ExecuteQueryAnonymous<T>(proto, context.ContextProvider.PrepareReadOptions(readOptions)))
+                    .ExecuteQueryAnonymous<T>(proto, context.ContextProvider.PrepareReadOptions(readOptions, context.DefaultReadOptions)))
                 {
                     yield return item;
                 }
@@ -160,7 +160,7 @@ namespace Gerakul.FastSql.Common
 
         public IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(T proto, ReadOptions readOptions = null, CancellationToken cancellationToken = default(CancellationToken))
         {
-            return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateAnonymous(r, proto, context.ContextProvider.PrepareReadOptions(readOptions)));
+            return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateAnonymous(r, proto, context.ContextProvider.PrepareReadOptions(readOptions, context.DefaultReadOptions)));
         }
 
         public IEnumerable ExecuteQueryFirstColumn()
@@ -168,7 +168,7 @@ namespace Gerakul.FastSql.Common
             using (var conn = context.CreateConnection())
             {
                 conn.Open();
-                var connectionContext = context.ContextProvider.CreateConnectionContext(conn);
+                var connectionContext = context.ContextProvider.GetConnectionContext(conn, context.DefaultQueryOptions, context.DefaultBulkOptions, context.DefaultReadOptions);
                 foreach (var item in commandGetter(connectionContext).ExecuteQueryFirstColumn())
                 {
                     yield return item;
@@ -186,7 +186,7 @@ namespace Gerakul.FastSql.Common
             using (var conn = context.CreateConnection())
             {
                 conn.Open();
-                var connectionContext = context.ContextProvider.CreateConnectionContext(conn);
+                var connectionContext = context.ContextProvider.GetConnectionContext(conn, context.DefaultQueryOptions, context.DefaultBulkOptions, context.DefaultReadOptions);
                 foreach (var item in commandGetter(connectionContext).ExecuteQueryFirstColumn<T>())
                 {
                     yield return item;

@@ -4,9 +4,17 @@
     {
         public ContextProvider ContextProvider { get; }
 
-        public DbContext(ContextProvider contextProvider)
+        public QueryOptions DefaultQueryOptions { get; }
+        public BulkOptions DefaultBulkOptions { get; }
+        public ReadOptions DefaultReadOptions { get; }
+
+        protected internal DbContext(ContextProvider contextProvider,
+            QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
         {
             this.ContextProvider = contextProvider;
+            this.DefaultQueryOptions = queryOptions.Clone();
+            this.DefaultBulkOptions = bulkOptions.Clone();
+            this.DefaultReadOptions = readOptions.Clone();
         }
     }
 }

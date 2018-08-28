@@ -6,8 +6,15 @@ namespace Gerakul.FastSql.PostgreSQL
 {
     public class NpgsqlTransactionContext : TransactionContext
     {
-        public NpgsqlTransactionContext(ContextProvider contextProvider, NpgsqlTransaction transaction)
-        : base(contextProvider, transaction)
+        public NpgsqlTransactionContext(NpgsqlContextProvider contextProvider, NpgsqlTransaction transaction)
+            : this(contextProvider, transaction,
+                  contextProvider.DefaultQueryOptions, contextProvider.DefaultBulkOptions, contextProvider.DefaultReadOptions)
+        {
+        }
+
+        protected internal NpgsqlTransactionContext(ContextProvider contextProvider, NpgsqlTransaction transaction,
+            QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
+            : base(contextProvider, transaction, queryOptions, bulkOptions, readOptions)
         {
         }
 

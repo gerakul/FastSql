@@ -10,8 +10,9 @@ namespace Gerakul.FastSql.Common
     {
         public string ConnectionString { get; }
 
-        public ConnectionStringContext(ContextProvider contextProvider, string connectionString)
-            : base(contextProvider)
+        protected internal ConnectionStringContext(ContextProvider contextProvider, string connectionString,
+            QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
+            : base(contextProvider, queryOptions, bulkOptions, readOptions)
         {
             this.ConnectionString = connectionString;
         }
@@ -23,7 +24,7 @@ namespace Gerakul.FastSql.Common
             using (var conn = CreateConnection())
             {
                 conn.Open();
-                action(ContextProvider.CreateConnectionContext(conn));
+                action(ContextProvider.GetConnectionContext(conn, DefaultQueryOptions, DefaultBulkOptions, DefaultReadOptions));
             }
         }
 
@@ -32,7 +33,7 @@ namespace Gerakul.FastSql.Common
             using (var conn = CreateConnection())
             {
                 await conn.OpenAsync().ConfigureAwait(false);
-                await action(ContextProvider.CreateConnectionContext(conn)).ConfigureAwait(false);
+                await action(ContextProvider.GetConnectionContext(conn, DefaultQueryOptions, DefaultBulkOptions, DefaultReadOptions)).ConfigureAwait(false);
             }
         }
 

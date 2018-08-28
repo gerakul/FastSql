@@ -6,8 +6,15 @@ namespace Gerakul.FastSql.SqlServer
 {
     public class SqlTransactionContext : TransactionContext
     {
-        public SqlTransactionContext(ContextProvider contextProvider, SqlTransaction transaction)
-        : base(contextProvider, transaction)
+        public SqlTransactionContext(SqlContextProvider contextProvider, SqlTransaction transaction)
+            : this(contextProvider, transaction,
+                  contextProvider.DefaultQueryOptions, contextProvider.DefaultBulkOptions, contextProvider.DefaultReadOptions)
+        {
+        }
+
+        protected internal SqlTransactionContext(ContextProvider contextProvider, SqlTransaction transaction,
+            QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
+            : base(contextProvider, transaction, queryOptions, bulkOptions, readOptions)
         {
         }
 

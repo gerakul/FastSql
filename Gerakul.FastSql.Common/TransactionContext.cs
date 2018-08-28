@@ -6,8 +6,9 @@ namespace Gerakul.FastSql.Common
     {
         public DbTransaction Transaction { get; }
 
-        public TransactionContext(ContextProvider contextProvider, DbTransaction transaction) 
-            : base(contextProvider)
+        protected internal TransactionContext(ContextProvider contextProvider, DbTransaction transaction,
+            QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
+            : base(contextProvider, queryOptions, bulkOptions, readOptions)
         {
             this.Transaction = transaction;
         }

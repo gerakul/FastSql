@@ -12,21 +12,23 @@ namespace ConsoleApp1
     {
         static void Main(string[] args)
         {
-            //TestAsync().Wait();
-            TestAsyncPg().Wait();
+            TestAsync().Wait();
+            //TestAsyncPg().Wait();
         }
 
         public static async Task TestAsync()
         {
-            var context = SqlContextProvider.FromConnectionString(@"data source=db4mulpj2b.database.windows.net;initial catalog=domain0;User ID=SyncServer;Password=A$e194!eW");
-            var context2 = SqlContextProvider.FromConnectionString(@"Data Source=devsrv;Initial Catalog=Test;Integrated Security=True");
-            var contextTest = SqlContextProvider.FromConnectionString(@"Data Source=gerasimov2;Initial Catalog=TestDB;Integrated Security=True");
+            var provider = SqlContextProvider.DefaultInstance;
+
+            var context = provider.CreateConnectionStringContext(@"data source=db4mulpj2b.database.windows.net;initial catalog=domain0;User ID=SyncServer;Password=A$e194!eW");
+            var context2 = provider.CreateConnectionStringContext(@"Data Source=devsrv;Initial Catalog=Test;Integrated Security=True");
+            var contextTest = provider.CreateConnectionStringContext(@"Data Source=gerasimov2;Initial Catalog=TestDB;Integrated Security=True");
 
             //context.CreateSimple("select top 10 * from [User]").WriteToServer(context2, "Users");
 
             await context2.UsingTransactionAsync(y => context
                     .UsingTransactionAsync(x => x.CreateSimple("select top 5 * from [User] where ID > 100")
-                    .WriteToServerAsync(y, "Person", new BulkOptions(FieldsSelector.Common), CancellationToken.None)));
+                    .WriteToServerAsync(y, "Person", new BulkOptions(FieldsSelector.Common))));
 
             //var qq = await context2.CreateProcedure("TestProc", new { maxID = 3 }).ExecuteQueryAnonymousAsync(new { ID = 1, Name = "" }, new ReadOptions(FieldsSelector.Common)).ToArray();
 
@@ -37,8 +39,10 @@ namespace ConsoleApp1
 
         public static async Task TestAsyncPg()
         {
-            NpgsqlContextProvider.DefaultInstance.DefaultReadOptions.CaseSensitive = true;
-            var context = NpgsqlContextProvider.FromConnectionString(@"Server=luvpgtest.postgres.database.azure.com;Database=testdb;Port=5432;User Id=dba@luvpgtest;Password=w8rE_j36ag$Q;SSL Mode=Prefer; Trust Server Certificate=true");
+            var provider = NpgsqlContextProvider.DefaultInstance;
+
+            provider.DefaultReadOptions.CaseSensitive = true;
+            var context = provider.CreateConnectionStringContext(@"Server=luvpgtest.postgres.database.azure.com;Database=testdb;Port=5432;User Id=dba@luvpgtest;Password=w8rE_j36ag$Q;SSL Mode=Prefer; Trust Server Certificate=true");
 
             var q = await context.CreateSimple("select * from test1").ExecuteQueryAnonymousAsync(new { ID = 1L, Name = "", name = default(int?) }).ToArray();
 

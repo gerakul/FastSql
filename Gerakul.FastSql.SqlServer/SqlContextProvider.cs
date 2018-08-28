@@ -20,19 +20,19 @@ namespace Gerakul.FastSql.SqlServer
         public override QueryOptions DefaultQueryOptions { get; } = new SqlQueryOptions();
         public override BulkOptions DefaultBulkOptions { get; } = new SqlBulkOptions();
 
-        public override ConnectionStringContext CreateConnectionStringContext(string connectionString)
+        protected override ConnectionStringContext GetConnectionStringContext(string connectionString, QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
         {
-            return new SqlConnectionStringContext(this, connectionString);
+            return new SqlConnectionStringContext(this, connectionString, queryOptions, bulkOptions, readOptions);
         }
 
-        public override ConnectionContext CreateConnectionContext(DbConnection connection)
+        protected override ConnectionContext GetConnectionContext(DbConnection connection, QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
         {
-            return new SqlConnectionContext(this, (SqlConnection)connection);
+            return new SqlConnectionContext(this, (SqlConnection)connection, queryOptions, bulkOptions, readOptions);
         }
 
-        public override TransactionContext CreateTransactionContext(DbTransaction transaction)
+        protected override TransactionContext GetTransactionContext(DbTransaction transaction, QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
         {
-            return new SqlTransactionContext(this, (SqlTransaction)transaction);
+            return new SqlTransactionContext(this, (SqlTransaction)transaction, queryOptions, bulkOptions, readOptions);
         }
 
         //protected override void ApplyQueryOptions(DbCommand cmd, QueryOptions queryOptions)
@@ -73,26 +73,21 @@ namespace Gerakul.FastSql.SqlServer
             return settings.Select(x => "@" + x.Name.ToLowerInvariant()).ToArray();
         }
 
-        public static SqlConnectionStringContext FromConnectionString(string connectionString)
-        {
-            return new SqlConnectionStringContext(DefaultInstance, connectionString);
-        }
-
-        public static SqlConnectionContext FromConnection(SqlConnection connection)
-        {
-            return new SqlConnectionContext(DefaultInstance, connection);
-        }
-
-        public static SqlTransactionContext FromTransaction(SqlTransaction transaction)
-        {
-            return new SqlTransactionContext(DefaultInstance, transaction);
-        }
-
         protected override BulkCopy GetBulkCopy(ScopedContext context, DbDataReader reader, string destinationTable, BulkOptions bulkOptions, params string[] fields)
         {
-            var opt = new SqlBulkOptions(bulkOptions ?? DefaultBulkOptions);
-            opt.SetDefaults(DefaultBulkOptions);
-            return new MsSqlBulkCopy(context, reader, destinationTable, opt, fields);
+            return new MsSqlBulkCopy(context, reader, destinationTable, (SqlBulkOptions)bulkOptions, fields);
+        }
+
+        protected override QueryOptions GetTyped(QueryOptions options, out bool needClone)
+        {
+            needClone = false;
+            return new SqlQueryOptions(options);
+        }
+
+        protected override BulkOptions GetTyped(BulkOptions options, out bool needClone)
+        {
+            needClone = false;
+            return new SqlBulkOptions(options);
         }
     }
 }

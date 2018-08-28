@@ -20,19 +20,19 @@ namespace Gerakul.FastSql.PostgreSQL
         public override QueryOptions DefaultQueryOptions { get; } = new NpgsqlQueryOptions();
         public override BulkOptions DefaultBulkOptions { get; } = new NpgsqlBulkOptions();
 
-        public override ConnectionStringContext CreateConnectionStringContext(string connectionString)
+        protected override ConnectionStringContext GetConnectionStringContext(string connectionString, QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
         {
-            return new NpgsqlConnectionStringContext(this, connectionString);
+            return new NpgsqlConnectionStringContext(this, connectionString, queryOptions, bulkOptions, readOptions);
         }
 
-        public override ConnectionContext CreateConnectionContext(DbConnection connection)
+        protected override ConnectionContext GetConnectionContext(DbConnection connection, QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
         {
-            return new NpgsqlConnectionContext(this, (NpgsqlConnection)connection);
+            return new NpgsqlConnectionContext(this, (NpgsqlConnection)connection, queryOptions, bulkOptions, readOptions);
         }
 
-        public override TransactionContext CreateTransactionContext(DbTransaction transaction)
+        protected override TransactionContext GetTransactionContext(DbTransaction transaction, QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
         {
-            return new NpgsqlTransactionContext(this, (NpgsqlTransaction)transaction);
+            return new NpgsqlTransactionContext(this, (NpgsqlTransaction)transaction, queryOptions, bulkOptions, readOptions);
         }
 
         //protected override void ApplyQueryOptions(DbCommand cmd, QueryOptions queryOptions)
@@ -68,26 +68,21 @@ namespace Gerakul.FastSql.PostgreSQL
             return settings.Select(x => "@" + x.Name.ToLowerInvariant()).ToArray();
         }
 
-        public static NpgsqlConnectionStringContext FromConnectionString(string connectionString)
-        {
-            return new NpgsqlConnectionStringContext(DefaultInstance, connectionString);
-        }
-
-        public static NpgsqlConnectionContext FromConnection(NpgsqlConnection connection)
-        {
-            return new NpgsqlConnectionContext(DefaultInstance, connection);
-        }
-
-        public static NpgsqlTransactionContext FromTransaction(NpgsqlTransaction transaction)
-        {
-            return new NpgsqlTransactionContext(DefaultInstance, transaction);
-        }
-
         protected override BulkCopy GetBulkCopy(ScopedContext context, DbDataReader reader, string destinationTable, BulkOptions bulkOptions, params string[] fields)
         {
-            var opt = new NpgsqlBulkOptions(bulkOptions ?? DefaultBulkOptions);
-            opt.SetDefaults(DefaultBulkOptions);
-            return new NpgsqlBulkCopy(context, reader, destinationTable, opt, fields);
+            return new NpgsqlBulkCopy(context, reader, destinationTable, (NpgsqlBulkOptions)bulkOptions, fields);
+        }
+
+        protected override QueryOptions GetTyped(QueryOptions options, out bool needClone)
+        {
+            needClone = false;
+            return new NpgsqlQueryOptions(options);
+        }
+
+        protected override BulkOptions GetTyped(BulkOptions options, out bool needClone)
+        {
+            needClone = false;
+            return new NpgsqlBulkOptions(options);
         }
     }
 }

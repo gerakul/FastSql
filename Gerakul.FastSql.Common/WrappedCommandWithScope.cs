@@ -62,22 +62,22 @@ namespace Gerakul.FastSql.Common
 
         public IEnumerable<T> ExecuteQuery<T>(ReadOptions readOptions = null) where T : new()
         {
-            return command.ExecuteQuery<T>(readOptions);
+            return command.ExecuteQuery<T>(scopedContext.ContextProvider.PrepareReadOptions(readOptions, scopedContext.DefaultReadOptions));
         }
 
         public IAsyncEnumerable<T> ExecuteQueryAsync<T>(ReadOptions readOptions = null, CancellationToken cancellationToken = default(CancellationToken)) where T : new()
         {
-            return command.ExecuteQueryAsync<T>(readOptions, cancellationToken);
+            return command.ExecuteQueryAsync<T>(scopedContext.ContextProvider.PrepareReadOptions(readOptions, scopedContext.DefaultReadOptions), cancellationToken);
         }
 
         public IEnumerable<T> ExecuteQueryAnonymous<T>(T proto, ReadOptions readOptions = null)
         {
-            return command.ExecuteQueryAnonymous(proto, readOptions);
+            return command.ExecuteQueryAnonymous(proto, scopedContext.ContextProvider.PrepareReadOptions(readOptions, scopedContext.DefaultReadOptions));
         }
 
         public IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(T proto, ReadOptions readOptions = null, CancellationToken cancellationToken = default(CancellationToken))
         {
-            return command.ExecuteQueryAnonymousAsync(proto, readOptions, cancellationToken);
+            return command.ExecuteQueryAnonymousAsync(proto, scopedContext.ContextProvider.PrepareReadOptions(readOptions, scopedContext.DefaultReadOptions), cancellationToken);
         }
 
         public IEnumerable ExecuteQueryFirstColumn()
