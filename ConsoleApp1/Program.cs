@@ -20,9 +20,9 @@ namespace ConsoleApp1
         {
             var provider = SqlContextProvider.DefaultInstance;
 
-            var context = provider.CreateConnectionStringContext(@"data source=db4mulpj2b.database.windows.net;initial catalog=domain0;User ID=SyncServer;Password=A$e194!eW");
-            var context2 = provider.CreateConnectionStringContext(@"Data Source=devsrv;Initial Catalog=Test;Integrated Security=True");
-            var contextTest = provider.CreateConnectionStringContext(@"Data Source=gerasimov2;Initial Catalog=TestDB;Integrated Security=True");
+            var context = provider.CreateConnectionStringContext(@"");
+            var context2 = provider.CreateConnectionStringContext(@"");
+            var contextTest = provider.CreateConnectionStringContext(@"");
 
             //context.CreateSimple("select top 10 * from [User]").WriteToServer(context2, "Users");
 
@@ -42,7 +42,7 @@ namespace ConsoleApp1
             var provider = NpgsqlContextProvider.DefaultInstance;
 
             provider.DefaultReadOptions.CaseSensitive = true;
-            var context = provider.CreateConnectionStringContext(@"Server=luvpgtest.postgres.database.azure.com;Database=testdb;Port=5432;User Id=dba@luvpgtest;Password=w8rE_j36ag$Q;SSL Mode=Prefer; Trust Server Certificate=true");
+            var context = provider.CreateConnectionStringContext(@"");
 
             var q = await context.CreateSimple("select * from test1").ExecuteQueryAnonymousAsync(new { ID = 1L, Name = "", name = default(int?) }).ToArray();
 
