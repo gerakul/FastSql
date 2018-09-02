@@ -36,7 +36,7 @@ namespace Gerakul.FastSql.Common
                 }
             }
 
-            contextProvider.ApplyQueryOptions(cmd, contextProvider.PrepareQueryOptions(queryOptions, scopedContext.DefaultQueryOptions));
+            contextProvider.ApplyQueryOptions(cmd, scopedContext.PrepareQueryOptions(queryOptions));
 
             return cmd;
         }

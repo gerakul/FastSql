@@ -24,6 +24,7 @@ namespace Gerakul.FastSql.Common
         private Dictionary<string, int> ordinals;
 
         private FieldSettings<T>[] settings;
+        private bool caseSensitive;
 
         public ReadOnlyCollection<FieldSettings<T>> Settings
         {
@@ -33,21 +34,22 @@ namespace Gerakul.FastSql.Common
             }
         }
 
-        private UniversalDataReader(IEnumerable<FieldSettings<T>> settings)
+        private UniversalDataReader(IEnumerable<FieldSettings<T>> settings, bool caseSensitive)
         {
             this.isClosed = false;
             this.settings = settings.ToArray();
+            this.caseSensitive = caseSensitive;
             this.ApplySettings();
         }
 
-        public UniversalDataReader(IEnumerable<T> values, IEnumerable<FieldSettings<T>> settings)
-          : this(settings)
+        public UniversalDataReader(IEnumerable<T> values, IEnumerable<FieldSettings<T>> settings, bool caseSensitive)
+          : this(settings, caseSensitive)
         {
             this.enumerator = values.GetEnumerator();
         }
 
-        public UniversalDataReader(IAsyncEnumerable<T> values, IEnumerable<FieldSettings<T>> settings)
-           : this(settings)
+        public UniversalDataReader(IAsyncEnumerable<T> values, IEnumerable<FieldSettings<T>> settings, bool caseSensitive)
+           : this(settings, caseSensitive)
         {
             this.asyncEnumerator = values.GetEnumerator();
         }
@@ -70,7 +72,7 @@ namespace Gerakul.FastSql.Common
                 this.dataTypeNames[i] = settings[i].DataTypeName;
                 this.types[i] = settings[i].FieldType;
                 this.names[i] = settings[i].Name;
-                this.ordinals.Add(settings[i].Name.ToLowerInvariant(), i);
+                this.ordinals.Add(caseSensitive ? settings[i].Name : settings[i].Name.ToLowerInvariant(), i);
             }
         }
 
@@ -300,7 +302,7 @@ namespace Gerakul.FastSql.Common
 
         public override int GetOrdinal(string name)
         {
-            return this.ordinals[name.ToLowerInvariant()];
+            return this.ordinals[caseSensitive ? name : name.ToLowerInvariant()];
         }
 
         public override string GetString(int i)
@@ -338,7 +340,7 @@ namespace Gerakul.FastSql.Common
         {
             get
             {
-                return getters[ordinals[name.ToLowerInvariant()]](curRow);
+                return getters[ordinals[caseSensitive ? name : name.ToLowerInvariant()]](curRow);
             }
         }
 

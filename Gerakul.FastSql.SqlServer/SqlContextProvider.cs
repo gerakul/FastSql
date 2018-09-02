@@ -64,13 +64,13 @@ namespace Gerakul.FastSql.SqlServer
         protected override string[] ParamsFromCommandText(string commandText)
         {
             return regName.Matches(commandText).Cast<Match>()
-              .Select(x => "@" + x.Groups["Name"].ToString().ToLowerInvariant())
+              .Select(x => "@" + x.Groups["Name"].ToString())
               .Distinct().ToArray();
         }
 
         protected override string[] ParamsFromSettings<T>(IEnumerable<FieldSettings<T>> settings)
         {
-            return settings.Select(x => "@" + x.Name.ToLowerInvariant()).ToArray();
+            return settings.Select(x => "@" + x.Name).ToArray();
         }
 
         protected override BulkCopy GetBulkCopy(ScopedContext context, DbDataReader reader, string destinationTable, BulkOptions bulkOptions, params string[] fields)

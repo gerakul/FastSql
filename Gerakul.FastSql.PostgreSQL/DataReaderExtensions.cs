@@ -16,7 +16,7 @@ namespace Gerakul.FastSql.PostgreSQL
             {
                 var sqlReader = (DbDataReader)reader;
                 var schema = sqlReader.GetColumnSchema();
-                var optionKeys = options?.PrimaryKey?.Select(x => x.ToLowerInvariant()).ToArray() ?? new string[0];
+                var optionKeys = options?.PrimaryKey?.ToArray() ?? new string[0];
 
                 foreach (var row in schema)
                 {
@@ -25,7 +25,7 @@ namespace Gerakul.FastSql.PostgreSQL
                     {
                         Name = name,
                         TypeName = row.DataTypeName,
-                        IsPrimaryKey = row.IsKey ?? optionKeys.Contains(name.ToLowerInvariant()),
+                        IsPrimaryKey = row.IsKey ?? optionKeys.Contains(name),
                         MaxLength = checked((short)((row.IsLong ?? false) ? -1 : (row.ColumnSize ?? -1))),
                         Precision = checked((byte)(row.NumericPrecision ?? 0)),
                         Scale = checked((byte)(row.NumericScale ?? 0)),

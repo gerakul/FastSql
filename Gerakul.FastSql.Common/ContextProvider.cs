@@ -18,50 +18,6 @@ namespace Gerakul.FastSql.Common
             this.CommandCompilator = new CommandCompilator(this);
         }
 
-        internal QueryOptions PrepareQueryOptions(QueryOptions options, QueryOptions defaultOptions)
-        {
-            if (options == null)
-            {
-                return defaultOptions.Clone().SetDefaults();
-            }
-
-            var opt = GetTyped(options, out var needClone);
-            if (needClone)
-            {
-                opt = opt.Clone();
-            }
-
-            return opt.SetDefaults(defaultOptions).SetDefaults();
-        }
-
-        internal BulkOptions PrepareBulkOptions(BulkOptions options, BulkOptions defaultOptions)
-        {
-            if (options == null)
-            {
-                return defaultOptions.Clone().SetDefaults();
-            }
-
-            var opt = GetTyped(options, out var needClone);
-            if (needClone)
-            {
-                opt = opt.Clone();
-            }
-
-            return opt.SetDefaults(defaultOptions).SetDefaults();
-        }
-
-        internal ReadOptions PrepareReadOptions(ReadOptions options, ReadOptions defaultOptions)
-        {
-            if (options == null)
-            {
-                return defaultOptions.Clone();
-            }
-
-            var opt = options.Clone();
-            opt.SetDefaults(defaultOptions);
-            return opt;
-        }
-
         public ConnectionStringContext CreateConnectionStringContext(string connectionString)
         {
             return GetConnectionStringContext(connectionString, DefaultQueryOptions, DefaultBulkOptions, DefaultReadOptions);

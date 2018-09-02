@@ -8,8 +8,8 @@ namespace Gerakul.FastSql.SqlServer
 
         protected override QueryOptions Default => defaultOptions;
 
-        public SqlQueryOptions(int? commandTimeoutSeconds = null)
-            : base(commandTimeoutSeconds)
+        public SqlQueryOptions(int? commandTimeoutSeconds = null, bool? caseSensitiveParamsMatching = null)
+            : base(commandTimeoutSeconds, caseSensitiveParamsMatching)
         {
         }
 

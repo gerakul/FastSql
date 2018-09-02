@@ -15,7 +15,7 @@ namespace Gerakul.FastSql.Common
         public CommandType CommandType { get; private set; }
 
         internal MappedCommand(ContextProvider contextProvider, string commandText, IList<string> parameters, 
-            IList<FieldSettings<T>> settings, CommandType commandType = CommandType.Text)
+            IList<FieldSettings<T>> settings, bool caseSensitiveParamsMatching, CommandType commandType = CommandType.Text)
         {
             this.contextProvider = contextProvider;
             this.CommandText = commandText;
@@ -26,21 +26,42 @@ namespace Gerakul.FastSql.Common
                 map = new ParMap<T>[0];
             }
 
-            if (parameters.GroupBy(x => contextProvider.GetSqlParameterName(x).ToLowerInvariant()).Any(x => x.Count() > 1))
+            if (caseSensitiveParamsMatching)
             {
-                throw new ArgumentException("Parameter names has been duplicated");
-            }
+                if (parameters.GroupBy(x => contextProvider.GetSqlParameterName(x)).Any(x => x.Count() > 1))
+                {
+                    throw new ArgumentException("Parameter names has been duplicated");
+                }
 
-            if (settings.GroupBy(x => x.Name.ToLowerInvariant()).Any(x => x.Count() > 1))
+                if (settings.GroupBy(x => x.Name).Any(x => x.Count() > 1))
+                {
+                    throw new ArgumentException("Setting names has been duplicated");
+                }
+
+                map = parameters
+                  .Join(settings,
+                    x => contextProvider.GetSqlParameterName(x),
+                    x => x.Name,
+                    (x, y) => new ParMap<T>() { ParameterName = x, Settings = y }).ToArray();
+            }
+            else
             {
-                throw new ArgumentException("Setting names has been duplicated");
-            }
+                if (parameters.GroupBy(x => contextProvider.GetSqlParameterName(x).ToLowerInvariant()).Any(x => x.Count() > 1))
+                {
+                    throw new ArgumentException("Parameter names has been duplicated");
+                }
 
-            map = parameters
-              .Join(settings,
-                x => contextProvider.GetSqlParameterName(x).ToLowerInvariant(),
-                x => x.Name.ToLowerInvariant(),
-                (x, y) => new ParMap<T>() { ParameterName = x, Settings = y }).ToArray();
+                if (settings.GroupBy(x => x.Name.ToLowerInvariant()).Any(x => x.Count() > 1))
+                {
+                    throw new ArgumentException("Setting names has been duplicated");
+                }
+
+                map = parameters
+                  .Join(settings,
+                    x => contextProvider.GetSqlParameterName(x).ToLowerInvariant(),
+                    x => x.Name.ToLowerInvariant(),
+                    (x, y) => new ParMap<T>() { ParameterName = x, Settings = y }).ToArray();
+            }
 
             if (map.Length < parameters.Count)
             {
@@ -77,7 +98,7 @@ namespace Gerakul.FastSql.Common
                 }
             }
 
-            contextProvider.ApplyQueryOptions(cmd, contextProvider.PrepareQueryOptions(queryOptions, scopedContext.DefaultQueryOptions));
+            contextProvider.ApplyQueryOptions(cmd, scopedContext.PrepareQueryOptions(queryOptions));
 
             return cmd;
         }

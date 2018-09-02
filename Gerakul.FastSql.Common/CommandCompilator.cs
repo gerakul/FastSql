@@ -29,68 +29,74 @@ namespace Gerakul.FastSql.Common
 
         #region Mapped
 
-        public MappedCommand<T> CompileMapped<T>(string commandText, IList<string> paramNames, IList<FieldSettings<T>> settings)
+        public MappedCommand<T> CompileMapped<T>(string commandText, IList<string> paramNames, IList<FieldSettings<T>> settings,
+            bool caseSensitiveParamsMatching = false)
         {
-            return new MappedCommand<T>(contextProvider, commandText, paramNames, settings);
+            return new MappedCommand<T>(contextProvider, commandText, paramNames, settings, caseSensitiveParamsMatching);
         }
 
-        public MappedCommand<T> CompileMapped<T>(string commandText, IList<FieldSettings<T>> settings)
+        public MappedCommand<T> CompileMapped<T>(string commandText, IList<FieldSettings<T>> settings, bool caseSensitiveParamsMatching = false)
         {
-            return new MappedCommand<T>(contextProvider, commandText, contextProvider.ParamsFromCommandText(commandText), settings);
+            return new MappedCommand<T>(contextProvider, commandText, contextProvider.ParamsFromCommandText(commandText), settings, caseSensitiveParamsMatching);
         }
 
-        public MappedCommand<T> CompileMapped<T>(string commandText, IList<string> paramNames, FromTypeOption fromTypeOption = FromTypeOption.Default)
+        public MappedCommand<T> CompileMapped<T>(string commandText, IList<string> paramNames, FromTypeOption fromTypeOption = FromTypeOption.Default,
+            bool caseSensitiveParamsMatching = false)
         {
-            return new MappedCommand<T>(contextProvider, commandText, paramNames, FieldSettings.FromType<T>(fromTypeOption));
+            return new MappedCommand<T>(contextProvider, commandText, paramNames, FieldSettings.FromType<T>(fromTypeOption), caseSensitiveParamsMatching);
         }
 
-        public MappedCommand<T> CompileMapped<T>(string commandText, FromTypeOption fromTypeOption = FromTypeOption.Default)
+        public MappedCommand<T> CompileMapped<T>(string commandText, FromTypeOption fromTypeOption = FromTypeOption.Default, bool caseSensitiveParamsMatching = false)
         {
-            return new MappedCommand<T>(contextProvider, commandText, contextProvider.ParamsFromCommandText(commandText), FieldSettings.FromType<T>(fromTypeOption));
+            return new MappedCommand<T>(contextProvider, commandText, contextProvider.ParamsFromCommandText(commandText), FieldSettings.FromType<T>(fromTypeOption),
+                caseSensitiveParamsMatching);
         }
 
-        public MappedCommand<T> CompileMapped<T>(T proto, string commandText, IList<string> paramNames, FromTypeOption fromTypeOption = FromTypeOption.Default)
+        public MappedCommand<T> CompileMapped<T>(T proto, string commandText, IList<string> paramNames, FromTypeOption fromTypeOption = FromTypeOption.Default, 
+            bool caseSensitiveParamsMatching = false)
         {
-            return new MappedCommand<T>(contextProvider, commandText, paramNames, FieldSettings.FromType(proto, fromTypeOption));
+            return new MappedCommand<T>(contextProvider, commandText, paramNames, FieldSettings.FromType(proto, fromTypeOption), caseSensitiveParamsMatching);
         }
 
-        public MappedCommand<T> CompileMapped<T>(T proto, string commandText, FromTypeOption fromTypeOption = FromTypeOption.Default)
+        public MappedCommand<T> CompileMapped<T>(T proto, string commandText, FromTypeOption fromTypeOption = FromTypeOption.Default, bool caseSensitiveParamsMatching = false)
         {
-            return new MappedCommand<T>(contextProvider, commandText, contextProvider.ParamsFromCommandText(commandText), FieldSettings.FromType(proto, fromTypeOption));
+            return new MappedCommand<T>(contextProvider, commandText, contextProvider.ParamsFromCommandText(commandText), FieldSettings.FromType(proto, fromTypeOption), 
+                caseSensitiveParamsMatching);
         }
 
         #region Stored procedures
 
-        public MappedCommand<T> CompileProcedure<T>(string name, IList<string> paramNames, IList<FieldSettings<T>> settings)
+        public MappedCommand<T> CompileProcedure<T>(string name, IList<string> paramNames, IList<FieldSettings<T>> settings, bool caseSensitiveParamsMatching = false)
         {
-            return new MappedCommand<T>(contextProvider, name, paramNames, settings, CommandType.StoredProcedure);
+            return new MappedCommand<T>(contextProvider, name, paramNames, settings, caseSensitiveParamsMatching, CommandType.StoredProcedure);
         }
 
-        public MappedCommand<T> CompileProcedure<T>(string name, IList<FieldSettings<T>> settings)
+        public MappedCommand<T> CompileProcedure<T>(string name, IList<FieldSettings<T>> settings, bool caseSensitiveParamsMatching = false)
         {
-            return new MappedCommand<T>(contextProvider, name, contextProvider.ParamsFromSettings(settings), settings, CommandType.StoredProcedure);
+            return new MappedCommand<T>(contextProvider, name, contextProvider.ParamsFromSettings(settings), settings, caseSensitiveParamsMatching, CommandType.StoredProcedure);
         }
 
-        public MappedCommand<T> CompileProcedure<T>(string name, IList<string> paramNames, FromTypeOption fromTypeOption = FromTypeOption.Default)
+        public MappedCommand<T> CompileProcedure<T>(string name, IList<string> paramNames, FromTypeOption fromTypeOption = FromTypeOption.Default, 
+            bool caseSensitiveParamsMatching = false)
         {
-            return new MappedCommand<T>(contextProvider, name, paramNames, FieldSettings.FromType<T>(fromTypeOption), CommandType.StoredProcedure);
+            return new MappedCommand<T>(contextProvider, name, paramNames, FieldSettings.FromType<T>(fromTypeOption), caseSensitiveParamsMatching, CommandType.StoredProcedure);
         }
 
-        public MappedCommand<T> CompileProcedure<T>(string name, FromTypeOption fromTypeOption = FromTypeOption.Default)
+        public MappedCommand<T> CompileProcedure<T>(string name, FromTypeOption fromTypeOption = FromTypeOption.Default, bool caseSensitiveParamsMatching = false)
         {
             var settings = FieldSettings.FromType<T>(fromTypeOption);
-            return new MappedCommand<T>(contextProvider, name, contextProvider.ParamsFromSettings(settings), settings, CommandType.StoredProcedure);
+            return new MappedCommand<T>(contextProvider, name, contextProvider.ParamsFromSettings(settings), settings, caseSensitiveParamsMatching, CommandType.StoredProcedure);
         }
 
-        public MappedCommand<T> CompileProcedure<T>(T proto, string name, IList<string> paramNames, FromTypeOption fromTypeOption = FromTypeOption.Default)
+        public MappedCommand<T> CompileProcedure<T>(T proto, string name, IList<string> paramNames, FromTypeOption fromTypeOption = FromTypeOption.Default, bool caseSensitiveParamsMatching = false)
         {
-            return new MappedCommand<T>(contextProvider, name, paramNames, FieldSettings.FromType(proto, fromTypeOption), CommandType.StoredProcedure);
+            return new MappedCommand<T>(contextProvider, name, paramNames, FieldSettings.FromType(proto, fromTypeOption), caseSensitiveParamsMatching, CommandType.StoredProcedure);
         }
 
-        public MappedCommand<T> CompileProcedure<T>(T proto, string name, FromTypeOption fromTypeOption = FromTypeOption.Default)
+        public MappedCommand<T> CompileProcedure<T>(T proto, string name, FromTypeOption fromTypeOption = FromTypeOption.Default, bool caseSensitiveParamsMatching = false)
         {
             var settings = FieldSettings.FromType(proto, fromTypeOption);
-            return new MappedCommand<T>(contextProvider, name, contextProvider.ParamsFromSettings(settings), settings, CommandType.StoredProcedure);
+            return new MappedCommand<T>(contextProvider, name, contextProvider.ParamsFromSettings(settings), settings, caseSensitiveParamsMatching, CommandType.StoredProcedure);
         }
 
         #endregion
@@ -101,9 +107,9 @@ namespace Gerakul.FastSql.Common
 
         public MappedCommand<T> CompileInsert<T>(string tableName, IList<FieldSettings<T>> settings, bool getIdentity, params string[] ignoreFields)
         {
-            var fields = settings.Select(x => x.Name.ToLowerInvariant()).Except(ignoreFields.Select(x => x.ToLowerInvariant())).ToArray();
+            var fields = settings.Select(x => x.Name).Except(ignoreFields.Select(x => x)).ToArray();
             string query = contextProvider.CommandTextGenerator.Insert(tableName, getIdentity, fields);
-            return new MappedCommand<T>(contextProvider, query, fields, settings);
+            return new MappedCommand<T>(contextProvider, query, fields, settings, true);
         }
 
         public MappedCommand<T> CompileInsert<T>(string tableName, FromTypeOption fromTypeOption, bool getIdentity, params string[] ignoreFields)
@@ -132,10 +138,10 @@ namespace Gerakul.FastSql.Common
 
         public MappedCommand<T> CompileUpdate<T>(string tableName, IList<FieldSettings<T>> settings, IList<string> keyFields, IList<string> notKeyIgnoreFields)
         {
-            var fields = settings.Select(x => x.Name.ToLowerInvariant()).Except(notKeyIgnoreFields.Select(x => x.ToLowerInvariant())).ToArray();
-            var fieldsToUpdate = fields.Except(keyFields.Select(x => x.ToLowerInvariant())).ToArray();
+            var fields = settings.Select(x => x.Name).Except(notKeyIgnoreFields.Select(x => x)).ToArray();
+            var fieldsToUpdate = fields.Except(keyFields.Select(x => x)).ToArray();
             string query = contextProvider.CommandTextGenerator.Update(tableName, keyFields, fieldsToUpdate);
-            return new MappedCommand<T>(contextProvider, query, fields, settings);
+            return new MappedCommand<T>(contextProvider, query, fields, settings, true);
         }
 
         public MappedCommand<T> CompileUpdate<T>(string tableName, IList<FieldSettings<T>> settings, params string[] keyFields)
@@ -191,7 +197,7 @@ namespace Gerakul.FastSql.Common
         {
             var keys = keyFields == null || keyFields.Length == 0 ? settings.GetNames() : keyFields;
             string query = contextProvider.CommandTextGenerator.Delete(tableName, keys);
-            return new MappedCommand<T>(contextProvider, query, keys, settings);
+            return new MappedCommand<T>(contextProvider, query, keys, settings, true);
         }
 
         public MappedCommand<T> CompileDelete<T>(string tableName, FromTypeOption fromTypeOption, params string[] keyFields)
@@ -220,10 +226,10 @@ namespace Gerakul.FastSql.Common
 
         public MappedCommand<T> CompileMerge<T>(string tableName, IList<FieldSettings<T>> settings, IList<string> keyFields, IList<string> notKeyIgnoreFields)
         {
-            var fields = settings.Select(x => x.Name.ToLowerInvariant()).Except(notKeyIgnoreFields.Select(x => x.ToLowerInvariant())).ToArray();
-            var fieldsToUpdate = fields.Except(keyFields.Select(x => x.ToLowerInvariant())).ToArray();
+            var fields = settings.Select(x => x.Name).Except(notKeyIgnoreFields.Select(x => x)).ToArray();
+            var fieldsToUpdate = fields.Except(keyFields.Select(x => x)).ToArray();
             string query = contextProvider.CommandTextGenerator.Merge(tableName, keyFields, fieldsToUpdate);
-            return new MappedCommand<T>(contextProvider, query, fields, settings);
+            return new MappedCommand<T>(contextProvider, query, fields, settings, true);
         }
 
         public MappedCommand<T> CompileMerge<T>(string tableName, IList<FieldSettings<T>> settings, params string[] keyFields)

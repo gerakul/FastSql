@@ -66,7 +66,7 @@ namespace Gerakul.FastSql.PostgreSQL
         public static ColumnDefinition FromFieldType(Type type, string name, ColumnDefinitionOptions options = null)
         {
             var opt = options ?? ColumnDefinitionOptions.Default;
-            bool isPrimaryKey = opt.PrimaryKey?.Select(x => x.ToLowerInvariant()).Contains(name.ToLowerInvariant()) ?? false;
+            bool isPrimaryKey = opt.PrimaryKey?.Contains(name) ?? false;
 
             if (type.Equals(typeof(bool)))
             {

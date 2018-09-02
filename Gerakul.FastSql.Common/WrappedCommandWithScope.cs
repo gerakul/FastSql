@@ -62,22 +62,22 @@ namespace Gerakul.FastSql.Common
 
         public IEnumerable<T> ExecuteQuery<T>(ReadOptions readOptions = null) where T : new()
         {
-            return command.ExecuteQuery<T>(scopedContext.ContextProvider.PrepareReadOptions(readOptions, scopedContext.DefaultReadOptions));
+            return command.ExecuteQuery<T>(scopedContext.PrepareReadOptions(readOptions));
         }
 
         public IAsyncEnumerable<T> ExecuteQueryAsync<T>(ReadOptions readOptions = null, CancellationToken cancellationToken = default(CancellationToken)) where T : new()
         {
-            return command.ExecuteQueryAsync<T>(scopedContext.ContextProvider.PrepareReadOptions(readOptions, scopedContext.DefaultReadOptions), cancellationToken);
+            return command.ExecuteQueryAsync<T>(scopedContext.PrepareReadOptions(readOptions), cancellationToken);
         }
 
         public IEnumerable<T> ExecuteQueryAnonymous<T>(T proto, ReadOptions readOptions = null)
         {
-            return command.ExecuteQueryAnonymous(proto, scopedContext.ContextProvider.PrepareReadOptions(readOptions, scopedContext.DefaultReadOptions));
+            return command.ExecuteQueryAnonymous(proto, scopedContext.PrepareReadOptions(readOptions));
         }
 
         public IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(T proto, ReadOptions readOptions = null, CancellationToken cancellationToken = default(CancellationToken))
         {
-            return command.ExecuteQueryAnonymousAsync(proto, scopedContext.ContextProvider.PrepareReadOptions(readOptions, scopedContext.DefaultReadOptions), cancellationToken);
+            return command.ExecuteQueryAnonymousAsync(proto, scopedContext.PrepareReadOptions(readOptions), cancellationToken);
         }
 
         public IEnumerable ExecuteQueryFirstColumn()

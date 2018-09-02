@@ -49,44 +49,77 @@ namespace Gerakul.FastSql.Common
 
         internal IWrappedCommand Mapped<T>(string commandText, IList<string> paramNames, IList<FieldSettings<T>> settings, T value, QueryOptions queryOptions)
         {
-            return Set(x => x.CommandCompilator.CompileMapped(commandText, paramNames, settings).Create(x, value, queryOptions));
+            return Set(x =>
+            {
+                var o = x.PrepareQueryOptions(queryOptions);
+                return x.CommandCompilator.CompileMapped(commandText, paramNames, settings, o.CaseSensitiveParamsMatching.Value).Create(x, value, o);
+            });
         }
 
         internal IWrappedCommand Mapped<T>(string commandText, IList<FieldSettings<T>> settings, T value, QueryOptions queryOptions)
         {
-            return Set(x => x.CommandCompilator.CompileMapped(commandText, settings).Create(x, value, queryOptions));
+            return Set(x =>
+            {
+                var o = x.PrepareQueryOptions(queryOptions);
+                return x.CommandCompilator.CompileMapped(commandText, settings, o.CaseSensitiveParamsMatching.Value).Create(x, value, o);
+            });
+
         }
 
         internal IWrappedCommand Mapped<T>(string commandText, IList<string> paramNames, T value, FromTypeOption fromTypeOption, QueryOptions queryOptions)
         {
-            return Set(x => x.CommandCompilator.CompileMapped<T>(commandText, paramNames, fromTypeOption).Create(x, value, queryOptions));
+            return Set(x =>
+            {
+                var o = x.PrepareQueryOptions(queryOptions);
+                return x.CommandCompilator.CompileMapped<T>(commandText, paramNames, fromTypeOption, o.CaseSensitiveParamsMatching.Value).Create(x, value, o);
+            });
         }
 
         internal IWrappedCommand Mapped<T>(string commandText, T value, FromTypeOption fromTypeOption, QueryOptions queryOptions)
         {
-            return Set(x => x.CommandCompilator.CompileMapped<T>(commandText, fromTypeOption).Create(x, value, queryOptions));
+            return Set(x =>
+            {
+                var o = x.PrepareQueryOptions(queryOptions);
+                return x.CommandCompilator.CompileMapped<T>(commandText, fromTypeOption, o.CaseSensitiveParamsMatching.Value).Create(x, value, o);
+            });
         }
 
         #region Stored procedures
 
         internal IWrappedCommand Procedure<T>(string name, IList<string> paramNames, IList<FieldSettings<T>> settings, T value, QueryOptions queryOptions)
         {
-            return Set(x => x.CommandCompilator.CompileProcedure(name, paramNames, settings).Create(x, value, queryOptions));
+            return Set(x =>
+            {
+                var o = x.PrepareQueryOptions(queryOptions);
+                return x.CommandCompilator.CompileProcedure(name, paramNames, settings, o.CaseSensitiveParamsMatching.Value).Create(x, value, o);
+            });
         }
 
         internal IWrappedCommand Procedure<T>(string name, IList<FieldSettings<T>> settings, T value, QueryOptions queryOptions)
         {
-            return Set(x => x.CommandCompilator.CompileProcedure(name, settings).Create(x, value, queryOptions));
+            return Set(x =>
+            {
+                var o = x.PrepareQueryOptions(queryOptions);
+                return x.CommandCompilator.CompileProcedure(name, settings, o.CaseSensitiveParamsMatching.Value).Create(x, value, o);
+            });
         }
 
         internal IWrappedCommand Procedure<T>(string name, IList<string> paramNames, T value, FromTypeOption fromTypeOption, QueryOptions queryOptions)
         {
-            return Set(x => x.CommandCompilator.CompileProcedure<T>(name, paramNames, fromTypeOption).Create(x, value, queryOptions));
+            return Set(x =>
+            {
+                var o = x.PrepareQueryOptions(queryOptions);
+                return x.CommandCompilator.CompileProcedure<T>(name, paramNames, fromTypeOption, o.CaseSensitiveParamsMatching.Value).Create(x, value, o);
+            });
         }
 
         internal IWrappedCommand Procedure<T>(string name, T value, FromTypeOption fromTypeOption, QueryOptions queryOptions)
         {
-            return Set(x => x.CommandCompilator.CompileProcedure<T>(name, fromTypeOption).Create(x, value, queryOptions));
+            return Set(x =>
+            {
+                var o = x.PrepareQueryOptions(queryOptions);
+                return x.CommandCompilator.CompileProcedure<T>(name, fromTypeOption, o.CaseSensitiveParamsMatching.Value).Create(x, value, o);
+            });
         }
 
         #endregion

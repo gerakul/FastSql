@@ -8,8 +8,8 @@ namespace Gerakul.FastSql.PostgreSQL
 
         protected override QueryOptions Default => defaultOptions;
 
-        public NpgsqlQueryOptions(int? commandTimeoutSeconds = null)
-            : base(commandTimeoutSeconds)
+        public NpgsqlQueryOptions(int? commandTimeoutSeconds = null, bool? caseSensitiveParamsMatching = null)
+            : base(commandTimeoutSeconds, caseSensitiveParamsMatching)
         {
         }
 

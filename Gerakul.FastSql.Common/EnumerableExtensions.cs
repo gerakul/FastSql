@@ -8,44 +8,46 @@ namespace Gerakul.FastSql.Common
     {
         #region ToDataReader
 
+        private const bool defaultReaderCaseSensitive = true;
+
         public static UniversalDataReader<T> ToDataReader<T>(this IEnumerable<T> values, params FieldSettings<T>[] settings)
         {
-            return new UniversalDataReader<T>(values, settings);
+            return new UniversalDataReader<T>(values, settings, defaultReaderCaseSensitive);
         }
 
         public static UniversalDataReader<T> ToDataReader<T>(this IAsyncEnumerable<T> values, params FieldSettings<T>[] settings)
         {
-            return new UniversalDataReader<T>(values, settings);
+            return new UniversalDataReader<T>(values, settings, defaultReaderCaseSensitive);
         }
 
-        public static UniversalDataReader<T> ToDataReader<T>(this IEnumerable<T> values, IEnumerable<FieldSettings<T>> settings)
+        public static UniversalDataReader<T> ToDataReader<T>(this IEnumerable<T> values, IEnumerable<FieldSettings<T>> settings, bool caseSensitive = defaultReaderCaseSensitive)
         {
-            return new UniversalDataReader<T>(values, settings);
+            return new UniversalDataReader<T>(values, settings, caseSensitive);
         }
 
-        public static UniversalDataReader<T> ToDataReader<T>(this IAsyncEnumerable<T> values, IEnumerable<FieldSettings<T>> settings)
+        public static UniversalDataReader<T> ToDataReader<T>(this IAsyncEnumerable<T> values, IEnumerable<FieldSettings<T>> settings, bool caseSensitive = defaultReaderCaseSensitive)
         {
-            return new UniversalDataReader<T>(values, settings);
+            return new UniversalDataReader<T>(values, settings, caseSensitive);
         }
 
-        public static UniversalDataReader<T> ToDataReader<T>(this IEnumerable<T> values, FromTypeOption fromTypeOption)
+        public static UniversalDataReader<T> ToDataReader<T>(this IEnumerable<T> values, FromTypeOption fromTypeOption, bool caseSensitive = defaultReaderCaseSensitive)
         {
-            return new UniversalDataReader<T>(values, FieldSettings.FromType<T>(fromTypeOption));
+            return new UniversalDataReader<T>(values, FieldSettings.FromType<T>(fromTypeOption), caseSensitive);
         }
 
-        public static UniversalDataReader<T> ToDataReader<T>(this IAsyncEnumerable<T> values, FromTypeOption fromTypeOption)
+        public static UniversalDataReader<T> ToDataReader<T>(this IAsyncEnumerable<T> values, FromTypeOption fromTypeOption, bool caseSensitive = defaultReaderCaseSensitive)
         {
-            return new UniversalDataReader<T>(values, FieldSettings.FromType<T>(fromTypeOption));
+            return new UniversalDataReader<T>(values, FieldSettings.FromType<T>(fromTypeOption), caseSensitive);
         }
 
-        public static UniversalDataReader<T> ToDataReader<T>(this IEnumerable<T> values)
+        public static UniversalDataReader<T> ToDataReader<T>(this IEnumerable<T> values, bool caseSensitive = defaultReaderCaseSensitive)
         {
-            return new UniversalDataReader<T>(values, FieldSettings.FromType<T>());
+            return new UniversalDataReader<T>(values, FieldSettings.FromType<T>(), caseSensitive);
         }
 
-        public static UniversalDataReader<T> ToDataReader<T>(this IAsyncEnumerable<T> values)
+        public static UniversalDataReader<T> ToDataReader<T>(this IAsyncEnumerable<T> values, bool caseSensitive = defaultReaderCaseSensitive)
         {
-            return new UniversalDataReader<T>(values, FieldSettings.FromType<T>());
+            return new UniversalDataReader<T>(values, FieldSettings.FromType<T>(), caseSensitive);
         }
 
         #endregion
