@@ -22,7 +22,7 @@ namespace Gerakul.FastSql.Common
             try
             {
                 tran = Connection.BeginTransaction(isolationLevel);
-                action(ContextProvider.GetTransactionContext(tran, DefaultQueryOptions, DefaultBulkOptions, DefaultReadOptions));
+                action(ContextProvider.GetTransactionContext(tran, QueryOptions, BulkOptions, ReadOptions));
                 tran.Commit();
             }
             catch
@@ -47,7 +47,7 @@ namespace Gerakul.FastSql.Common
             try
             {
                 tran = Connection.BeginTransaction(isolationLevel);
-                await action(ContextProvider.GetTransactionContext(tran, DefaultQueryOptions, DefaultBulkOptions, DefaultReadOptions)).ConfigureAwait(false);
+                await action(ContextProvider.GetTransactionContext(tran, QueryOptions, BulkOptions, ReadOptions)).ConfigureAwait(false);
                 tran.Commit();
             }
             catch

@@ -4,24 +4,24 @@
     {
         public ContextProvider ContextProvider { get; }
 
-        public QueryOptions DefaultQueryOptions { get; }
-        public BulkOptions DefaultBulkOptions { get; }
-        public ReadOptions DefaultReadOptions { get; }
+        public QueryOptions QueryOptions { get; }
+        public BulkOptions BulkOptions { get; }
+        public ReadOptions ReadOptions { get; }
 
         protected internal DbContext(ContextProvider contextProvider,
             QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
         {
             this.ContextProvider = contextProvider;
-            this.DefaultQueryOptions = queryOptions.Clone();
-            this.DefaultBulkOptions = bulkOptions.Clone();
-            this.DefaultReadOptions = readOptions.Clone();
+            this.QueryOptions = queryOptions.Clone();
+            this.BulkOptions = bulkOptions.Clone();
+            this.ReadOptions = readOptions.Clone();
         }
 
         internal QueryOptions PrepareQueryOptions(QueryOptions options)
         {
             if (options == null)
             {
-                return DefaultQueryOptions.Clone().SetDefaults();
+                return QueryOptions.Clone().SetDefaults();
             }
 
             var opt = ContextProvider.GetTyped(options, out var needClone);
@@ -30,14 +30,14 @@
                 opt = opt.Clone();
             }
 
-            return opt.SetDefaults(DefaultQueryOptions).SetDefaults();
+            return opt.SetDefaults(QueryOptions).SetDefaults();
         }
 
         internal BulkOptions PrepareBulkOptions(BulkOptions options)
         {
             if (options == null)
             {
-                return DefaultBulkOptions.Clone().SetDefaults();
+                return BulkOptions.Clone().SetDefaults();
             }
 
             var opt = ContextProvider.GetTyped(options, out var needClone);
@@ -46,18 +46,18 @@
                 opt = opt.Clone();
             }
 
-            return opt.SetDefaults(DefaultBulkOptions).SetDefaults();
+            return opt.SetDefaults(BulkOptions).SetDefaults();
         }
 
         internal ReadOptions PrepareReadOptions(ReadOptions options)
         {
             if (options == null)
             {
-                return DefaultReadOptions.Clone();
+                return ReadOptions.Clone();
             }
 
             var opt = options.Clone();
-            opt.SetDefaults(DefaultReadOptions);
+            opt.SetDefaults(ReadOptions);
             return opt;
         }
     }

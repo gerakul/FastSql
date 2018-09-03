@@ -45,7 +45,7 @@ namespace Gerakul.FastSql.Common
                       conn = context.CreateConnection();
                       await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
                       state.InternalConnection = conn;
-                      var connectionContext = context.ContextProvider.GetConnectionContext(conn, context.DefaultQueryOptions, context.DefaultBulkOptions, context.DefaultReadOptions);
+                      var connectionContext = context.ContextProvider.GetConnectionContext(conn, context.QueryOptions, context.BulkOptions, context.ReadOptions);
                       var reader = await commandGetter(connectionContext).ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
                       state.ReadInfo = readInfoGetter(reader);
                   }
@@ -112,7 +112,7 @@ namespace Gerakul.FastSql.Common
             using (var conn = context.CreateConnection())
             {
                 conn.Open();
-                var connectionContext = context.ContextProvider.GetConnectionContext(conn, context.DefaultQueryOptions, context.DefaultBulkOptions, context.DefaultReadOptions);
+                var connectionContext = context.ContextProvider.GetConnectionContext(conn, context.QueryOptions, context.BulkOptions, context.ReadOptions);
                 foreach (var item in commandGetter(connectionContext).ExecuteQuery())
                 {
                     yield return item;
@@ -130,7 +130,7 @@ namespace Gerakul.FastSql.Common
             using (var conn = context.CreateConnection())
             {
                 conn.Open();
-                var connectionContext = context.ContextProvider.GetConnectionContext(conn, context.DefaultQueryOptions, context.DefaultBulkOptions, context.DefaultReadOptions);
+                var connectionContext = context.ContextProvider.GetConnectionContext(conn, context.QueryOptions, context.BulkOptions, context.ReadOptions);
                 foreach (var item in commandGetter(connectionContext).ExecuteQuery<T>(context.PrepareReadOptions(readOptions)))
                 {
                     yield return item;
@@ -148,7 +148,7 @@ namespace Gerakul.FastSql.Common
             using (var conn = context.CreateConnection())
             {
                 conn.Open();
-                var connectionContext = context.ContextProvider.GetConnectionContext(conn, context.DefaultQueryOptions, context.DefaultBulkOptions, context.DefaultReadOptions);
+                var connectionContext = context.ContextProvider.GetConnectionContext(conn, context.QueryOptions, context.BulkOptions, context.ReadOptions);
                 foreach (var item in commandGetter(connectionContext)
                     .ExecuteQueryAnonymous<T>(proto, context.PrepareReadOptions(readOptions)))
                 {
@@ -167,7 +167,7 @@ namespace Gerakul.FastSql.Common
             using (var conn = context.CreateConnection())
             {
                 conn.Open();
-                var connectionContext = context.ContextProvider.GetConnectionContext(conn, context.DefaultQueryOptions, context.DefaultBulkOptions, context.DefaultReadOptions);
+                var connectionContext = context.ContextProvider.GetConnectionContext(conn, context.QueryOptions, context.BulkOptions, context.ReadOptions);
                 foreach (var item in commandGetter(connectionContext).ExecuteQueryFirstColumn())
                 {
                     yield return item;
@@ -185,7 +185,7 @@ namespace Gerakul.FastSql.Common
             using (var conn = context.CreateConnection())
             {
                 conn.Open();
-                var connectionContext = context.ContextProvider.GetConnectionContext(conn, context.DefaultQueryOptions, context.DefaultBulkOptions, context.DefaultReadOptions);
+                var connectionContext = context.ContextProvider.GetConnectionContext(conn, context.QueryOptions, context.BulkOptions, context.ReadOptions);
                 foreach (var item in commandGetter(connectionContext).ExecuteQueryFirstColumn<T>())
                 {
                     yield return item;
