@@ -16,10 +16,10 @@ namespace Gerakul.FastSql.SqlServer
         protected override BulkOptions Default => defaultOptions;
 
         public SqlBulkOptions(int? batchSize = null, int? bulkCopyTimeout = null, SqlBulkCopyOptions? sqlBulkCopyOptions = null,
-          FieldsSelector? fieldsSelector = null, bool? caseSensitive = null, bool? enableStreaming = null,
+          FieldsSelector? fieldsSelector = null, bool? caseSensitiveFieldsMatching = null, bool? enableStreaming = null,
           bool? createTable = null, ColumnDefinitionOptions columnDefinitionOptions = null, bool? ignoreDataReaderSchemaTable = null,
           bool? checkTableIfNotExistsBeforeCreation = null)
-            : base(fieldsSelector, caseSensitive, createTable, ignoreDataReaderSchemaTable, checkTableIfNotExistsBeforeCreation)
+            : base(fieldsSelector, caseSensitiveFieldsMatching, createTable, ignoreDataReaderSchemaTable, checkTableIfNotExistsBeforeCreation)
         {
             this.BatchSize = batchSize;
             this.BulkCopyTimeout = bulkCopyTimeout;

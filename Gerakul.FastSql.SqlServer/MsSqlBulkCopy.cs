@@ -69,7 +69,7 @@ namespace Gerakul.FastSql.SqlServer
 
             Mapping[] map;
 
-            if (bulkOptions.FieldsSelector.Value == FieldsSelector.Source && !bulkOptions.CaseSensitive.HasValue)
+            if (bulkOptions.FieldsSelector.Value == FieldsSelector.Source && !bulkOptions.CaseSensitiveFieldsMatching.HasValue)
             {
                 map = sourceFields.Select(x => new Mapping() { Source = x, Destination = x }).ToArray();
             }
@@ -77,7 +77,7 @@ namespace Gerakul.FastSql.SqlServer
             {
                 string[] destFields = GetTableColumns().ToArray();
 
-                map = bulkOptions.CaseSensitive.HasValue && bulkOptions.CaseSensitive.Value ?
+                map = bulkOptions.CaseSensitiveFieldsMatching.HasValue && bulkOptions.CaseSensitiveFieldsMatching.Value ?
                   sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping() { Source = x, Destination = y }).ToArray() :
                   sourceFields.Join(destFields, x => x.ToLowerInvariant(), x => x.ToLowerInvariant(), (x, y) => new Mapping() { Source = x, Destination = y }).ToArray();
 
@@ -125,7 +125,7 @@ namespace Gerakul.FastSql.SqlServer
 
             Mapping[] map;
 
-            if (bulkOptions.FieldsSelector.Value == FieldsSelector.Source && !bulkOptions.CaseSensitive.HasValue)
+            if (bulkOptions.FieldsSelector.Value == FieldsSelector.Source && !bulkOptions.CaseSensitiveFieldsMatching.HasValue)
             {
                 map = sourceFields.Select(x => new Mapping() { Source = x, Destination = x }).ToArray();
             }
@@ -133,7 +133,7 @@ namespace Gerakul.FastSql.SqlServer
             {
                 string[] destFields = (await GetTableColumnsAsync(cancellationToken).ConfigureAwait(false)).ToArray();
 
-                map = bulkOptions.CaseSensitive.HasValue && bulkOptions.CaseSensitive.Value ?
+                map = bulkOptions.CaseSensitiveFieldsMatching.HasValue && bulkOptions.CaseSensitiveFieldsMatching.Value ?
                   sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping() { Source = x, Destination = y }).ToArray() :
                   sourceFields.Join(destFields, x => x.ToLowerInvariant(), x => x.ToLowerInvariant(), (x, y) => new Mapping() { Source = x, Destination = y }).ToArray();
 

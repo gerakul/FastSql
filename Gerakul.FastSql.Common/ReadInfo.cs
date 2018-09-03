@@ -73,11 +73,37 @@ namespace Gerakul.FastSql.Common
                 }
             }
 
-            var fiCommon = readOpt.CaseSensitive.Value ?
+            if (readOpt.CaseSensitiveFieldsMatching.Value)
+            {
+                if (readerFields.GroupBy(x => x.Name).Any(x => x.Count() > 1))
+                {
+                    throw new ArgumentException("Reader field names has been duplicated");
+                }
+
+                if (piAll.Select(x => x.Name).Concat(fiAll.Select(x => x.Name)).GroupBy(x => x).Any(x => x.Count() > 1))
+                {
+                    throw new ArgumentException("Destination object field names has been duplicated");
+                }
+            }
+            else
+            {
+                if (readerFields.GroupBy(x => x.Name.ToLowerInvariant()).Any(x => x.Count() > 1))
+                {
+                    throw new ArgumentException("Reader field names has been duplicated");
+                }
+
+                if (piAll.Select(x => x.Name.ToLowerInvariant()).Concat(fiAll.Select(x => x.Name.ToLowerInvariant()))
+                    .GroupBy(x => x).Any(x => x.Count() > 1))
+                {
+                    throw new ArgumentException("Destination object field names has been duplicated");
+                }
+            }
+
+            var fiCommon = readOpt.CaseSensitiveFieldsMatching.Value ?
               fiAll.Join(readerFields, x => x.Name, x => x.Name, (x, y) => new { FieldInfo = x, ReaderField = y }).ToArray() :
               fiAll.Join(readerFields, x => x.Name.ToLowerInvariant(), x => x.Name.ToLowerInvariant(), (x, y) => new { FieldInfo = x, ReaderField = y }).ToArray();
 
-            var piCommon = readOpt.CaseSensitive.Value ?
+            var piCommon = readOpt.CaseSensitiveFieldsMatching.Value ?
               piAll.Join(readerFields, x => x.Name, x => x.Name, (x, y) => new { PropertyInfo = x, ReaderField = y }).ToArray() :
               piAll.Join(readerFields, x => x.Name.ToLowerInvariant(), x => x.Name.ToLowerInvariant(), (x, y) => new { PropertyInfo = x, ReaderField = y }).ToArray();
 
@@ -144,7 +170,32 @@ namespace Gerakul.FastSql.Common
             ConstructorInfo constructor = typeof(T).GetConstructors().First();
             ParameterInfo[] piAll = constructor.GetParameters();
 
-            var piCommon = readOpt.CaseSensitive.Value ?
+            if (readOpt.CaseSensitiveFieldsMatching.Value)
+            {
+                if (readerFields.GroupBy(x => x.Name).Any(x => x.Count() > 1))
+                {
+                    throw new ArgumentException("Reader field names has been duplicated");
+                }
+
+                if (piAll.GroupBy(x => x.Name).Any(x => x.Count() > 1))
+                {
+                    throw new ArgumentException("Destination object field names has been duplicated");
+                }
+            }
+            else
+            {
+                if (readerFields.GroupBy(x => x.Name.ToLowerInvariant()).Any(x => x.Count() > 1))
+                {
+                    throw new ArgumentException("Reader field names has been duplicated");
+                }
+
+                if (piAll.GroupBy(x => x.Name.ToLowerInvariant()).Any(x => x.Count() > 1))
+                {
+                    throw new ArgumentException("Destination object field names has been duplicated");
+                }
+            }
+
+            var piCommon = readOpt.CaseSensitiveFieldsMatching.Value ?
               piAll.Join(readerFields, x => x.Name, x => x.Name, (x, y) => new { ParameterInfo = x, ReaderField = y }).ToArray() :
               piAll.Join(readerFields, x => x.Name.ToLowerInvariant(), x => x.Name.ToLowerInvariant(), (x, y) => new { ParameterInfo = x, ReaderField = y }).ToArray();
 

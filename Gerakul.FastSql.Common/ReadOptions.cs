@@ -6,13 +6,13 @@
 
         public FieldsSelector? FieldsSelector { get; set; }
         public FromTypeOption? FromTypeOption { get; set; }
-        public bool? CaseSensitive { get; set; }
+        public bool? CaseSensitiveFieldsMatching { get; set; }
 
-        public ReadOptions(FieldsSelector? fieldsSelector = null, bool? caseSensitive = null, FromTypeOption? fromTypeOption = null)
+        public ReadOptions(FieldsSelector? fieldsSelector = null, bool? caseSensitiveFieldsMatching = null, FromTypeOption? fromTypeOption = null)
         {
             this.FieldsSelector = fieldsSelector;
             this.FromTypeOption = fromTypeOption;
-            this.CaseSensitive = caseSensitive;
+            this.CaseSensitiveFieldsMatching = caseSensitiveFieldsMatching;
         }
 
         internal ReadOptions(bool defaultOptions)
@@ -21,7 +21,7 @@
             {
                 this.FieldsSelector = Common.FieldsSelector.Destination;
                 this.FromTypeOption = Common.FromTypeOption.Default;
-                this.CaseSensitive = false;
+                this.CaseSensitiveFieldsMatching = false;
             }
         }
 
@@ -29,7 +29,7 @@
         {
             this.FieldsSelector = readOptions.FieldsSelector;
             this.FromTypeOption = readOptions.FromTypeOption;
-            this.CaseSensitive = readOptions.CaseSensitive;
+            this.CaseSensitiveFieldsMatching = readOptions.CaseSensitiveFieldsMatching;
         }
 
         internal ReadOptions SetDefaults(ReadOptions defaultOptions)
@@ -44,9 +44,9 @@
                 FromTypeOption = defaultOptions.FromTypeOption;
             }
 
-            if (!CaseSensitive.HasValue)
+            if (!CaseSensitiveFieldsMatching.HasValue)
             {
-                CaseSensitive = defaultOptions.CaseSensitive;
+                CaseSensitiveFieldsMatching = defaultOptions.CaseSensitiveFieldsMatching;
             }
 
             return this;
