@@ -13,6 +13,7 @@ namespace Gerakul.FastSql.PostgreSQL
     {
         private class Mapping
         {
+            public int Ordinal;
             public string Source;
             public string Destination;
         }
@@ -64,7 +65,8 @@ namespace Gerakul.FastSql.PostgreSQL
 
             if (bulkOptions.CreateTable.Value)
             {
-                CreateTable(sourceFields);
+                throw new NotImplementedException("Table creation is not implemented for PostgreSQL");
+                //CreateTable(sourceFields);
             }
 
             Mapping[] map;
@@ -86,31 +88,26 @@ namespace Gerakul.FastSql.PostgreSQL
 
             if (map.Length > 0)
             {
-                //using (SqlBulkCopy bcp = new SqlBulkCopy(Connection, SqlBulkOptions.SqlBulkCopyOptions, Transaction))
-                //{
-                //    bcp.DestinationTableName = destinationTable;
-                //    if (SqlBulkOptions.BatchSize.HasValue)
-                //    {
-                //        bcp.BatchSize = SqlBulkOptions.BatchSize.Value;
-                //    }
+                foreach (var item in map)
+                {
+                    item.Ordinal = reader.GetOrdinal(item.Source);
+                }
 
-                //    if (SqlBulkOptions.BulkCopyTimeout.HasValue)
-                //    {
-                //        bcp.BulkCopyTimeout = SqlBulkOptions.BulkCopyTimeout.Value;
-                //    }
+                var columns = context.ContextProvider.CommandTextGenerator.ColumnList(map.Select(x => x.Destination).ToArray());
+                using (var writer = Connection.BeginBinaryImport($"COPY {destinationTable} ({columns}) FROM STDIN (FORMAT BINARY)"))
+                {
+                    while (reader.Read())
+                    {
+                        writer.StartRow();
 
-                //    if (SqlBulkOptions.EnableStreaming.HasValue)
-                //    {
-                //        bcp.EnableStreaming = SqlBulkOptions.EnableStreaming.Value;
-                //    }
+                        foreach (var item in map)
+                        {
+                            writer.Write(reader.GetValue(item.Ordinal));
+                        }
+                    }
 
-                //    foreach (var item in map)
-                //    {
-                //        bcp.ColumnMappings.Add(item.Source, item.Destination);
-                //    }
-
-                //    bcp.WriteToServer(reader);
-                //}
+                    writer.Complete();
+                }
             }
         }
 
@@ -120,7 +117,8 @@ namespace Gerakul.FastSql.PostgreSQL
 
             if (bulkOptions.CreateTable.Value)
             {
-                await CreateTableAsync(sourceFields).ConfigureAwait(false);
+                throw new NotImplementedException("Table creation is not implemented for PostgreSQL");
+                //CreateTable(sourceFields);
             }
 
             Mapping[] map;
@@ -142,63 +140,33 @@ namespace Gerakul.FastSql.PostgreSQL
 
             if (map.Length > 0)
             {
-                //using (SqlBulkCopy bcp = new SqlBulkCopy(Connection, SqlBulkOptions.SqlBulkCopyOptions, Transaction))
-                //{
-                //    bcp.DestinationTableName = destinationTable;
-                //    if (SqlBulkOptions.BatchSize.HasValue)
-                //    {
-                //        bcp.BatchSize = SqlBulkOptions.BatchSize.Value;
-                //    }
+                foreach (var item in map)
+                {
+                    item.Ordinal = reader.GetOrdinal(item.Source);
+                }
 
-                //    if (SqlBulkOptions.BulkCopyTimeout.HasValue)
-                //    {
-                //        bcp.BulkCopyTimeout = SqlBulkOptions.BulkCopyTimeout.Value;
-                //    }
+                var columns = context.ContextProvider.CommandTextGenerator.ColumnList(map.Select(x => x.Destination).ToArray());
+                using (var writer = Connection.BeginBinaryImport($"COPY {destinationTable} ({columns}) FROM STDIN (FORMAT BINARY)"))
+                {
+                    while (reader.Read())
+                    {
+                        writer.StartRow();
 
-                //    if (SqlBulkOptions.EnableStreaming.HasValue)
-                //    {
-                //        bcp.EnableStreaming = SqlBulkOptions.EnableStreaming.Value;
-                //    }
+                        foreach (var item in map)
+                        {
+                            writer.Write(reader.GetValue(item.Ordinal));
+                        }
+                    }
 
-                //    foreach (var item in map)
-                //    {
-                //        bcp.ColumnMappings.Add(item.Source, item.Destination);
-                //    }
-
-                //    await bcp.WriteToServerAsync(reader, cancellationToken).ConfigureAwait(false);
-                //}
+                    writer.Complete();
+                }
             }
-        }
-
-        private string GetCreateTableScript(string[] sourceFields)
-        {
-            var colDefs = reader.GetColumnDefinitions(NpgsqlBulkOptions.ColumnDefinitionOptions, bulkOptions.IgnoreDataReaderSchemaTable.Value)
-                .Where(x => sourceFields.Contains(x.Name)).ToArray();
-
-            if (colDefs.Length != sourceFields.Length)
-            {
-                throw new InvalidOperationException("Can not create table with specified fields");
-            }
-
-            return colDefs.CreateTableScript(destinationTable, bulkOptions.CheckTableIfNotExistsBeforeCreation.Value);
-        }
-
-        private void CreateTable(string[] sourceFields)
-        {
-            string cmd = GetCreateTableScript(sourceFields);
-            context.CreateSimple(cmd).ExecuteNonQuery();
-        }
-
-        private async Task CreateTableAsync(string[] sourceFields)
-        {
-            string cmd = GetCreateTableScript(sourceFields);
-            await context.CreateSimple(cmd).ExecuteNonQueryAsync().ConfigureAwait(false);
         }
 
         private IList<string> GetTableColumns()
         {
             List<string> result = new List<string>();
-            context.CreateSimple(string.Format("select top 0 * from {0} with(nolock)", destinationTable))
+            context.CreateSimple(string.Format("select * from {0} limit 0", destinationTable))
                 .UseReader(r =>
                 {
                     foreach (var item in r.GetColumnNames())
@@ -213,7 +181,7 @@ namespace Gerakul.FastSql.PostgreSQL
         private async Task<IList<string>> GetTableColumnsAsync(CancellationToken cancellationToken)
         {
             List<string> result = new List<string>();
-            await context.CreateSimple(string.Format("select top 0 * from {0} with(nolock)", destinationTable))
+            await context.CreateSimple(string.Format("select * from {0} limit 0", destinationTable))
                 .UseReaderAsync(r =>
                 {
                     foreach (var item in r.GetColumnNames())
