@@ -17,8 +17,8 @@ namespace Gerakul.FastSql.PostgreSQL
         }
 
         public override CommandTextGenerator CommandTextGenerator { get; } = new NpgsqlCommandTextGenerator();
-        public override QueryOptions DefaultQueryOptions { get; } = new NpgsqlQueryOptions();
-        public override BulkOptions DefaultBulkOptions { get; } = new NpgsqlBulkOptions();
+        public override QueryOptions QueryOptions { get; } = new NpgsqlQueryOptions();
+        public override BulkOptions BulkOptions { get; } = new NpgsqlBulkOptions();
 
         protected override ConnectionStringContext GetConnectionStringContext(string connectionString, QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
         {

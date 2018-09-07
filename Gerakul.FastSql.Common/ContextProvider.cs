@@ -6,9 +6,9 @@ namespace Gerakul.FastSql.Common
 {
     public abstract class ContextProvider
     {
-        public abstract QueryOptions DefaultQueryOptions { get; }
-        public abstract BulkOptions DefaultBulkOptions { get; }
-        public virtual ReadOptions DefaultReadOptions { get; } = new ReadOptions();
+        public abstract QueryOptions QueryOptions { get; }
+        public abstract BulkOptions BulkOptions { get; }
+        public virtual ReadOptions ReadOptions { get; } = new ReadOptions();
 
         public abstract CommandTextGenerator CommandTextGenerator { get; }
         public CommandCompilator CommandCompilator { get; }
@@ -20,17 +20,17 @@ namespace Gerakul.FastSql.Common
 
         public ConnectionStringContext CreateConnectionStringContext(string connectionString)
         {
-            return GetConnectionStringContext(connectionString, DefaultQueryOptions, DefaultBulkOptions, DefaultReadOptions);
+            return GetConnectionStringContext(connectionString, QueryOptions, BulkOptions, ReadOptions);
         }
 
         public ConnectionContext CreateConnectionContext(DbConnection connection)
         {
-            return GetConnectionContext(connection, DefaultQueryOptions, DefaultBulkOptions, DefaultReadOptions);
+            return GetConnectionContext(connection, QueryOptions, BulkOptions, ReadOptions);
         }
 
         public TransactionContext CreateTransactionContext(DbTransaction transaction)
         {
-            return GetTransactionContext(transaction, DefaultQueryOptions, DefaultBulkOptions, DefaultReadOptions);
+            return GetTransactionContext(transaction, QueryOptions, BulkOptions, ReadOptions);
         }
 
         protected internal abstract ConnectionStringContext GetConnectionStringContext(string connectionString, 

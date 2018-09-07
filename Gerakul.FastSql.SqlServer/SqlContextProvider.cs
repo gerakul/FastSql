@@ -17,8 +17,8 @@ namespace Gerakul.FastSql.SqlServer
         }
 
         public override CommandTextGenerator CommandTextGenerator { get; } = new SqlCommandTextGenerator();
-        public override QueryOptions DefaultQueryOptions { get; } = new SqlQueryOptions();
-        public override BulkOptions DefaultBulkOptions { get; } = new SqlBulkOptions();
+        public override QueryOptions QueryOptions { get; } = new SqlQueryOptions();
+        public override BulkOptions BulkOptions { get; } = new SqlBulkOptions();
 
         protected override ConnectionStringContext GetConnectionStringContext(string connectionString, QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
         {

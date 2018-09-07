@@ -8,7 +8,7 @@ namespace Gerakul.FastSql.SqlServer
     {
         public SqlConnectionContext(SqlContextProvider contextProvider, SqlConnection connection)
             : this(contextProvider, connection,
-                  contextProvider.DefaultQueryOptions, contextProvider.DefaultBulkOptions, contextProvider.DefaultReadOptions)
+                  contextProvider.QueryOptions, contextProvider.BulkOptions, contextProvider.ReadOptions)
         {
         }
 

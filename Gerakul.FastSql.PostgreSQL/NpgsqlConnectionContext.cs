@@ -8,7 +8,7 @@ namespace Gerakul.FastSql.PostgreSQL
     {
         public NpgsqlConnectionContext(NpgsqlContextProvider contextProvider, NpgsqlConnection connection)
             : this(contextProvider, connection,
-                  contextProvider.DefaultQueryOptions, contextProvider.DefaultBulkOptions, contextProvider.DefaultReadOptions)
+                  contextProvider.QueryOptions, contextProvider.BulkOptions, contextProvider.ReadOptions)
         {
         }
 
