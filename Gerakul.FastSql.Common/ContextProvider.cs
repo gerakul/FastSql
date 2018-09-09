@@ -18,17 +18,17 @@ namespace Gerakul.FastSql.Common
             this.CommandCompilator = new CommandCompilator(this);
         }
 
-        public ConnectionStringContext CreateConnectionStringContext(string connectionString)
+        public ConnectionStringContext CreateContext(string connectionString)
         {
             return GetConnectionStringContext(connectionString, QueryOptions, BulkOptions, ReadOptions);
         }
 
-        public ConnectionContext CreateConnectionContext(DbConnection connection)
+        public ConnectionContext CreateContext(DbConnection connection)
         {
             return GetConnectionContext(connection, QueryOptions, BulkOptions, ReadOptions);
         }
 
-        public TransactionContext CreateTransactionContext(DbTransaction transaction)
+        public TransactionContext CreateContext(DbTransaction transaction)
         {
             return GetTransactionContext(transaction, QueryOptions, BulkOptions, ReadOptions);
         }

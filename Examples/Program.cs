@@ -1,7 +1,6 @@
 ﻿using Gerakul.FastSql.Common;
 using Gerakul.FastSql.PostgreSQL;
 using Gerakul.FastSql.SqlServer;
-using Npgsql;
 using System;
 using System.Data.Common;
 using System.Data.SqlClient;
@@ -19,10 +18,10 @@ namespace Examples
             // NOTE: execute script InitQuery.sql on your test database before executing examples
 
             // get context
-            var context = SqlContextProvider.DefaultInstance.CreateConnectionStringContext(connString);
+            var context = SqlContextProvider.DefaultInstance.CreateContext(connString);
 
             // create and execute command
-            var employees1 = context.CreateSimple("select * from Employee").ExecuteQuery<Employee>().ToArray();
+            var employees = context.CreateSimple("select * from Employee").ExecuteQuery<Employee>().ToArray();
 
             // more examples about getting ContextProvider in the GettingContextProvider method
             // about context creation in the ContextCreation method
@@ -43,14 +42,14 @@ namespace Examples
         static async Task ContextCreation(ContextProvider provider)
         {
             // context can be created from connection string, connection or transaction
-            // all these types of context implement the interface ICommandCreator
+            // all these types of context implement the same interface ICommandCreator
 
             // context from connection string
-            var context1 = provider.CreateConnectionStringContext(connString);
+            var context1 = provider.CreateContext(connString);
 
             // context from connection
             var connection = GetOpenConnection();
-            var context2 = provider.CreateConnectionContext(connection);
+            var context2 = provider.CreateContext(connection);
             // or
             context1.UsingConnection(context =>
             {
@@ -74,7 +73,7 @@ namespace Examples
 
             // context from transaction
             var transaction = connection.BeginTransaction();
-            var context3 = provider.CreateTransactionContext(transaction);
+            var context3 = provider.CreateContext(transaction);
             // or
             context1.UsingTransaction(context =>
             {
@@ -92,7 +91,7 @@ namespace Examples
             // Most of functionality of specific context is derived from interface ICommandCreator
             // regardless of context type (connection string, connection or transaction).
             // All methods of the interface ICommandCreator begin their names with Create<...> and return IWrappedCommand.
-            // Interface IWrappedCommand provides methods for command execution,
+            // Interface IWrappedCommand provides all methods for command execution,
             // so a combination of these two interfaces creates a powerful flexibility
 
             // simple retrieving data
@@ -110,7 +109,7 @@ namespace Examples
             // or async
             var data6 = await context.CreateMapped("select * from Employee where CompanyID = @CompanyID and Age > @Age", new { CompanyID = 1, Age = 40 }).ExecuteQueryAsync<Employee>().ToArray();
 
-            // NOTE: all commands can be executed asynchronously but examples below only show synchronous execution
+            // NOTE: all commands can be executed asynchronously but examples below only show synchronous execution in order not to complicate them
 
             // using options 
             // NOTE: options can be set for context or ContextProvider as well as for certain command
