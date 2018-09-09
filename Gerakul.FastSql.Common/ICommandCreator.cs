@@ -12,13 +12,13 @@ namespace Gerakul.FastSql.Common
         IWrappedCommand CreateMapped<T>(MappedCommand<T> precompiledCommand, T value, QueryOptions queryOptions = null);
         IWrappedCommand CreateMapped<T>(string commandText, IList<string> paramNames, IList<FieldSettings<T>> settings, T value, QueryOptions queryOptions = null);
         IWrappedCommand CreateMapped<T>(string commandText, IList<FieldSettings<T>> settings, T value, QueryOptions queryOptions = null);
-        IWrappedCommand CreateMapped<T>(string commandText, IList<string> paramNames, T value, FromTypeOption fromTypeOption = FromTypeOption.Default, QueryOptions queryOptions = null);
-        IWrappedCommand CreateMapped<T>(string commandText, T value, FromTypeOption fromTypeOption = FromTypeOption.Default, QueryOptions queryOptions = null);
+        IWrappedCommand CreateMapped<T>(string commandText, IList<string> paramNames, T value, QueryOptions queryOptions = null, FromTypeOption fromTypeOption = FromTypeOption.Default);
+        IWrappedCommand CreateMapped<T>(string commandText, T value, QueryOptions queryOptions = null, FromTypeOption fromTypeOption = FromTypeOption.Default);
 
         IWrappedCommand CreateProcedure<T>(string name, IList<string> paramNames, IList<FieldSettings<T>> settings, T value, QueryOptions queryOptions = null);
         IWrappedCommand CreateProcedure<T>(string name, IList<FieldSettings<T>> settings, T value, QueryOptions queryOptions = null);
-        IWrappedCommand CreateProcedure<T>(string name, IList<string> paramNames, T value, FromTypeOption fromTypeOption = FromTypeOption.Default, QueryOptions queryOptions = null);
-        IWrappedCommand CreateProcedure<T>(string name, T value, FromTypeOption fromTypeOption = FromTypeOption.Default, QueryOptions queryOptions = null);
+        IWrappedCommand CreateProcedure<T>(string name, IList<string> paramNames, T value, QueryOptions queryOptions = null, FromTypeOption fromTypeOption = FromTypeOption.Default);
+        IWrappedCommand CreateProcedure<T>(string name, T value, QueryOptions queryOptions = null, FromTypeOption fromTypeOption = FromTypeOption.Default);
 
         IWrappedCommand CreateInsert<T>(string tableName, T value, QueryOptions queryOptions, bool getIdentity, params string[] ignoreFields);
         IWrappedCommand CreateUpdate<T>(string tableName, T value, QueryOptions queryOptions, params string[] keyFields);

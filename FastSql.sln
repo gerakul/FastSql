@@ -3,17 +3,15 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26430.16
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Samples", "Samples\Samples.csproj", "{7F53280E-C118-4328-AE6F-7E20D2B42B6A}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ClassLibrary1", "ClassLibrary1\ClassLibrary1.csproj", "{947D23DD-7A45-4353-BD55-D9F6470DE6E8}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gerakul.FastSql.Common", "Gerakul.FastSql.Common\Gerakul.FastSql.Common.csproj", "{09F13382-F5FE-4492-9608-7B38ADBDD275}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gerakul.FastSql.SqlServer", "Gerakul.FastSql.SqlServer\Gerakul.FastSql.SqlServer.csproj", "{596E5313-CE1D-4468-B5FE-62055986A4F0}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleApp1", "ConsoleApp1\ConsoleApp1.csproj", "{C7F67E20-54AE-4ECE-B504-67697A851571}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gerakul.FastSql.PostgreSQL", "Gerakul.FastSql.PostgreSQL\Gerakul.FastSql.PostgreSQL.csproj", "{0A672F05-6880-4C08-92F7-41B0853EE716}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gerakul.FastSql.PostgreSQL", "Gerakul.FastSql.PostgreSQL\Gerakul.FastSql.PostgreSQL.csproj", "{0A672F05-6880-4C08-92F7-41B0853EE716}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Examples", "Examples\Examples.csproj", "{A5E389BB-F99F-4C82-9B4B-7C218A6E5420}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,14 +19,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{7F53280E-C118-4328-AE6F-7E20D2B42B6A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7F53280E-C118-4328-AE6F-7E20D2B42B6A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7F53280E-C118-4328-AE6F-7E20D2B42B6A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7F53280E-C118-4328-AE6F-7E20D2B42B6A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{947D23DD-7A45-4353-BD55-D9F6470DE6E8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{947D23DD-7A45-4353-BD55-D9F6470DE6E8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{947D23DD-7A45-4353-BD55-D9F6470DE6E8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{947D23DD-7A45-4353-BD55-D9F6470DE6E8}.Release|Any CPU.Build.0 = Release|Any CPU
 		{09F13382-F5FE-4492-9608-7B38ADBDD275}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{09F13382-F5FE-4492-9608-7B38ADBDD275}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{09F13382-F5FE-4492-9608-7B38ADBDD275}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -45,6 +35,10 @@ Global
 		{0A672F05-6880-4C08-92F7-41B0853EE716}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0A672F05-6880-4C08-92F7-41B0853EE716}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0A672F05-6880-4C08-92F7-41B0853EE716}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A5E389BB-F99F-4C82-9B4B-7C218A6E5420}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A5E389BB-F99F-4C82-9B4B-7C218A6E5420}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A5E389BB-F99F-4C82-9B4B-7C218A6E5420}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A5E389BB-F99F-4C82-9B4B-7C218A6E5420}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

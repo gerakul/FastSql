@@ -12,7 +12,7 @@ namespace Gerakul.FastSql.SqlServer
     {
         public static SqlContextProvider DefaultInstance { get; } = new SqlContextProvider();
 
-        private SqlContextProvider()
+        public SqlContextProvider()
         {
         }
 

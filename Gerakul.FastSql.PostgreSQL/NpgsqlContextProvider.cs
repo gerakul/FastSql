@@ -12,7 +12,7 @@ namespace Gerakul.FastSql.PostgreSQL
     {
         public static NpgsqlContextProvider DefaultInstance { get; } = new NpgsqlContextProvider();
 
-        private NpgsqlContextProvider()
+        public NpgsqlContextProvider()
         {
         }
 

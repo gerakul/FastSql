@@ -95,12 +95,12 @@ namespace Gerakul.FastSql.Common
             return GetWC().Mapped(commandText, settings, value, queryOptions);
         }
 
-        public IWrappedCommand CreateMapped<T>(string commandText, IList<string> paramNames, T value, FromTypeOption fromTypeOption = FromTypeOption.Default, QueryOptions queryOptions = null)
+        public IWrappedCommand CreateMapped<T>(string commandText, IList<string> paramNames, T value, QueryOptions queryOptions = null, FromTypeOption fromTypeOption = FromTypeOption.Default)
         {
             return GetWC().Mapped(commandText, paramNames, value, fromTypeOption, queryOptions);
         }
 
-        public IWrappedCommand CreateMapped<T>(string commandText, T value, FromTypeOption fromTypeOption = FromTypeOption.Default, QueryOptions queryOptions = null)
+        public IWrappedCommand CreateMapped<T>(string commandText, T value, QueryOptions queryOptions = null, FromTypeOption fromTypeOption = FromTypeOption.Default)
         {
             return GetWC().Mapped(commandText, value, fromTypeOption, queryOptions);
         }
@@ -115,12 +115,12 @@ namespace Gerakul.FastSql.Common
             return GetWC().Procedure(name, settings, value, queryOptions);
         }
 
-        public IWrappedCommand CreateProcedure<T>(string name, IList<string> paramNames, T value, FromTypeOption fromTypeOption = FromTypeOption.Both, QueryOptions queryOptions = null)
+        public IWrappedCommand CreateProcedure<T>(string name, IList<string> paramNames, T value, QueryOptions queryOptions = null, FromTypeOption fromTypeOption = FromTypeOption.Both)
         {
             return GetWC().Procedure(name, paramNames, value, fromTypeOption, queryOptions);
         }
 
-        public IWrappedCommand CreateProcedure<T>(string name, T value, FromTypeOption fromTypeOption = FromTypeOption.Both, QueryOptions queryOptions = null)
+        public IWrappedCommand CreateProcedure<T>(string name, T value, QueryOptions queryOptions = null, FromTypeOption fromTypeOption = FromTypeOption.Both)
         {
             return GetWC().Procedure(name, value, fromTypeOption, queryOptions);
         }
