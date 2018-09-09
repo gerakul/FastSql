@@ -7,14 +7,20 @@ namespace Gerakul.FastSql.Common
 {
     internal abstract class WCBase : ISetCommandGetter
     {
-        internal static WCBase Create(ConnectionStringContext context)
+        internal static WCBase Create(DbContext context)
         {
-            return new WrappedCommandWithContext(context);
-        }
-
-        internal static WCBase Create(ScopedContext context)
-        {
-            return new WrappedCommandWithScope(context);
+            if (context is ScopedContext)
+            {
+                return new WrappedCommandWithScope((ScopedContext)context);
+            }
+            else if (context is ConnectionStringContext)
+            {
+                return new WrappedCommandWithContext((ConnectionStringContext)context);
+            }
+            else
+            {
+                throw new ArgumentException(@"Unknown type of context", nameof(context));
+            }
         }
 
         public abstract IWrappedCommand Set(Func<ScopedContext, DbCommand> commandGetter);

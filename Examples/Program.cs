@@ -16,6 +16,8 @@ namespace Examples
 
         static void Main(string[] args)
         {
+            // NOTE: execute script InitQuery.sql on your test database before executing examples
+
             // get context
             var context = SqlContextProvider.DefaultInstance.CreateConnectionStringContext(connString);
 
@@ -41,14 +43,13 @@ namespace Examples
         static async Task ContextCreation(ContextProvider provider)
         {
             // context can be created from connection string, connection or transaction
-            // all these types of context have the same functionality (except few specific methods)
-            // derived from interface ICommandCreator
+            // all these types of context implement the interface ICommandCreator
 
             // context from connection string
             var context1 = provider.CreateConnectionStringContext(connString);
 
             // context from connection
-            var connection = GetConnection();
+            var connection = GetOpenConnection();
             var context2 = provider.CreateConnectionContext(connection);
             // or
             context1.UsingConnection(context =>
@@ -86,11 +87,13 @@ namespace Examples
             });
         }
 
-        static async Task WorkingWithContext(ICommandCreator context)
+        static async Task WorkingWithContext(DbContext context)
         {
-            // the almost entire functionality of specific context is derived from interface ICommandCreator
-            // regardless of context type (connection string, connection or transaction)
-            // so all examples are based on this interface and can by applied to any context
+            // Most of functionality of specific context is derived from interface ICommandCreator
+            // regardless of context type (connection string, connection or transaction).
+            // All methods of the interface ICommandCreator begin their names with Create<...> and return IWrappedCommand.
+            // Interface IWrappedCommand provides methods for command execution,
+            // so a combination of these two interfaces creates a powerful flexibility
 
             // simple retrieving data
             var data1 = context.CreateSimple("select * from Employee").ExecuteQuery<Employee>().ToArray();
@@ -105,12 +108,12 @@ namespace Examples
             // parameters mapped to object
             var data5 = context.CreateMapped("select * from Employee where CompanyID = @CompanyID and Age > @Age", new { CompanyID = 1, Age = 40 }).ExecuteQuery<Employee>().ToArray();
             // or async
-            var data6 = context.CreateMapped("select * from Employee where CompanyID = @CompanyID and Age > @Age", new { CompanyID = 1, Age = 40 }).ExecuteQueryAsync<Employee>().ToArray();
+            var data6 = await context.CreateMapped("select * from Employee where CompanyID = @CompanyID and Age > @Age", new { CompanyID = 1, Age = 40 }).ExecuteQueryAsync<Employee>().ToArray();
 
-            // note: all commands can be executed asynchronously but examples below show only synchronous execution in order to be simple
+            // NOTE: all commands can be executed asynchronously but examples below only show synchronous execution
 
             // using options 
-            // note: options can be set for context or provider as well as for certain command
+            // NOTE: options can be set for context or ContextProvider as well as for certain command
             var data7 = context.CreateMapped("select * from Employee where CompanyID = @CompanyID and Age > @Age", new { CompanyID = 1, Age = 40 },
                 new QueryOptions(1000, true))
                 .ExecuteQuery<Employee>(new ReadOptions(FieldsSelector.Destination)).ToArray();
@@ -125,34 +128,47 @@ namespace Examples
             context.CreateSimple("update Company set Name = @p1 where ID = @p0", 2, "Updated Co").ExecuteNonQuery();
 
             // insert
-            var emp1 = new Employee() { CompanyID = 2, Name = "New inserted", Phone = "111" };
+            var emp1 = new { CompanyID = 2, Name = "New inserted", Phone = "111" };
             context.CreateInsert("Employee", emp1).ExecuteNonQuery();
             // or return new id
             var id = context.CreateInsert("Employee", emp1, true).ExecuteScalar();
 
             // update
-            var emp2 = new Employee() { ID = 2, CompanyID = 2, Name = "Updated", Phone = "111" };
+            var emp2 = new { ID = 2, CompanyID = 2, Name = "Updated", Phone = "111" };
             context.CreateUpdate("Employee", emp2, "ID").ExecuteNonQuery();
             // or merge
-            context.CreateMerge("Employee", emp2, "ID").ExecuteNonQuery();
+            var company = new { ID = 3, Name = "New name", DateOfFoundation = DateTime.Now };
+            context.CreateMerge("Company", company, "ID").ExecuteNonQuery();
 
             // delete
             context.CreateDelete("Employee", emp2, "ID").ExecuteNonQuery();
 
-            // bulk insert
+            // bulk copy
             Employee[] newEmployees = new Employee[] {
                 new Employee() { CompanyID = 1, Name = "New Employee1", Age = 23, StartWorking = DateTime.UtcNow },
                 new Employee() { CompanyID = 1, Name = "New Employee2", StartWorking = DateTime.UtcNow },
                 new Employee() { CompanyID = 2, Name = "New Employee1" }
             };
 
-            newEmployees.WriteToServer<Employee>(context, "Employee");
+            newEmployees.WriteToServer(context, "Employee");
+
+            // stored procedures
+            var data10 = context.CreateProcedure("TestProc", new { CompanyID = 1, Age = 40 }).ExecuteQuery<Employee>().ToArray();
+            // passing custom DbParameters
+            var data11 = context.CreateProcedureSimple("TestProc", new SqlParameter("CompanyID", 1), new SqlParameter("Age", 40)).ExecuteQuery<Employee>().ToArray();
+
+            // data import
+            // NOTE: Here are only couple of data import examples, but WriteToServer functionality can be applied for any IWrappedCommand
+            context.CreateSimple("select * from Employee").WriteToServer(context, "Employee");
+            context.CreateProcedure("TestProc", new { CompanyID = 1, Age = 40 }).WriteToServer(context, "Employee");
         }
 
-        static DbConnection GetConnection()
+        static DbConnection GetOpenConnection()
         {
-            return new SqlConnection(connString);
-            //return new NpgsqlConnection(connString);
+            var conn = new SqlConnection(connString);
+            // var conn = NpgsqlConnection(connString);
+            conn.Open();
+            return conn;
         }
     }
 }
