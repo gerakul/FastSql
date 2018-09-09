@@ -15,7 +15,8 @@ namespace Examples
 
         static void Main(string[] args)
         {
-            // NOTE: execute script InitQuery.sql on your test database before executing examples
+            // Examples below have been written for Sql Server, but examples for PostgreSQL would look same
+            // NOTE: first execute script InitQuery.sql on your test database before executing examples
 
             // get context
             var context = SqlContextProvider.DefaultInstance.CreateContext(connString);

@@ -4,7 +4,7 @@
     <TargetFrameworks>netstandard2.0;net46</TargetFrameworks>
     <Version>0.9.0</Version>
     <Authors>gerakul</Authors>
-    <Description>Implementation FastSql for PostgreSQL</Description>
+    <Description>Implementation FastSql for PostgreSQL: Light-weight, flexible and easy to use C# library to retrieve and manipulate (including bulk copy) data in SQL databases.</Description>
     <RepositoryUrl>https://github.com/gerakul/FastSql</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
   </PropertyGroup>

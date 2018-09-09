@@ -4,7 +4,7 @@
     <TargetFrameworks>netstandard1.3;netstandard2.0;net46</TargetFrameworks>
     <Version>1.0.0</Version>
     <Authors>gerakul</Authors>
-    <Description>Core functionality of FastSql</Description>
+    <Description>Core functionality of FastSql: Light-weight, flexible and easy to use C# library to retrieve and manipulate (including bulk copy) data in SQL databases.</Description>
     <RepositoryUrl>https://github.com/gerakul/FastSql</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
   </PropertyGroup>
