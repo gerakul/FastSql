@@ -50,22 +50,12 @@ namespace Gerakul.FastSql.PostgreSQL
         public override string Merge(string tableName, IEnumerable<string> keyFields, params string[] fields)
         {
             var allFields = keyFields.Union(fields).ToArray();
+            var setClause = string.Join(", ", fields.Select(x => $"\"{x}\" = excluded.\"{x}\""));
 
-            var usingList = ParamList(allFields);
-            var sourceList = ColumnList(allFields);
-            var onClause = string.Join(" and ", keyFields.Select(x => $"target.\"{x}\" = source.\"{x}\""));
-            var setClause = string.Join(", ", fields.Select(x => $"\"{x}\" = source.\"{x}\""));
-            var valuesClause = string.Join(", ", allFields.Select(x => $"source.\"{x}\""));
-
-            var cmd = $"merge {tableName} as target"
-                + Environment.NewLine + $"using (select {usingList})"
-                + Environment.NewLine + $"as source ({sourceList})"
-                + Environment.NewLine + $"on ({onClause})"
-                + Environment.NewLine + $"when matched then"
-                + Environment.NewLine + $"update set {setClause}"
-                + Environment.NewLine + $"when not matched then"
-                + Environment.NewLine + $"insert ({sourceList})"
-                + Environment.NewLine + $"values ({valuesClause});";
+            var cmd = $"insert into \"{tableName}\" ({ColumnList(allFields)}) "
+                + Environment.NewLine + $"values ({ParamList(allFields)}) "
+                + Environment.NewLine + $"on conflict ({ColumnList(keyFields.ToArray())}) "
+                + Environment.NewLine + $"do update set {setClause};";
 
             return cmd;
         }
