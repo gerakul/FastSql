@@ -17,7 +17,7 @@ namespace Gerakul.FastSql.Common
             this.ConnectionString = connectionString;
         }
 
-        internal override ISetCommandGetter GetISetCommandGetter()
+        internal override ICommandCreator GetICommandCreator()
         {
             return new WrappedCommandWithContext(this);
         }

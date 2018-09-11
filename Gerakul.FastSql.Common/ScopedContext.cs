@@ -19,7 +19,7 @@ namespace Gerakul.FastSql.Common
         {
         }
 
-        internal override ISetCommandGetter GetISetCommandGetter()
+        internal override ICommandCreator GetICommandCreator()
         {
             return new WrappedCommandWithScope(this);
         }

@@ -11,7 +11,7 @@ namespace Examples
 {
     class Program
     {
-        static string connString = @"<your connection string>";
+        static string connString = @"{your connection string}";
 
         static void Main(string[] args)
         {
@@ -91,7 +91,7 @@ namespace Examples
         {
             // Most of functionality of specific context is derived from interface ICommandCreator
             // regardless of context type (connection string, connection or transaction).
-            // All methods of the interface ICommandCreator begin their names with Create<...> and return IWrappedCommand.
+            // All methods of the interface ICommandCreator and its extensions return IWrappedCommand.
             // Interface IWrappedCommand provides all methods for command execution,
             // so a combination of these two interfaces creates a powerful flexibility
 
@@ -118,7 +118,7 @@ namespace Examples
                 new QueryOptions(1000, true))
                 .ExecuteQuery<Employee>(new ReadOptions(FieldsSelector.Destination)).ToArray();
 
-            // retrieving anonimous entities
+            // retrieving anonymous entities
             var data8 = context.CreateSimple("select * from Employee").ExecuteQueryAnonymous(new { ID = 0, Name = ""}).ToArray();
 
             // retrieving list of values
