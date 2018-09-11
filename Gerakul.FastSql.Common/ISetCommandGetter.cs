@@ -3,7 +3,7 @@ using System.Data.Common;
 
 namespace Gerakul.FastSql.Common
 {
-    internal interface ISetCommandGetter
+    public interface ISetCommandGetter
     {
         IWrappedCommand Set(Func<ScopedContext, DbCommand> commandGetter);
     }

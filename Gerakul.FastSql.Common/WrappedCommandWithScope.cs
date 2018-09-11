@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Gerakul.FastSql.Common
 {
-    internal class WrappedCommandWithScope : WCBase, IWrappedCommand
+    internal class WrappedCommandWithScope : ISetCommandGetter, IWrappedCommand
     {
         private ScopedContext scopedContext;
         private DbCommand command;
@@ -17,9 +17,9 @@ namespace Gerakul.FastSql.Common
             this.scopedContext = scopedContext;
         }
 
-        #region WCBase
+        #region ISetCommandGetter
 
-        public override IWrappedCommand Set(Func<ScopedContext, DbCommand> commandGetter)
+        public IWrappedCommand Set(Func<ScopedContext, DbCommand> commandGetter)
         {
             command = commandGetter(scopedContext);
             return this;

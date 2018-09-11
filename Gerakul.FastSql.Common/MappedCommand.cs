@@ -8,13 +8,19 @@ namespace Gerakul.FastSql.Common
 {
     public class MappedCommand<T>
     {
+        private class ParMap<M>
+        {
+            public string ParameterName;
+            public FieldSettings<M> Settings;
+        }
+
         private ContextProvider contextProvider;
         private ParMap<T>[] map;
 
         public string CommandText { get; private set; }
         public CommandType CommandType { get; private set; }
 
-        internal MappedCommand(ContextProvider contextProvider, string commandText, IList<string> parameters, 
+        public MappedCommand(ContextProvider contextProvider, string commandText, IList<string> parameters,
             IList<FieldSettings<T>> settings, bool caseSensitiveParamsMatching, CommandType commandType = CommandType.Text)
         {
             this.contextProvider = contextProvider;
@@ -69,8 +75,15 @@ namespace Gerakul.FastSql.Common
             }
         }
 
-        internal DbCommand Create(ScopedContext scopedContext, T value, QueryOptions queryOptions)
+        public DbCommand Create(ScopedContext scopedContext, T value, QueryOptions queryOptions)
         {
+            if (scopedContext.ContextProvider != contextProvider)
+            {
+                throw new ArgumentException($"{nameof(scopedContext.ContextProvider)} presented in received {nameof(ScopedContext)} does not match "
+                    + $"stored in given {nameof(MappedCommand<T>)}",
+                    nameof(scopedContext));
+            }
+
             var cmd = scopedContext.CreateCommand(CommandText);
             cmd.CommandType = CommandType;
 
@@ -102,11 +115,5 @@ namespace Gerakul.FastSql.Common
 
             return cmd;
         }
-    }
-
-    internal class ParMap<T>
-    {
-        public string ParameterName;
-        public FieldSettings<T> Settings;
     }
 }

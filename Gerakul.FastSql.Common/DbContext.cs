@@ -1,9 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Data.Common;
 
 namespace Gerakul.FastSql.Common
 {
-    public abstract class DbContext : ICommandCreator
+    public abstract class DbContext : ISetCommandGetter, ICommandCreator
     {
         public ContextProvider ContextProvider { get; }
 
@@ -64,92 +65,130 @@ namespace Gerakul.FastSql.Common
             return opt;
         }
 
-        private WCBase GetWC()
+        internal abstract ISetCommandGetter GetISetCommandGetter();
+
+        #region ISetCommandGetter
+
+        public IWrappedCommand Set(Func<ScopedContext, DbCommand> commandGetter)
         {
-            return WCBase.Create(this);
+            return GetISetCommandGetter().Set(commandGetter);
         }
+
+        #endregion
 
         #region ICommandCreator
 
         public IWrappedCommand CreateSimple(QueryOptions queryOptions, SimpleCommand precompiledCommand, params object[] parameters)
         {
-            return GetWC().Simple(queryOptions, precompiledCommand, parameters);
+            return Set(x => precompiledCommand.Create(x, queryOptions, parameters));
         }
 
         public IWrappedCommand CreateSimple(QueryOptions queryOptions, string commandText, params object[] parameters)
         {
-            return GetWC().Simple(queryOptions, commandText, parameters);
+            return Set(x => x.CommandCompilator.CompileSimple(commandText).Create(x, queryOptions, parameters));
         }
 
         public IWrappedCommand CreateProcedureSimple(QueryOptions queryOptions, string name, params DbParameter[] parameters)
         {
-            return GetWC().ProcedureSimple(queryOptions, name, parameters);
+            return Set(x => x.CommandCompilator.CompileProcedureSimple(name).Create(x, queryOptions, parameters));
         }
 
 
         public IWrappedCommand CreateMapped<T>(MappedCommand<T> precompiledCommand, T value, QueryOptions queryOptions = null)
         {
-            return GetWC().Mapped(precompiledCommand, value, queryOptions);
+            return Set(x => precompiledCommand.Create(x, value, queryOptions));
         }
 
         public IWrappedCommand CreateMapped<T>(string commandText, IList<string> paramNames, IList<FieldSettings<T>> settings, T value, QueryOptions queryOptions = null)
         {
-            return GetWC().Mapped(commandText, paramNames, settings, value, queryOptions);
+            return Set(x =>
+            {
+                var o = x.PrepareQueryOptions(queryOptions);
+                return x.CommandCompilator.CompileMapped(commandText, paramNames, settings, o.CaseSensitiveParamsMatching.Value).Create(x, value, o);
+            });
         }
 
         public IWrappedCommand CreateMapped<T>(string commandText, IList<FieldSettings<T>> settings, T value, QueryOptions queryOptions = null)
         {
-            return GetWC().Mapped(commandText, settings, value, queryOptions);
+            return Set(x =>
+            {
+                var o = x.PrepareQueryOptions(queryOptions);
+                return x.CommandCompilator.CompileMapped(commandText, settings, o.CaseSensitiveParamsMatching.Value).Create(x, value, o);
+            });
         }
 
         public IWrappedCommand CreateMapped<T>(string commandText, IList<string> paramNames, T value, QueryOptions queryOptions = null, FromTypeOption fromTypeOption = FromTypeOption.Default)
         {
-            return GetWC().Mapped(commandText, paramNames, value, fromTypeOption, queryOptions);
+            return Set(x =>
+            {
+                var o = x.PrepareQueryOptions(queryOptions);
+                return x.CommandCompilator.CompileMapped<T>(commandText, paramNames, fromTypeOption, o.CaseSensitiveParamsMatching.Value).Create(x, value, o);
+            });
         }
 
         public IWrappedCommand CreateMapped<T>(string commandText, T value, QueryOptions queryOptions = null, FromTypeOption fromTypeOption = FromTypeOption.Default)
         {
-            return GetWC().Mapped(commandText, value, fromTypeOption, queryOptions);
+            return Set(x =>
+            {
+                var o = x.PrepareQueryOptions(queryOptions);
+                return x.CommandCompilator.CompileMapped<T>(commandText, fromTypeOption, o.CaseSensitiveParamsMatching.Value).Create(x, value, o);
+            });
         }
 
         public IWrappedCommand CreateProcedure<T>(string name, IList<string> paramNames, IList<FieldSettings<T>> settings, T value, QueryOptions queryOptions = null)
         {
-            return GetWC().Procedure(name, paramNames, settings, value, queryOptions);
+            return Set(x =>
+            {
+                var o = x.PrepareQueryOptions(queryOptions);
+                return x.CommandCompilator.CompileProcedure(name, paramNames, settings, o.CaseSensitiveParamsMatching.Value).Create(x, value, o);
+            });
         }
 
         public IWrappedCommand CreateProcedure<T>(string name, IList<FieldSettings<T>> settings, T value, QueryOptions queryOptions = null)
         {
-            return GetWC().Procedure(name, settings, value, queryOptions);
+            return Set(x =>
+            {
+                var o = x.PrepareQueryOptions(queryOptions);
+                return x.CommandCompilator.CompileProcedure(name, settings, o.CaseSensitiveParamsMatching.Value).Create(x, value, o);
+            });
         }
 
         public IWrappedCommand CreateProcedure<T>(string name, IList<string> paramNames, T value, QueryOptions queryOptions = null, FromTypeOption fromTypeOption = FromTypeOption.Both)
         {
-            return GetWC().Procedure(name, paramNames, value, fromTypeOption, queryOptions);
+            return Set(x =>
+            {
+                var o = x.PrepareQueryOptions(queryOptions);
+                return x.CommandCompilator.CompileProcedure<T>(name, paramNames, fromTypeOption, o.CaseSensitiveParamsMatching.Value).Create(x, value, o);
+            });
         }
 
         public IWrappedCommand CreateProcedure<T>(string name, T value, QueryOptions queryOptions = null, FromTypeOption fromTypeOption = FromTypeOption.Both)
         {
-            return GetWC().Procedure(name, value, fromTypeOption, queryOptions);
+            return Set(x =>
+            {
+                var o = x.PrepareQueryOptions(queryOptions);
+                return x.CommandCompilator.CompileProcedure<T>(name, fromTypeOption, o.CaseSensitiveParamsMatching.Value).Create(x, value, o);
+            });
         }
 
         public IWrappedCommand CreateInsert<T>(string tableName, T value, QueryOptions queryOptions, bool getIdentity, params string[] ignoreFields)
         {
-            return GetWC().Insert(tableName, value, queryOptions, getIdentity, ignoreFields);
+            return Set(x => x.CommandCompilator.CompileInsert<T>(tableName, getIdentity, ignoreFields).Create(x, value, queryOptions));
         }
 
         public IWrappedCommand CreateUpdate<T>(string tableName, T value, QueryOptions queryOptions, params string[] keyFields)
         {
-            return GetWC().Update(tableName, value, queryOptions, keyFields);
+            return Set(x => x.CommandCompilator.CompileUpdate<T>(tableName, keyFields).Create(x, value, queryOptions));
         }
 
         public IWrappedCommand CreateDelete<T>(string tableName, T value, QueryOptions queryOptions, params string[] keyFields)
         {
-            return GetWC().Delete(tableName, value, queryOptions, keyFields);
+            return Set(x => x.CommandCompilator.CompileDelete<T>(tableName, keyFields).Create(x, value, queryOptions));
         }
 
         public IWrappedCommand CreateMerge<T>(string tableName, T value, QueryOptions queryOptions, params string[] keyFields)
         {
-            return GetWC().Merge(tableName, value, queryOptions, keyFields);
+            return Set(x => x.CommandCompilator.CompileMerge<T>(tableName, keyFields).Create(x, value, queryOptions));
         }
 
         #endregion

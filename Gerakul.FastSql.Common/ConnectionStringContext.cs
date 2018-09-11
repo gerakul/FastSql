@@ -17,6 +17,11 @@ namespace Gerakul.FastSql.Common
             this.ConnectionString = connectionString;
         }
 
+        internal override ISetCommandGetter GetISetCommandGetter()
+        {
+            return new WrappedCommandWithContext(this);
+        }
+
         protected internal abstract DbConnection CreateConnection();
 
         public void UsingConnection(Action<ConnectionContext> action)

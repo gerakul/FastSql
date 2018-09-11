@@ -11,7 +11,7 @@ namespace Gerakul.FastSql.Common
         public string CommandText { get; private set; }
         public CommandType CommandType { get; private set; }
 
-        internal SimpleCommand(ContextProvider contextProvider, string commandText, 
+        public SimpleCommand(ContextProvider contextProvider, string commandText, 
             CommandType commandType = CommandType.Text)
         {
             this.contextProvider = contextProvider;
@@ -19,8 +19,15 @@ namespace Gerakul.FastSql.Common
             this.CommandType = commandType;
         }
 
-        internal DbCommand Create(ScopedContext scopedContext, QueryOptions queryOptions, object[] parameters)
+        public DbCommand Create(ScopedContext scopedContext, QueryOptions queryOptions, object[] parameters)
         {
+            if (scopedContext.ContextProvider != contextProvider)
+            {
+                throw new ArgumentException($"{nameof(scopedContext.ContextProvider)} presented in received {nameof(ScopedContext)} does not match "
+                    + $"stored in given {nameof(SimpleCommand)}",
+                    nameof(scopedContext));
+            }
+
             var cmd = scopedContext.CreateCommand(CommandText);
             cmd.CommandType = CommandType;
 
