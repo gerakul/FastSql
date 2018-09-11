@@ -105,31 +105,31 @@ namespace Gerakul.FastSql.Common
 
         #region Insert
 
-        public MappedCommand<T> CompileInsert<T>(string tableName, IList<FieldSettings<T>> settings, bool getIdentity, params string[] ignoreFields)
+        public MappedCommand<T> CompileInsert<T>(string tableName, IList<FieldSettings<T>> settings, params string[] ignoreFields)
         {
             var fields = settings.Select(x => x.Name).Except(ignoreFields.Select(x => x)).ToArray();
-            string query = contextProvider.CommandTextGenerator.Insert(tableName, getIdentity, fields);
+            string query = contextProvider.CommandTextGenerator.Insert(tableName, fields);
             return new MappedCommand<T>(contextProvider, query, fields, settings, true);
         }
 
-        public MappedCommand<T> CompileInsert<T>(string tableName, FromTypeOption fromTypeOption, bool getIdentity, params string[] ignoreFields)
+        public MappedCommand<T> CompileInsert<T>(string tableName, FromTypeOption fromTypeOption, params string[] ignoreFields)
         {
-            return CompileInsert(tableName, FieldSettings.FromType<T>(fromTypeOption), getIdentity, ignoreFields);
+            return CompileInsert(tableName, FieldSettings.FromType<T>(fromTypeOption), ignoreFields);
         }
 
-        public MappedCommand<T> CompileInsert<T>(string tableName, bool getIdentity, params string[] ignoreFields)
+        public MappedCommand<T> CompileInsert<T>(string tableName, params string[] ignoreFields)
         {
-            return CompileInsert(tableName, FieldSettings.FromType<T>(FromTypeOption.Default), getIdentity, ignoreFields);
+            return CompileInsert(tableName, FieldSettings.FromType<T>(FromTypeOption.Default), ignoreFields);
         }
 
-        public MappedCommand<T> CompileInsert<T>(T proto, string tableName, FromTypeOption fromTypeOption, bool getIdentity, params string[] ignoreFields)
+        public MappedCommand<T> CompileInsert<T>(T proto, string tableName, FromTypeOption fromTypeOption, params string[] ignoreFields)
         {
-            return CompileInsert(tableName, FieldSettings.FromType(proto, fromTypeOption), getIdentity, ignoreFields);
+            return CompileInsert(tableName, FieldSettings.FromType(proto, fromTypeOption), ignoreFields);
         }
 
-        public MappedCommand<T> CompileInsert<T>(T proto, string tableName, bool getIdentity, params string[] ignoreFields)
+        public MappedCommand<T> CompileInsert<T>(T proto, string tableName, params string[] ignoreFields)
         {
-            return CompileInsert(tableName, FieldSettings.FromType(proto, FromTypeOption.Default), getIdentity, ignoreFields);
+            return CompileInsert(tableName, FieldSettings.FromType(proto, FromTypeOption.Default), ignoreFields);
         }
 
         #endregion

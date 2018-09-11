@@ -26,15 +26,14 @@ namespace Gerakul.FastSql.SqlServer
             return string.Join(", ", fields.Select(x => $"[{x}] = @{x}"));
         }
 
-        public override string Insert(string tableName, bool getIdentity, params string[] fields)
+        public override string Insert(string tableName, params string[] fields)
         {
-            var query = $"insert into {tableName} ({ColumnList(fields)}) values ({ParamList(fields)});";
-            if (getIdentity)
-            {
-                query += " select scope_identity();";
-            }
+            return $"insert into {tableName} ({ColumnList(fields)}) values ({ParamList(fields)});";
+        }
 
-            return query;
+        public string InsertAndGetID(string tableName, params string[] fields)
+        {
+            return Insert(tableName, fields) + " select scope_identity();";
         }
 
         public override string Update(string tableName, string whereClause, params string[] fields)

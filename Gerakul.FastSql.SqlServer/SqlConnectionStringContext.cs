@@ -4,7 +4,7 @@ using System.Data.SqlClient;
 
 namespace Gerakul.FastSql.SqlServer
 {
-    public class SqlConnectionStringContext : ConnectionStringContext
+    public class SqlConnectionStringContext : ConnectionStringContext, ISqlCommandCreator
     {
         public SqlConnectionStringContext(SqlContextProvider contextProvider, string connectionString)
             : this(contextProvider, connectionString,

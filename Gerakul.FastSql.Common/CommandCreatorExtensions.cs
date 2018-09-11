@@ -115,17 +115,12 @@ namespace Gerakul.FastSql.Common
 
         public static IWrappedCommand CreateInsert<T>(this ICommandCreator creator, string tableName, T value, params string[] ignoreFields)
         {
-            return creator.CreateInsert(tableName, value, null, false, ignoreFields);
+            return creator.CreateInsert(tableName, value, null, ignoreFields);
         }
 
-        public static IWrappedCommand CreateInsert<T>(this ICommandCreator creator, string tableName, T value, bool getIdentity, params string[] ignoreFields)
+        public static IWrappedCommand CreateInsert<T>(this ICommandCreator creator, string tableName, T value, QueryOptions queryOptions, params string[] ignoreFields)
         {
-            return creator.CreateInsert(tableName, value, null, getIdentity, ignoreFields);
-        }
-
-        public static IWrappedCommand CreateInsert<T>(this ICommandCreator creator, string tableName, T value, QueryOptions queryOptions, bool getIdentity, params string[] ignoreFields)
-        {
-            return creator.Set(x => x.CommandCompilator.CompileInsert<T>(tableName, getIdentity, ignoreFields).Create(x, value, queryOptions));
+            return creator.Set(x => x.CommandCompilator.CompileInsert<T>(tableName, ignoreFields).Create(x, value, queryOptions));
         }
 
         public static IWrappedCommand CreateUpdate<T>(this ICommandCreator creator, string tableName, T value, params string[] keyFields)

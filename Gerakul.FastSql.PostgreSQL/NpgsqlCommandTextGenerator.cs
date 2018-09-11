@@ -26,15 +26,9 @@ namespace Gerakul.FastSql.PostgreSQL
             return string.Join(", ", fields.Select(x => $"\"{x}\" = @{x}"));
         }
 
-        public override string Insert(string tableName, bool getIdentity, params string[] fields)
+        public override string Insert(string tableName, params string[] fields)
         {
-            var query = $"insert into {tableName} ({ColumnList(fields)}) values ({ParamList(fields)});";
-            if (getIdentity)
-            {
-                query += " select scope_identity();";
-            }
-
-            return query;
+            return $"insert into {tableName} ({ColumnList(fields)}) values ({ParamList(fields)});";
         }
 
         public override string Update(string tableName, string whereClause, params string[] fields)

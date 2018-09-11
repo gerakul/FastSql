@@ -130,8 +130,8 @@ namespace Examples
             // insert
             var emp1 = new { CompanyID = 2, Name = "New inserted", Phone = "111" };
             context.CreateInsert("Employee", emp1).ExecuteNonQuery();
-            // or return new id
-            var id = context.CreateInsert("Employee", emp1, true).ExecuteScalar();
+            // or return new id (only for Sql Server)
+            var id = ((ISqlCommandCreator)context).CreateInsertAndGetID("Employee", emp1).ExecuteScalar();
 
             // update
             var emp2 = new { ID = 2, CompanyID = 2, Name = "Updated", Phone = "111" };

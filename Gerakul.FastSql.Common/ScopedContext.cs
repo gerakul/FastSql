@@ -5,7 +5,7 @@ namespace Gerakul.FastSql.Common
 {
     public abstract class ScopedContext : DbContext
     {
-        internal CommandCompilator CommandCompilator
+        public CommandCompilator CommandCompilator
         {
             get
             {
