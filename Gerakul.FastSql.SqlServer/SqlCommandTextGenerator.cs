@@ -31,6 +31,12 @@ namespace Gerakul.FastSql.SqlServer
             return $"insert into {tableName} ({ColumnList(fields)}) values ({ParamList(fields)});";
         }
 
+        public override string InsertWithOutput(string tableName, string[] fields, params string[] outputFields)
+        {
+            var outputColumnList = string.Join(", ", outputFields.Select(x => $"inserted.[{x}]"));
+            return $"insert into {tableName} ({ColumnList(fields)}) output {outputColumnList} values ({ParamList(fields)});";
+        }
+
         public string InsertAndGetID(string tableName, params string[] fields)
         {
             return Insert(tableName, fields) + " select scope_identity();";

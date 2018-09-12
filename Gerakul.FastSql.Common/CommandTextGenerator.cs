@@ -15,6 +15,8 @@ namespace Gerakul.FastSql
 
         public abstract string Insert(string tableName, params string[] fields);
 
+        public abstract string InsertWithOutput(string tableName, string[] fields, params string[] outputFields);
+
         public abstract string Update(string tableName, string whereClause, params string[] fields);
 
         public string Update(string tableName, IEnumerable<string> keyFields, params string[] fields)

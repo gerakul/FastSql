@@ -28,17 +28,22 @@ namespace Gerakul.FastSql.PostgreSQL
 
         public override string Insert(string tableName, params string[] fields)
         {
-            return $"insert into {tableName} ({ColumnList(fields)}) values ({ParamList(fields)});";
+            return $"insert into \"{tableName}\" ({ColumnList(fields)}) values ({ParamList(fields)});";
+        }
+
+        public override string InsertWithOutput(string tableName, string[] fields, params string[] outputFields)
+        {
+            return $"insert into \"{tableName}\" ({ColumnList(fields)}) values ({ParamList(fields)}) returning {ColumnList(outputFields)};";
         }
 
         public override string Update(string tableName, string whereClause, params string[] fields)
         {
-            return $"update {tableName} set {SetClause(fields)} where {whereClause};";
+            return $"update \"{tableName}\" set {SetClause(fields)} where {whereClause};";
         }
 
         public override string Delete(string tableName, string whereClause)
         {
-            return $"delete from {tableName} where {whereClause};";
+            return $"delete from \"{tableName}\" where {whereClause};";
         }
 
         public override string Merge(string tableName, IEnumerable<string> keyFields, params string[] fields)

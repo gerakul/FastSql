@@ -94,7 +94,7 @@ namespace Gerakul.FastSql.PostgreSQL
                 }
 
                 var columns = context.ContextProvider.CommandTextGenerator.ColumnList(map.Select(x => x.Destination).ToArray());
-                using (var writer = Connection.BeginBinaryImport($"COPY {destinationTable} ({columns}) FROM STDIN (FORMAT BINARY)"))
+                using (var writer = Connection.BeginBinaryImport($"COPY \"{destinationTable}\" ({columns}) FROM STDIN (FORMAT BINARY)"))
                 {
                     while (reader.Read())
                     {
@@ -146,7 +146,7 @@ namespace Gerakul.FastSql.PostgreSQL
                 }
 
                 var columns = context.ContextProvider.CommandTextGenerator.ColumnList(map.Select(x => x.Destination).ToArray());
-                using (var writer = Connection.BeginBinaryImport($"COPY {destinationTable} ({columns}) FROM STDIN (FORMAT BINARY)"))
+                using (var writer = Connection.BeginBinaryImport($"COPY \"{destinationTable}\" ({columns}) FROM STDIN (FORMAT BINARY)"))
                 {
                     while (reader.Read())
                     {
@@ -166,7 +166,7 @@ namespace Gerakul.FastSql.PostgreSQL
         private IList<string> GetTableColumns()
         {
             List<string> result = new List<string>();
-            context.CreateSimple(string.Format("select * from {0} limit 0", destinationTable))
+            context.CreateSimple(string.Format("select * from \"{0}\" limit 0", destinationTable))
                 .UseReader(r =>
                 {
                     foreach (var item in r.GetColumnNames())
@@ -181,7 +181,7 @@ namespace Gerakul.FastSql.PostgreSQL
         private async Task<IList<string>> GetTableColumnsAsync(CancellationToken cancellationToken)
         {
             List<string> result = new List<string>();
-            await context.CreateSimple(string.Format("select * from {0} limit 0", destinationTable))
+            await context.CreateSimple(string.Format("select * from \"{0}\" limit 0", destinationTable))
                 .UseReaderAsync(r =>
                 {
                     foreach (var item in r.GetColumnNames())

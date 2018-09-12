@@ -132,6 +132,21 @@ namespace Gerakul.FastSql.Common
             return CompileInsert(tableName, FieldSettings.FromType(proto, FromTypeOption.Default), ignoreFields);
         }
 
+        public MappedCommand<T> CompileInsertWithOutput<T>(string tableName, IList<FieldSettings<T>> settings,
+            IList<string> ignoreFields, params string[] outputFields)
+        {
+            var ignFields = ignoreFields?.ToArray() ?? new string[0];
+
+            if (outputFields.Length == 0)
+            {
+                return CompileInsert(tableName, settings, ignFields);
+            }
+
+            var fields = settings.Select(x => x.Name).Except(ignFields.Select(x => x)).ToArray();
+            string query = contextProvider.CommandTextGenerator.InsertWithOutput(tableName, fields, outputFields);
+            return new MappedCommand<T>(contextProvider, query, fields, settings, true);
+        }
+
         #endregion
 
         #region Update

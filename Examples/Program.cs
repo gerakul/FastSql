@@ -93,7 +93,7 @@ namespace Examples
             // regardless of context type (connection string, connection or transaction).
             // All methods of the interface ICommandCreator and its extensions return IWrappedCommand.
             // Interface IWrappedCommand provides all methods for command execution,
-            // so a combination of these two interfaces creates a powerful flexibility
+            // so a combination of these two interfaces and their extensions creates a powerful flexibility
 
             // simple retrieving data
             var data1 = context.CreateSimple("select * from Employee").ExecuteQuery<Employee>().ToArray();
@@ -130,8 +130,8 @@ namespace Examples
             // insert
             var emp1 = new { CompanyID = 2, Name = "New inserted", Phone = "111" };
             context.CreateInsert("Employee", emp1).ExecuteNonQuery();
-            // or return new id (only for Sql Server)
-            var id = ((ISqlCommandCreator)context).CreateInsertAndGetID("Employee", emp1).ExecuteScalar();
+            // or with returning some inserted fields
+            var id = context.CreateInsertWithOutput("Employee", emp1, "ID").ExecuteQueryFirstColumn<int>().First();
 
             // update
             var emp2 = new { ID = 2, CompanyID = 2, Name = "Updated", Phone = "111" };

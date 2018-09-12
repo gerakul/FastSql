@@ -123,6 +123,26 @@ namespace Gerakul.FastSql.Common
             return creator.Set(x => x.CommandCompilator.CompileInsert<T>(tableName, ignoreFields).Create(x, value, queryOptions));
         }
 
+        public static IWrappedCommand CreateInsertWithOutput<T>(this ICommandCreator creator, string tableName, T value, params string[] outputFields)
+        {
+            return creator.CreateInsertWithOutput(tableName, value, null, null, outputFields);
+        }
+
+        public static IWrappedCommand CreateInsertWithOutput<T>(this ICommandCreator creator, string tableName, T value, QueryOptions queryOptions, params string[] outputFields)
+        {
+            return creator.CreateInsertWithOutput(tableName, value, queryOptions, null, outputFields);
+        }
+
+        public static IWrappedCommand CreateInsertWithOutput<T>(this ICommandCreator creator, string tableName, T value, IList<string> ignoreFields, params string[] outputFields)
+        {
+            return creator.CreateInsertWithOutput(tableName, value, null, ignoreFields, outputFields);
+        }
+
+        public static IWrappedCommand CreateInsertWithOutput<T>(this ICommandCreator creator, string tableName, T value, QueryOptions queryOptions, IList<string> ignoreFields, params string[] outputFields)
+        {
+            return creator.Set(x => x.CommandCompilator.CompileInsertWithOutput<T>(tableName, FieldSettings.FromType<T>(FromTypeOption.Default), ignoreFields, outputFields).Create(x, value, queryOptions));
+        }
+
         public static IWrappedCommand CreateUpdate<T>(this ICommandCreator creator, string tableName, T value, params string[] keyFields)
         {
             return creator.CreateUpdate(tableName, value, null, keyFields);
