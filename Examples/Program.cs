@@ -52,23 +52,23 @@ namespace Examples
             var connection = GetOpenConnection();
             var context2 = provider.CreateContext(connection);
             // or
-            context1.UsingConnection(context =>
+            context1.UsingConnection(connectionContext =>
             {
-                // doing something with context (attached to opened connection)
+                // doing something with connectionContext (attached to opened connection)
                 // for example using transaction
-                context.UsingTransaction(cntxt =>
+                connectionContext.UsingTransaction(transactionContext =>
                 {
-                    // doing something with cntxt (attached to active transaction)
+                    // doing something with transactionContext (attached to active transaction)
                 });
             });
             // or asynchronously
-            await context1.UsingConnectionAsync(async context =>
+            await context1.UsingConnectionAsync(async connectionContext =>
             {
-                // doing something with context (attached to opened connection)
+                // doing something with connectionContext (attached to opened connection)
                 // for example using transaction
-                await context.UsingTransactionAsync(async cntxt =>
+                await connectionContext.UsingTransactionAsync(async transactionContext =>
                 {
-                    // doing something with cntxt (attached to active transaction)
+                    // doing something with transactionContext (attached to active transaction)
                 });
             });
 
@@ -76,14 +76,14 @@ namespace Examples
             var transaction = connection.BeginTransaction();
             var context3 = provider.CreateContext(transaction);
             // or
-            context1.UsingTransaction(context =>
+            context1.UsingTransaction(transactionContext =>
             {
-                // doing something with context (attached to active transaction)
+                // doing something with transactionContext (attached to active transaction)
             });
             // or asynchronously
-            await context1.UsingTransactionAsync(async context =>
+            await context1.UsingTransactionAsync(async transactionContext =>
             {
-                // doing something with context (attached to active transaction)
+                // doing something with transactionContext (attached to active transaction)
             });
         }
 
@@ -162,8 +162,9 @@ namespace Examples
             context.CreateSimple("select * from Employee").WriteToServer(context, "Employee");
             context.CreateProcedure("TestProc", new { CompanyID = 1, Age = 40 }).WriteToServer(context, "Employee");
 
-            // using custom extensions of ICommandCreator
+            // using custom extensions of ICommandCreator (for definitions look at the class Examples.CommandCreatorExtensions)
             var data12 = context.CreateSelectTop10Employees().ExecuteQuery<Employee>().ToArray();
+            var data13 = context.GetTable<Employee>("Employee");
         }
 
         static DbConnection GetOpenConnection()

@@ -1,6 +1,7 @@
 ﻿using Gerakul.FastSql.Common;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace Examples
@@ -17,6 +18,12 @@ namespace Examples
                 cmd.CommandTimeout = 1000;
                 return cmd;
             });
+        }
+
+        // combining Create and Execute
+        public static T[] GetTable<T>(this ICommandCreator creator, string tableName) where T : new()
+        {
+            return creator.CreateSimple($"select * from {tableName}").ExecuteQuery<T>().ToArray();
         }
     }
 }
