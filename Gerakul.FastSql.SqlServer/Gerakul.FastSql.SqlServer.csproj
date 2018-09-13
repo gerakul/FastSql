@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard1.3;netstandard2.0;net46</TargetFrameworks>
+    <Version>1.0.0</Version>
+    <Authors>gerakul</Authors>
+    <Description>Implementation FastSql for MS Sql Server: Light-weight, flexible and easy to use C# library to retrieve and manipulate (including bulk copy) data in SQL databases.</Description>
+    <RepositoryUrl>https://github.com/gerakul/FastSql</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Data.SqlClient" Version="4.5.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Gerakul.FastSql.Common\Gerakul.FastSql.Common.csproj" />
+  </ItemGroup>
+
+</Project>
