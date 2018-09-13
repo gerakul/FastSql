@@ -8,6 +8,14 @@ namespace Gerakul.FastSql.Common
     {
         public ContextProvider ContextProvider { get; }
 
+        public CommandCompilator CommandCompilator
+        {
+            get
+            {
+                return ContextProvider.CommandCompilator;
+            }
+        }
+
         public QueryOptions QueryOptions { get; }
         public BulkOptions BulkOptions { get; }
         public ReadOptions ReadOptions { get; }

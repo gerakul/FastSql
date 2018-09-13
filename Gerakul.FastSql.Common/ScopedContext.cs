@@ -5,14 +5,6 @@ namespace Gerakul.FastSql.Common
 {
     public abstract class ScopedContext : DbContext
     {
-        public CommandCompilator CommandCompilator
-        {
-            get
-            {
-                return ContextProvider.CommandCompilator;
-            }
-        }
-
         protected internal ScopedContext(ContextProvider contextProvider,
             QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
             : base(contextProvider, queryOptions, bulkOptions, readOptions)

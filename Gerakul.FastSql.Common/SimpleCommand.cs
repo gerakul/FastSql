@@ -11,7 +11,7 @@ namespace Gerakul.FastSql.Common
         public string CommandText { get; private set; }
         public CommandType CommandType { get; private set; }
 
-        public SimpleCommand(ContextProvider contextProvider, string commandText, 
+        internal SimpleCommand(ContextProvider contextProvider, string commandText, 
             CommandType commandType = CommandType.Text)
         {
             this.contextProvider = contextProvider;
@@ -19,7 +19,7 @@ namespace Gerakul.FastSql.Common
             this.CommandType = commandType;
         }
 
-        public DbCommand Create(ScopedContext scopedContext, QueryOptions queryOptions, object[] parameters)
+        internal DbCommand Create(ScopedContext scopedContext, QueryOptions queryOptions, object[] parameters)
         {
             if (scopedContext.ContextProvider != contextProvider)
             {

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Data.Common;
+using System.Threading.Tasks;
 
 namespace Gerakul.FastSql.Common
 {
@@ -172,5 +173,89 @@ namespace Gerakul.FastSql.Common
         {
             return creator.Set(x => x.CommandCompilator.CompileMerge<T>(tableName, keyFields).Create(x, value, queryOptions));
         }
+
+        #region Some combination of Create and Execute
+
+        public static void Insert<T>(this ICommandCreator creator, string tableName, T value, params string[] ignoreFields)
+        {
+            creator.CreateInsert(tableName, value, ignoreFields).ExecuteNonQuery();
+        }
+
+        public static void Insert<T>(this ICommandCreator creator, string tableName, T value, QueryOptions queryOptions, params string[] ignoreFields)
+        {
+            creator.CreateInsert(tableName, value, queryOptions, ignoreFields).ExecuteNonQuery();
+        }
+
+        public static Task InsertAsync<T>(this ICommandCreator creator, string tableName, T value, params string[] ignoreFields)
+        {
+            return creator.CreateInsert(tableName, value, ignoreFields).ExecuteNonQueryAsync();
+        }
+
+        public static Task InsertAsync<T>(this ICommandCreator creator, string tableName, T value, QueryOptions queryOptions, params string[] ignoreFields)
+        {
+            return creator.CreateInsert(tableName, value, queryOptions, ignoreFields).ExecuteNonQueryAsync();
+        }
+
+        public static void Update<T>(this ICommandCreator creator, string tableName, T value, params string[] keyFields)
+        {
+            creator.CreateUpdate(tableName, value, keyFields).ExecuteNonQuery();
+        }
+
+        public static void Update<T>(this ICommandCreator creator, string tableName, T value, QueryOptions queryOptions, params string[] keyFields)
+        {
+            creator.CreateUpdate(tableName, value, queryOptions, keyFields).ExecuteNonQuery();
+        }
+
+        public static Task UpdateAsync<T>(this ICommandCreator creator, string tableName, T value, params string[] keyFields)
+        {
+            return creator.CreateUpdate(tableName, value, keyFields).ExecuteNonQueryAsync();
+        }
+
+        public static Task UpdateAsync<T>(this ICommandCreator creator, string tableName, T value, QueryOptions queryOptions, params string[] keyFields)
+        {
+            return creator.CreateUpdate(tableName, value, queryOptions, keyFields).ExecuteNonQueryAsync();
+        }
+
+        public static void Delete<T>(this ICommandCreator creator, string tableName, T value, params string[] keyFields)
+        {
+            creator.CreateDelete(tableName, value, keyFields).ExecuteNonQuery();
+        }
+
+        public static void Delete<T>(this ICommandCreator creator, string tableName, T value, QueryOptions queryOptions, params string[] keyFields)
+        {
+            creator.CreateDelete(tableName, value, queryOptions, keyFields).ExecuteNonQuery();
+        }
+
+        public static Task DeleteAsync<T>(this ICommandCreator creator, string tableName, T value, params string[] keyFields)
+        {
+            return creator.CreateDelete(tableName, value, keyFields).ExecuteNonQueryAsync();
+        }
+
+        public static Task DeleteAsync<T>(this ICommandCreator creator, string tableName, T value, QueryOptions queryOptions, params string[] keyFields)
+        {
+            return creator.CreateDelete(tableName, value, queryOptions, keyFields).ExecuteNonQueryAsync();
+        }
+
+        public static void Merge<T>(this ICommandCreator creator, string tableName, T value, params string[] keyFields)
+        {
+            creator.CreateMerge(tableName, value, keyFields).ExecuteNonQuery();
+        }
+
+        public static void Merge<T>(this ICommandCreator creator, string tableName, T value, QueryOptions queryOptions, params string[] keyFields)
+        {
+            creator.CreateMerge(tableName, value, queryOptions, keyFields).ExecuteNonQuery();
+        }
+
+        public static Task MergeAsync<T>(this ICommandCreator creator, string tableName, T value, params string[] keyFields)
+        {
+            return creator.CreateMerge(tableName, value, keyFields).ExecuteNonQueryAsync();
+        }
+
+        public static Task MergeAsync<T>(this ICommandCreator creator, string tableName, T value, QueryOptions queryOptions, params string[] keyFields)
+        {
+            return creator.CreateMerge(tableName, value, queryOptions, keyFields).ExecuteNonQueryAsync();
+        }
+
+        #endregion
     }
 }

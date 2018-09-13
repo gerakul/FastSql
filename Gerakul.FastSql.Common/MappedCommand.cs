@@ -20,7 +20,7 @@ namespace Gerakul.FastSql.Common
         public string CommandText { get; private set; }
         public CommandType CommandType { get; private set; }
 
-        public MappedCommand(ContextProvider contextProvider, string commandText, IList<string> parameters,
+        internal MappedCommand(ContextProvider contextProvider, string commandText, IList<string> parameters,
             IList<FieldSettings<T>> settings, bool caseSensitiveParamsMatching, CommandType commandType = CommandType.Text)
         {
             this.contextProvider = contextProvider;
@@ -75,7 +75,7 @@ namespace Gerakul.FastSql.Common
             }
         }
 
-        public DbCommand Create(ScopedContext scopedContext, T value, QueryOptions queryOptions)
+        internal DbCommand Create(ScopedContext scopedContext, T value, QueryOptions queryOptions)
         {
             if (scopedContext.ContextProvider != contextProvider)
             {

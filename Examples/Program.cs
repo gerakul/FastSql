@@ -129,19 +129,19 @@ namespace Examples
 
             // insert
             var emp1 = new { CompanyID = 2, Name = "New inserted", Phone = "111" };
-            context.CreateInsert("Employee", emp1).ExecuteNonQuery();
+            context.Insert("Employee", emp1);
             // or with returning some inserted fields
             var id = context.CreateInsertWithOutput("Employee", emp1, "ID").ExecuteQueryFirstColumn<int>().First();
 
             // update
             var emp2 = new { ID = 2, CompanyID = 2, Name = "Updated", Phone = "111" };
-            context.CreateUpdate("Employee", emp2, "ID").ExecuteNonQuery();
+            context.Update("Employee", emp2, "ID");
             // or merge
             var company = new { ID = 3, Name = "New name", DateOfFoundation = DateTime.Now };
-            context.CreateMerge("Company", company, "ID").ExecuteNonQuery();
+            context.Merge("Company", company, "ID");
 
             // delete
-            context.CreateDelete("Employee", emp2, "ID").ExecuteNonQuery();
+            context.Delete("Employee", emp2, "ID");
 
             // bulk copy
             Employee[] newEmployees = new Employee[] {
