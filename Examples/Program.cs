@@ -12,7 +12,7 @@ namespace Examples
     class Program
     {
         static string connString = @"{your connection string}";
-
+        
         static void Main(string[] args)
         {
             // Examples below have been written for Sql Server, but examples for PostgreSQL would look same
@@ -161,6 +161,9 @@ namespace Examples
             // NOTE: Here are only couple of data import examples, but WriteToServer functionality can be applied for any IWrappedCommand
             context.CreateSimple("select * from Employee").WriteToServer(context, "Employee");
             context.CreateProcedure("TestProc", new { CompanyID = 1, Age = 40 }).WriteToServer(context, "Employee");
+
+            // using custom extensions of ICommandCreator
+            var data12 = context.CreateSelectTop10Employees().ExecuteQuery<Employee>().ToArray();
         }
 
         static DbConnection GetOpenConnection()
