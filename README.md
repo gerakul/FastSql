@@ -1,3 +1,4 @@
+_**NOTE:** The old version of FastSql has been moved to old\_version branch_
 # FastSql
 Light-weight, flexible and easy to use C# library to retrieve and manipulate (including bulk copy) data in SQL databases. 
 
