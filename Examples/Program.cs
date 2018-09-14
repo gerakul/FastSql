@@ -136,7 +136,8 @@ namespace Examples
             // update
             var emp2 = new { ID = 2, CompanyID = 2, Name = "Updated", Phone = "111" };
             context.Update("Employee", emp2, "ID");
-            // or merge
+
+            // merge
             var company = new { ID = 3, Name = "New name", DateOfFoundation = DateTime.Now };
             context.Merge("Company", company, "ID");
 

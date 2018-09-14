@@ -77,14 +77,15 @@ You can also get ConnectionContext and TransactionContext from ConnectionStringC
 
 ## Doing queries
 Since you have the context, you can work with database.
-Most of functionality of specific context is derived from interface ICommandCreator regardless of context type (connection string, connection or transaction). All methods of the interface ICommandCreator and its extensions return IWrappedCommand. Interface IWrappedCommand provides all methods for command execution, so a combination of these two interfaces and their extensions creates a powerful flexibility.
+Most of functionality of specific context is derived from interface ICommandCreator regardless of context type (connection string, connection or transaction). Most of methods of the interface ICommandCreator and its extensions return IWrappedCommand. Interface IWrappedCommand provides all methods for command execution, so a combination of these two interfaces and their extensions creates a powerful flexibility.
+Simple retrieving data
   ```csharp
-  // simple retrieving data
   var data1 = context.CreateSimple("select * from Employee").ExecuteQuery<Employee>().ToArray();
   // or async
   var data2 = await context.CreateSimple("select * from Employee").ExecuteQueryAsync<Employee>().ToArray();
-  
-  // using parameters
+  ```
+Using parameters
+  ```csharp
   // simple
   var data3 = context.CreateSimple("select * from Employee where CompanyID = @p0 and Age > @p1", 1, 40).ExecuteQuery<Employee>().ToArray();
   // or async
@@ -93,41 +94,54 @@ Most of functionality of specific context is derived from interface ICommandCrea
   var data5 = context.CreateMapped("select * from Employee where CompanyID = @CompanyID and Age > @Age", new { CompanyID = 1, Age = 40 }).ExecuteQuery<Employee>().ToArray();
   // or async
   var data6 = await context.CreateMapped("select * from Employee where CompanyID = @CompanyID and Age > @Age", new { CompanyID = 1, Age = 40 }).ExecuteQueryAsync<Employee>().ToArray();
-  
-  // NOTE: all commands can be executed asynchronously but examples below only show synchronous execution in order not to complicate them
-  
-  // using options 
+  ```
+
+**NOTE:** all commands can be executed asynchronously but examples below only show synchronous execution in order not to complicate them.
+
+Using options 
+  ```csharp
   // NOTE: options can be set for context or ContextProvider as well as for certain command
   var data7 = context.CreateMapped("select * from Employee where CompanyID = @CompanyID and Age > @Age", new { CompanyID = 1, Age = 40 },
       new QueryOptions(1000, true))
       .ExecuteQuery<Employee>(new ReadOptions(FieldsSelector.Destination)).ToArray();
+  ```
   
-  // retrieving anonymous entities
+Retrieving anonymous entities
+  ```csharp
   var data8 = context.CreateSimple("select * from Employee").ExecuteQueryAnonymous(new { ID = 0, Name = ""}).ToArray();
-  
-  // retrieving list of values
+  ```
+Retrieving list of values
+  ```csharp
   var data9 = context.CreateSimple("select ID from Employee").ExecuteQueryFirstColumn<int>().ToArray();
-  
-  // execute without retrieving data
+  ```  
+Execute without retrieving data
+  ```csharp
   context.CreateSimple("update Company set Name = @p1 where ID = @p0", 2, "Updated Co").ExecuteNonQuery();
-  
-  // insert
-  var emp1 = new { CompanyID = 2, Name = "New inserted", Phone = "111" };
-  context.Insert("Employee", emp1);
+  ```  
+Insert
+  ```csharp
+  var emp = new { CompanyID = 2, Name = "New inserted", Phone = "111" };
+  context.Insert("Employee", emp);
   // or with returning some inserted fields
-  var id = context.CreateInsertWithOutput("Employee", emp1, "ID").ExecuteQueryFirstColumn<int>().First();
-  
-  // update
-  var emp2 = new { ID = 2, CompanyID = 2, Name = "Updated", Phone = "111" };
-  context.Update("Employee", emp2, "ID");
-  // or merge
+  var id = context.CreateInsertWithOutput("Employee", emp, "ID").ExecuteQueryFirstColumn<int>().First();
+  ```  
+Update
+  ```csharp
+  var emp = new { ID = 2, CompanyID = 2, Name = "Updated", Phone = "111" };
+  context.Update("Employee", emp, "ID");
+  ```
+Merge
+  ```csharp
   var company = new { ID = 3, Name = "New name", DateOfFoundation = DateTime.Now };
   context.Merge("Company", company, "ID");
-  
-  // delete
-  context.Delete("Employee", emp2, "ID");
-  
-  // bulk copy
+  ```  
+Delete
+  ```csharp
+  var emp = new { ID = 2, CompanyID = 2, Name = "Updated", Phone = "111" };
+  context.Delete("Employee", emp, "ID");
+  ```
+Bulk copy
+  ```csharp
   Employee[] newEmployees = new Employee[] {
       new Employee() { CompanyID = 1, Name = "New Employee1", Age = 23, StartWorking = DateTime.UtcNow },
       new Employee() { CompanyID = 1, Name = "New Employee2", StartWorking = DateTime.UtcNow },
@@ -135,16 +149,47 @@ Most of functionality of specific context is derived from interface ICommandCrea
   };
   
   newEmployees.WriteToServer(context, "Employee");
-  
-  // stored procedures
+  ```  
+Stored procedures
+  ```csharp
   var data10 = context.CreateProcedure("TestProc", new { CompanyID = 1, Age = 40 }).ExecuteQuery<Employee>().ToArray();
   // passing custom DbParameters
   var data11 = context.CreateProcedureSimple("TestProc", new SqlParameter("CompanyID", 1), new SqlParameter("Age", 40)).ExecuteQuery<Employee>().ToArray();
-  
-  // data import
+  ```  
+Data import
+  ```csharp
   // NOTE: Here are only couple of data import examples, but WriteToServer functionality can be applied for any IWrappedCommand
   context.CreateSimple("select * from Employee").WriteToServer(context, "Employee");
   context.CreateProcedure("TestProc", new { CompanyID = 1, Age = 40 }).WriteToServer(context, "Employee");
   ```
 
 ## Extensibility
+You can add your own methods accessible from context easily writing extensions for interface ICommandCreator
+  ```csharp
+  public static partial class CommandCreatorExtensions
+  {
+      // making your own custom command accessible from all types of contexts (connection string, connection, transaction)
+      public static IWrappedCommand CreateSelectTop10Employees(this ICommandCreator creator)
+      {
+          return creator.Set(c =>
+          {
+              var cmd = c.CreateCommand("select top 10 * from dbo.Employee");
+              cmd.CommandType = System.Data.CommandType.Text;
+              cmd.CommandTimeout = 1000;
+              return cmd;
+          });
+      }
+  
+      // combining Create and Execute
+      public static T[] GetTable<T>(this ICommandCreator creator, string tableName) where T : new()
+      {
+          return creator.CreateSimple($"select * from {tableName}").ExecuteQuery<T>().ToArray();
+      }
+  }
+  ```
+  then you can use it everywhere from any type of context
+  ```csharp
+  // using custom extensions of ICommandCreator
+  var data1 = context.CreateSelectTop10Employees().ExecuteQuery<Employee>().ToArray();
+  var data2 = context.GetTable<Employee>("Employee");
+  ```
