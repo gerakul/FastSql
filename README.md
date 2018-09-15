@@ -1,11 +1,13 @@
 _**NOTE:** The old version of FastSql has been moved to old\_version branch_
 # FastSql
-Light-weight, flexible and easy to use C# library to retrieve and manipulate (including bulk copy) data in SQL databases. 
+Light-weight, flexible and easy to use C# library to retrieve and manipulate (including bulk copy) data in SQL databases. Now it has implemented for Sql Server and PostgreSQL. Examples below have been written for Sql Server, but examples for PostgreSQL would look same.
+
+**NOTE:** Put "using Gerakul.FastSql.Common;" in your code file to use Create<...> methods.
 
 ## Simple example
   ```csharp
   // get context
-  var context = SqlContextProvider.DefaultInstance.CreateContext(connString);
+  var context = SqlContextProvider.DefaultInstance.CreateContext("your connection string");
 
   // create and execute command
   var employees = context.CreateSimple("select * from Employee").ExecuteQuery<Employee>().ToArray();
@@ -21,7 +23,7 @@ For working with certain RDBMS you need appropriate context provider. For most c
   ```
 
 ## Getting context
-For doing queries to a database, you need to get a context first. There are three types of context based on connection string, connection and transaction respectively.
+For doing queries to a database, you need to get a context first. There are three types of context based on connection string, connection, and transaction respectively.
 1. To get context based on connection string:
   ```csharp
   var context = provider.CreateContext("your database connection string");
@@ -41,7 +43,7 @@ You can also get ConnectionContext and TransactionContext from ConnectionStringC
   ```csharp
   
   // context from connection string
-  var context = provider.CreateContext(connString);
+  var context = provider.CreateContext("your database connection string");
   
   // using connection
   context.UsingConnection(connectionContext =>
@@ -77,8 +79,8 @@ You can also get ConnectionContext and TransactionContext from ConnectionStringC
   ```
 
 ## Doing queries
-Since you have the context, you can work with database.
-Most of functionality of specific context is derived from interface ICommandCreator regardless of context type (connection string, connection or transaction). Most of methods of the interface ICommandCreator and its extensions return IWrappedCommand. Interface IWrappedCommand provides all methods for command execution, so a combination of these two interfaces and their extensions creates a powerful flexibility.
+Since you have the context, you can work with a database. Most of the functionality of specific context is derived from interface ICommandCreator regardless of context type (connection string, connection or transaction). Most of the methods of the interface ICommandCreator and its extensions return IWrappedCommand. Interface IWrappedCommand provides all methods for command execution, so a combination of these two interfaces and their extensions creates powerful flexibility.
+
 Simple retrieving data
   ```csharp
   var data1 = context.CreateSimple("select * from Employee").ExecuteQuery<Employee>().ToArray();
@@ -159,7 +161,7 @@ Stored procedures
   ```  
 Data import
   ```csharp
-  // NOTE: Here are only couple of data import examples, but WriteToServer functionality can be applied for any IWrappedCommand
+  // NOTE: Here are only a couple of data import examples, but WriteToServer functionality can be applied for any IWrappedCommand
   context.CreateSimple("select * from Employee").WriteToServer(context, "Employee");
   context.CreateProcedure("TestProc", new { CompanyID = 1, Age = 40 }).WriteToServer(context, "Employee");
   ```
