@@ -142,6 +142,8 @@ Delete
   ```csharp
   var emp = new { ID = 2, CompanyID = 2, Name = "Updated", Phone = "111" };
   context.Delete("Employee", emp, "ID");
+  // or even simplier
+  context.Delete("Employee", new { ID = 2 });
   ```
 Bulk copy
   ```csharp

@@ -143,6 +143,9 @@ namespace Examples
 
             // delete
             context.Delete("Employee", emp2, "ID");
+            // or even simplier
+            context.Delete("Employee", new { ID = 2 });
+
 
             // bulk copy
             Employee[] newEmployees = new Employee[] {
