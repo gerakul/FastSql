@@ -259,12 +259,12 @@ namespace Gerakul.FastSql.Common
 
             for (int i = 0; i < fi.Length; i++)
             {
-                fi[i].SetValue(obj, Reader.IsDBNull(fiInd[i]) && fiNullable[i] ? null : Reader.GetValue(fiInd[i]));
+                fi[i].SetValue(obj, Reader.GetValueWithType(fi[i].FieldType, fiInd[i], fiNullable[i]));
             }
 
             for (int i = 0; i < pi.Length; i++)
             {
-                pi[i].SetValue(obj, Reader.IsDBNull(piInd[i]) && piNullable[i] ? null : Reader.GetValue(piInd[i]));
+                pi[i].SetValue(obj, Reader.GetValueWithType(pi[i].PropertyType, piInd[i], piNullable[i]));
             }
 
             return obj;
@@ -317,6 +317,37 @@ namespace Gerakul.FastSql.Common
         public override T GetValue()
         {
             return Reader.IsDBNull(0) ? (T)((object)null) : (T)Reader.GetValue(0);
+        }
+    }
+
+    internal static class DataReadingExtensions
+    {
+        public static object GetValueWithType(this IDataReader reader, Type type, int idx, bool isNullable)
+        {
+            if (reader.IsDBNull(idx) && isNullable)
+                return null;
+
+            var value = reader.GetValue(idx);
+
+            if (type.GetTypeInfo().IsEnum)
+            {
+                if (value is string enumAsString)
+                {
+                    return Enum.Parse(type, enumAsString);
+                }
+                else
+                {
+                    return Enum.ToObject(type, value);
+                }
+            }
+
+            var nullableUnderlyingType = Nullable.GetUnderlyingType(type);
+            if (nullableUnderlyingType != null)
+            {
+                return Convert.ChangeType(value, nullableUnderlyingType);
+            }
+
+            return Convert.ChangeType(value, type);
         }
     }
 }
