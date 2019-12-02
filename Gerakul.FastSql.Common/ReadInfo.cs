@@ -21,6 +21,35 @@ namespace Gerakul.FastSql.Common
             GC.SuppressFinalize(this);
         }
 
+        protected object GetValueFromReader(int indexInReader, Type convertingType, bool isNullable, bool isEnum)
+        {
+            if (Reader.IsDBNull(indexInReader) && isNullable)
+            {
+                return null;
+            }
+
+            var value = Reader.GetValue(indexInReader);
+
+            if (value == null)
+            {
+                return null;
+            }
+
+            if (isEnum)
+            {
+                if (value is string enumAsString)
+                {
+                    return Enum.Parse(convertingType, enumAsString);
+                }
+                else
+                {
+                    return Enum.ToObject(convertingType, value);
+                }
+            }
+
+            return Convert.ChangeType(value, convertingType);
+        }
+
         public abstract T GetValue();
     }
 
@@ -109,30 +138,36 @@ namespace Gerakul.FastSql.Common
 
             Helpers.CheckFieldSelection(readOpt.FieldsSelector.Value, readerFields.Length, fiAll.Length + piAll.Length, fiCommon.Length + piCommon.Length);
 
-            Type nullableTypeDef = typeof(Nullable<int>).GetGenericTypeDefinition();
-
             FieldInfo[] fi = new FieldInfo[fiCommon.Length];
             int[] fiInd = new int[fiCommon.Length];
             bool[] fiNullable = new bool[fiCommon.Length];
+            Type[] fiConvertingType = new Type[fiCommon.Length];
+            bool[] fiIsEnum = new bool[fiCommon.Length];
 
             for (int i = 0; i < fiCommon.Length; i++)
             {
                 fi[i] = fiCommon[i].FieldInfo;
                 fiInd[i] = fiCommon[i].ReaderField.Ordinal;
-                fiNullable[i] = !fiCommon[i].FieldInfo.FieldType.GetTypeInfo().IsValueType
-                  || (fiCommon[i].FieldInfo.FieldType.GetTypeInfo().IsGenericType && fiCommon[i].FieldInfo.FieldType.GetGenericTypeDefinition().Equals(nullableTypeDef));
+                var underlyingType = Nullable.GetUnderlyingType(fiCommon[i].FieldInfo.FieldType);
+                fiNullable[i] = !fiCommon[i].FieldInfo.FieldType.GetTypeInfo().IsValueType || underlyingType != null;
+                fiConvertingType[i] = underlyingType ?? fiCommon[i].FieldInfo.FieldType;
+                fiIsEnum[i] = fiConvertingType[i].GetTypeInfo().IsEnum;
             }
 
             PropertyInfo[] pi = new PropertyInfo[piCommon.Length];
             int[] piInd = new int[piCommon.Length];
             bool[] piNullable = new bool[piCommon.Length];
+            Type[] piConvertingType = new Type[piCommon.Length];
+            bool[] piIsEnum = new bool[piCommon.Length];
 
             for (int i = 0; i < piCommon.Length; i++)
             {
                 pi[i] = piCommon[i].PropertyInfo;
                 piInd[i] = piCommon[i].ReaderField.Ordinal;
-                piNullable[i] = !piCommon[i].PropertyInfo.PropertyType.GetTypeInfo().IsValueType
-                  || (piCommon[i].PropertyInfo.PropertyType.GetTypeInfo().IsGenericType && piCommon[i].PropertyInfo.PropertyType.GetGenericTypeDefinition().Equals(nullableTypeDef));
+                var underlyingType = Nullable.GetUnderlyingType(piCommon[i].PropertyInfo.PropertyType);
+                piNullable[i] = !piCommon[i].PropertyInfo.PropertyType.GetTypeInfo().IsValueType || underlyingType != null;
+                piConvertingType[i] = underlyingType ?? piCommon[i].PropertyInfo.PropertyType;
+                piIsEnum[i] = piConvertingType[i].GetTypeInfo().IsEnum;
             }
 
             return new ReadInfoByType<T>()
@@ -141,9 +176,13 @@ namespace Gerakul.FastSql.Common
                 fi = fi,
                 fiInd = fiInd,
                 fiNullable = fiNullable,
+                fiConvertingType = fiConvertingType,
+                fiIsEnum = fiIsEnum,
                 pi = pi,
                 piInd = piInd,
-                piNullable = piNullable
+                piNullable = piNullable,
+                piConvertingType = piConvertingType,
+                piIsEnum = piIsEnum
             };
         }
 
@@ -201,18 +240,20 @@ namespace Gerakul.FastSql.Common
 
             Helpers.CheckFieldSelection(readOpt.FieldsSelector.Value, readerFields.Length, piAll.Length, piCommon.Length);
 
-            Type nullableTypeDef = typeof(Nullable<int>).GetGenericTypeDefinition();
-
             ParameterInfo[] pi = new ParameterInfo[piCommon.Length];
             int[] piInd = new int[piCommon.Length];
             bool[] piNullable = new bool[piCommon.Length];
+            Type[] piConvertingType = new Type[piCommon.Length];
+            bool[] piIsEnum = new bool[piCommon.Length];
 
             for (int i = 0; i < piCommon.Length; i++)
             {
                 pi[i] = piCommon[i].ParameterInfo;
                 piInd[i] = piCommon[i].ReaderField.Ordinal;
-                piNullable[i] = !piCommon[i].ParameterInfo.ParameterType.GetTypeInfo().IsValueType
-                  || (piCommon[i].ParameterInfo.ParameterType.GetTypeInfo().IsGenericType && piCommon[i].ParameterInfo.ParameterType.GetGenericTypeDefinition().Equals(nullableTypeDef));
+                var underlyingType = Nullable.GetUnderlyingType(piCommon[i].ParameterInfo.ParameterType);
+                piNullable[i] = !piCommon[i].ParameterInfo.ParameterType.GetTypeInfo().IsValueType || underlyingType != null;
+                piConvertingType[i] = underlyingType ?? piCommon[i].ParameterInfo.ParameterType;
+                piIsEnum[i] = piConvertingType[i].GetTypeInfo().IsEnum;
             }
 
             return new ReadInfoAnonymous<T>()
@@ -222,7 +263,9 @@ namespace Gerakul.FastSql.Common
                 piAll = piAll,
                 pi = pi,
                 piInd = piInd,
-                piNullable = piNullable
+                piNullable = piNullable,
+                piConvertingType = piConvertingType,
+                piIsEnum = piIsEnum
             };
         }
 
@@ -236,9 +279,18 @@ namespace Gerakul.FastSql.Common
 
         public static ReadInfoFirstColumn<T> CreateFirstColumn<T>(IDataReader reader)
         {
+            var type = typeof(T);
+            var underlyingType = Nullable.GetUnderlyingType(type);
+            bool isNullable = !type.GetTypeInfo().IsValueType || underlyingType != null;
+            Type convertingType = underlyingType ?? type;
+            bool isEnum = convertingType.GetTypeInfo().IsEnum;
+
             return new ReadInfoFirstColumn<T>()
             {
-                Reader = reader
+                Reader = reader,
+                isNullable = isNullable,
+                convertingType = convertingType,
+                isEnum = isEnum
             };
         }
     }
@@ -248,10 +300,14 @@ namespace Gerakul.FastSql.Common
         public FieldInfo[] fi;
         public int[] fiInd;
         public bool[] fiNullable;
+        public Type[] fiConvertingType;
+        public bool[] fiIsEnum;
 
         public PropertyInfo[] pi;
         public int[] piInd;
         public bool[] piNullable;
+        public Type[] piConvertingType;
+        public bool[] piIsEnum;
 
         public override T GetValue()
         {
@@ -259,12 +315,12 @@ namespace Gerakul.FastSql.Common
 
             for (int i = 0; i < fi.Length; i++)
             {
-                fi[i].SetValue(obj, Reader.IsDBNull(fiInd[i]) && fiNullable[i] ? null : Reader.GetValue(fiInd[i]));
+                fi[i].SetValue(obj, GetValueFromReader(fiInd[i], fiConvertingType[i], fiNullable[i], fiIsEnum[i]));
             }
 
             for (int i = 0; i < pi.Length; i++)
             {
-                pi[i].SetValue(obj, Reader.IsDBNull(piInd[i]) && piNullable[i] ? null : Reader.GetValue(piInd[i]));
+                pi[i].SetValue(obj, GetValueFromReader(piInd[i], piConvertingType[i], piNullable[i], piIsEnum[i]));
             }
 
             return obj;
@@ -290,6 +346,8 @@ namespace Gerakul.FastSql.Common
         public ParameterInfo[] pi;
         public int[] piInd;
         public bool[] piNullable;
+        public Type[] piConvertingType;
+        public bool[] piIsEnum;
 
         public override T GetValue()
         {
@@ -297,7 +355,7 @@ namespace Gerakul.FastSql.Common
 
             for (int i = 0; i < pi.Length; i++)
             {
-                args[pi[i].Position] = Reader.IsDBNull(piInd[i]) && piNullable[i] ? null : Reader.GetValue(piInd[i]);
+                args[pi[i].Position] = GetValueFromReader(piInd[i], piConvertingType[i], piNullable[i], piIsEnum[i]);
             }
 
             return (T)constructor.Invoke(args);
@@ -314,9 +372,13 @@ namespace Gerakul.FastSql.Common
 
     internal class ReadInfoFirstColumn<T> : ReadInfo<T>
     {
+        public bool isNullable;
+        public Type convertingType;
+        public bool isEnum;
+
         public override T GetValue()
         {
-            return Reader.IsDBNull(0) ? (T)((object)null) : (T)Reader.GetValue(0);
+            return (T)GetValueFromReader(0, convertingType, isNullable, isEnum);
         }
     }
 }
