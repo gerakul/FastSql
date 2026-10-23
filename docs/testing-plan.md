@@ -213,25 +213,25 @@ Unit tests need no Docker. Classes marked *(per provider)* are abstract and run 
 
 Classes: `SqlCommandTextGeneratorTests`, `NpgsqlCommandTextGeneratorTests`.
 
-- [ ] `ColumnList`: one, several, none; quoting (`[x]` / `"x"`); quote characters inside names are not escaped (Q20).
-- [ ] `ParamList`, `WhereClause` (joined with `and`), `SetClause`.
-- [ ] `Insert`; `InsertWithOutput` (SQL Server `output inserted.[x]` before `values`, PostgreSQL `returning "x"`).
-- [ ] `InsertAndGetID` (SQL Server only): insert followed by `select scope_identity();`.
-- [ ] `Update(table, whereClause, fields)` and the base `Update(table, keyFields, fields)`.
-- [ ] `Delete(table, whereClause)` and the base `Delete(table, params keyFields)`, including the overload binding of `Delete("T", "ID")` (Q07).
-- [ ] `Merge`: single key, composite key, key repeated in fields (deduplicated), no non-key fields (Q09); SQL Server `MERGE` vs PostgreSQL `insert ... on conflict ... do update`; lines separated by `Environment.NewLine`.
-- [ ] Table names are used verbatim (schema-qualified, bracketed, quoted).
+- [x] `ColumnList`: one, several, none; quoting (`[x]` / `"x"`); quote characters inside names are not escaped (Q20).
+- [x] `ParamList`, `WhereClause` (joined with `and`), `SetClause`.
+- [x] `Insert`; `InsertWithOutput` (SQL Server `output inserted.[x]` before `values`, PostgreSQL `returning "x"`).
+- [x] `InsertAndGetID` (SQL Server only): insert followed by `select scope_identity();`.
+- [x] `Update(table, whereClause, fields)` and the base `Update(table, keyFields, fields)`.
+- [x] `Delete(table, whereClause)` and the base `Delete(table, params keyFields)`, including the overload binding of `Delete("T", "ID")` (Q07).
+- [x] `Merge`: single key, composite key, key repeated in fields (deduplicated), no non-key fields (Q09); SQL Server `MERGE` vs PostgreSQL `insert ... on conflict ... do update`; lines separated by `Environment.NewLine`.
+- [x] Table names are used verbatim (schema-qualified, bracketed, quoted).
 
 ### U2. Provider hooks, through observable behavior
 
 Classes: `SqlContextProviderTests`, `NpgsqlContextProviderTests` (capturing contexts).
 
-- [ ] Parameter discovery from command text (`CreateMapped` without explicit names): `@a`; repeated `@a` (one parameter); `@@ROWCOUNT` ignored; parameter at the start of the text and after a newline; names with digits and `$ # _`; `(@a,@b)`; `@` inside a string literal or an e-mail address is treated as a parameter (Q11).
-- [ ] Explicit parameter names with and without `@`: matching ignores the prefix, the parameter keeps the name as given.
-- [ ] Null values: SQL Server sends `SqlBytes.Null` for `byte[]` members and `DBNull` otherwise; PostgreSQL always `DBNull`.
-- [ ] Parameter `DbType` inferred by `AddWithValue` for common CLR types (string, int, long, decimal, bool, DateTime, DateTimeOffset, Guid, byte[], enum) (`UpgradeSensitive`).
-- [ ] Stored procedure parameters come from all settings, named `@` + member name.
-- [ ] `CommandTimeout` is set only when a timeout option has a value; otherwise the driver default stays.
+- [x] Parameter discovery from command text (`CreateMapped` without explicit names): `@a`; repeated `@a` (one parameter); `@@ROWCOUNT` ignored; parameter at the start of the text and after a newline; names with digits and `$ # _`; `(@a,@b)`; `@` inside a string literal or an e-mail address is treated as a parameter (Q11).
+- [x] Explicit parameter names with and without `@`: matching ignores the prefix, the parameter keeps the name as given.
+- [x] Null values: SQL Server sends `SqlBytes.Null` for `byte[]` members and `DBNull` otherwise; PostgreSQL always `DBNull`.
+- [x] Parameter `DbType` inferred by `AddWithValue` for common CLR types (string, int, long, decimal, bool, DateTime, DateTimeOffset, Guid, byte[], enum) (`UpgradeSensitive`).
+- [x] Stored procedure parameters come from all settings, named `@` + member name.
+- [x] `CommandTimeout` is set only when a timeout option has a value; otherwise the driver default stays.
 
 ### U3. Field settings
 
@@ -248,16 +248,16 @@ Class: `FieldSettingsTests`.
 
 Classes: `QueryOptionsTests`, `ReadOptionsTests`, `BulkOptionsTests`, `SqlBulkOptionsTests`, `NpgsqlBulkOptionsTests`, `ColumnDefinitionOptionsTests` (both namespaces).
 
-- [ ] Every public constructor stores its arguments (including all 10 `SqlBulkOptions` arguments; `NpgsqlBulkOptions` leaves `CreateTable` and the other base options unset).
-- [ ] `Clone()` copies every property, returns the same runtime type, returns an independent instance; `SqlBulkOptions.Clone()` shares the `ColumnDefinitionOptions` instance (shallow).
-- [ ] Provider defaults: `QueryOptions`, `BulkOptions`, `ReadOptions` of both providers are the provider-specific types with all values unset.
-- [ ] Protected defaults (through test subclasses): `QueryOptions` (timeout unset, case-insensitive parameters); `BulkOptions` (`Source`, case sensitivity unset, no table creation, schema table used, no existence check); `SqlBulkOptions` (`SqlBulkCopyOptions.Default`, `ColumnDefinitionOptions.Default`).
-- [ ] `SetDefaults(other)` (through test subclasses) fills only unset values; `SqlBulkOptions` takes SQL Server values only from another `SqlBulkOptions` and clones its `ColumnDefinitionOptions`.
-- [ ] Protected copy constructors (through test subclasses): SQL Server / PostgreSQL options built from base options copy the base values; `SqlBulkOptions` copies the SQL Server values from another `SqlBulkOptions` and leaves them unset otherwise.
-- [ ] Timeout precedence on the generated command: none, provider level, context level (`ctx.QueryOptions.CommandTimeoutSeconds = n`), per command (wins); a base `QueryOptions` passed to a SQL Server context works.
-- [ ] Context creation clones the provider options: later changes on either side do not leak.
-- [ ] Case-sensitive parameter matching precedence: default (insensitive), context level, per command.
-- [ ] `ColumnDefinitionOptions`: `Default`, `Max`, `Small` values; `Clone()` copies the primary key list; `FromOption`, `FromDefault`, `FromMax`, `FromSmall` set the primary key and do not change the static source; `ThrowIfUnsupportedType` is false by default.
+- [x] Every public constructor stores its arguments (including all 10 `SqlBulkOptions` arguments; `NpgsqlBulkOptions` leaves `CreateTable` and the other base options unset).
+- [x] `Clone()` copies every property, returns the same runtime type, returns an independent instance; `SqlBulkOptions.Clone()` shares the `ColumnDefinitionOptions` instance (shallow).
+- [x] Provider defaults: `QueryOptions`, `BulkOptions`, `ReadOptions` of both providers are the provider-specific types with all values unset.
+- [x] Protected defaults (through test subclasses): `QueryOptions` (timeout unset, case-insensitive parameters); `BulkOptions` (`Source`, case sensitivity unset, no table creation, schema table used, no existence check); `SqlBulkOptions` (`SqlBulkCopyOptions.Default`, `ColumnDefinitionOptions.Default`).
+- [x] `SetDefaults(other)` (through test subclasses) fills only unset values; `SqlBulkOptions` takes SQL Server values only from another `SqlBulkOptions` and clones its `ColumnDefinitionOptions`.
+- [x] Protected copy constructors (through test subclasses): SQL Server / PostgreSQL options built from base options copy the base values; `SqlBulkOptions` copies the SQL Server values from another `SqlBulkOptions` and leaves them unset otherwise.
+- [x] Timeout precedence on the generated command: none, provider level, context level (`ctx.QueryOptions.CommandTimeoutSeconds = n`), per command (wins); a base `QueryOptions` passed to a SQL Server context works.
+- [x] Context creation clones the provider options: later changes on either side do not leak.
+- [x] Case-sensitive parameter matching precedence: default (insensitive), context level, per command.
+- [x] `ColumnDefinitionOptions`: `Default`, `Max`, `Small` values; `Clone()` copies the primary key list; `FromOption`, `FromDefault`, `FromMax`, `FromSmall` set the primary key and do not change the static source; `ThrowIfUnsupportedType` is false by default.
 
 ### U5. Mapping from data readers
 
