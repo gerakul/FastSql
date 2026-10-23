@@ -418,15 +418,15 @@ Class: `StoredProcedureTests`.
 
 Classes: `BulkCopyTests`, `SqlServerBulkCopyOptionsTests`, `PostgreSqlBulkCopyTests`, `CrossProviderImportTests`.
 
-- [ ] Every `WriteToServer` / `WriteToServerAsync` overload on `IEnumerable<T>` (6), `DbDataReader` (6) and `IWrappedCommand` (6), into all three destination context kinds; a transaction rollback discards the copied rows.
-- [ ] `fields` subset; all source columns by default; empty source.
-- [ ] Default `Source` selector maps by name; SQL Server matching is case-sensitive (Q16).
-- [ ] With `CaseSensitiveFieldsMatching` set (true or false) the destination columns are read and joined; `Destination`, `Common`, `Both` with mismatches throw `InvalidOperationException`.
-- [ ] Nulls; identity columns are generated.
-- [ ] `SqlBulkCopyOptions`: `KeepIdentity`, `KeepNulls` (column default), `CheckConstraints`, `FireTriggers`; `TableLock`, `BatchSize`, `BulkCopyTimeout`, `EnableStreaming` accepted (smoke).
-- [ ] SQL Server `CreateTable`: from a query reader (column types, lengths, nullability, primary key reproduced, checked in `INFORMATION_SCHEMA`); from `IEnumerable<T>` only with `IgnoreDataReaderSchemaTable = true`, otherwise `NotSupportedException` (Q14); `ColumnDefinitionOptions` `Default` / `Max` / `Small` and a primary key list; an unsupported member type with `ThrowIfUnsupportedType` false and true; `CheckTableIfNotExistsBeforeCreation` with an existing table; an `xml` source column throws `NotSupportedException`.
-- [ ] PostgreSQL `CreateTable` throws `NotImplementedException` (sync and async) (Q10).
-- [ ] Cross-provider import: a SQL Server query written into a PostgreSQL table and the reverse, through `IWrappedCommand.WriteToServer`.
+- [x] Every `WriteToServer` / `WriteToServerAsync` overload on `IEnumerable<T>` (6), `DbDataReader` (6) and `IWrappedCommand` (6), into all three destination context kinds; a transaction rollback discards the copied rows.
+- [x] `fields` subset; all source columns by default; empty source.
+- [x] Default `Source` selector maps by name; SQL Server matching is case-sensitive (Q16).
+- [x] With `CaseSensitiveFieldsMatching` set (true or false) the destination columns are read and joined; `Destination`, `Common`, `Both` with mismatches throw `InvalidOperationException`.
+- [x] Nulls; identity columns are generated.
+- [x] `SqlBulkCopyOptions`: `KeepIdentity`, `KeepNulls` (column default), `CheckConstraints`, `FireTriggers`; `TableLock`, `BatchSize`, `BulkCopyTimeout`, `EnableStreaming` accepted (smoke).
+- [x] SQL Server `CreateTable`: from a query reader (column types, lengths, nullability, primary key reproduced, checked in `INFORMATION_SCHEMA`); from `IEnumerable<T>` only with `IgnoreDataReaderSchemaTable = true`, otherwise `NotSupportedException` (Q14); `ColumnDefinitionOptions` `Default` / `Max` / `Small` and a primary key list; an unsupported member type with `ThrowIfUnsupportedType` false and true; `CheckTableIfNotExistsBeforeCreation` with an existing table; an `xml` source column throws `NotSupportedException`.
+- [x] PostgreSQL `CreateTable` throws `NotImplementedException` (sync and async) (Q10).
+- [x] Cross-provider import: a SQL Server query written into a PostgreSQL table and the reverse, through `IWrappedCommand.WriteToServer`.
 
 ### I10. README and Examples scenarios (P)
 
