@@ -213,51 +213,51 @@ Unit tests need no Docker. Classes marked *(per provider)* are abstract and run 
 
 Classes: `SqlCommandTextGeneratorTests`, `NpgsqlCommandTextGeneratorTests`.
 
-- [ ] `ColumnList`: one, several, none; quoting (`[x]` / `"x"`); quote characters inside names are not escaped (Q20).
-- [ ] `ParamList`, `WhereClause` (joined with `and`), `SetClause`.
-- [ ] `Insert`; `InsertWithOutput` (SQL Server `output inserted.[x]` before `values`, PostgreSQL `returning "x"`).
-- [ ] `InsertAndGetID` (SQL Server only): insert followed by `select scope_identity();`.
-- [ ] `Update(table, whereClause, fields)` and the base `Update(table, keyFields, fields)`.
-- [ ] `Delete(table, whereClause)` and the base `Delete(table, params keyFields)`, including the overload binding of `Delete("T", "ID")` (Q07).
-- [ ] `Merge`: single key, composite key, key repeated in fields (deduplicated), no non-key fields (Q09); SQL Server `MERGE` vs PostgreSQL `insert ... on conflict ... do update`; lines separated by `Environment.NewLine`.
-- [ ] Table names are used verbatim (schema-qualified, bracketed, quoted).
+- [x] `ColumnList`: one, several, none; quoting (`[x]` / `"x"`); quote characters inside names are not escaped (Q20).
+- [x] `ParamList`, `WhereClause` (joined with `and`), `SetClause`.
+- [x] `Insert`; `InsertWithOutput` (SQL Server `output inserted.[x]` before `values`, PostgreSQL `returning "x"`).
+- [x] `InsertAndGetID` (SQL Server only): insert followed by `select scope_identity();`.
+- [x] `Update(table, whereClause, fields)` and the base `Update(table, keyFields, fields)`.
+- [x] `Delete(table, whereClause)` and the base `Delete(table, params keyFields)`, including the overload binding of `Delete("T", "ID")` (Q07).
+- [x] `Merge`: single key, composite key, key repeated in fields (deduplicated), no non-key fields (Q09); SQL Server `MERGE` vs PostgreSQL `insert ... on conflict ... do update`; lines separated by `Environment.NewLine`.
+- [x] Table names are used verbatim (schema-qualified, bracketed, quoted).
 
 ### U2. Provider hooks, through observable behavior
 
 Classes: `SqlContextProviderTests`, `NpgsqlContextProviderTests` (capturing contexts).
 
-- [ ] Parameter discovery from command text (`CreateMapped` without explicit names): `@a`; repeated `@a` (one parameter); `@@ROWCOUNT` ignored; parameter at the start of the text and after a newline; names with digits and `$ # _`; `(@a,@b)`; `@` inside a string literal or an e-mail address is treated as a parameter (Q11).
-- [ ] Explicit parameter names with and without `@`: matching ignores the prefix, the parameter keeps the name as given.
-- [ ] Null values: SQL Server sends `SqlBytes.Null` for `byte[]` members and `DBNull` otherwise; PostgreSQL always `DBNull`.
-- [ ] Parameter `DbType` inferred by `AddWithValue` for common CLR types (string, int, long, decimal, bool, DateTime, DateTimeOffset, Guid, byte[], enum) (`UpgradeSensitive`).
-- [ ] Stored procedure parameters come from all settings, named `@` + member name.
-- [ ] `CommandTimeout` is set only when a timeout option has a value; otherwise the driver default stays.
+- [x] Parameter discovery from command text (`CreateMapped` without explicit names): `@a`; repeated `@a` (one parameter); `@@ROWCOUNT` ignored; parameter at the start of the text and after a newline; names with digits and `$ # _`; `(@a,@b)`; `@` inside a string literal or an e-mail address is treated as a parameter (Q11).
+- [x] Explicit parameter names with and without `@`: matching ignores the prefix, the parameter keeps the name as given.
+- [x] Null values: SQL Server sends `SqlBytes.Null` for `byte[]` members and `DBNull` otherwise; PostgreSQL always `DBNull`.
+- [x] Parameter `DbType` inferred by `AddWithValue` for common CLR types (string, int, long, decimal, bool, DateTime, DateTimeOffset, Guid, byte[], enum) (`UpgradeSensitive`).
+- [x] Stored procedure parameters come from all settings, named `@` + member name.
+- [x] `CommandTimeout` is set only when a timeout option has a value; otherwise the driver default stays.
 
 ### U3. Field settings
 
 Class: `FieldSettingsTests`.
 
-- [ ] Each of the 5 public constructors: `Name`, `DataTypeName` (defaults to `FieldType.Name`), `FieldType`, `Getter`, `IsNullGetter`, `DetermineNullByValue`.
-- [ ] `FieldSettings<T>(name)`: identity getter for sequences of scalars.
-- [ ] `FieldSettings.FromType<T>(option)`: public fields first, then properties; `PublicField`, `PublicProperty`, `Default`/`Both`, `Collection`, `All`.
-- [ ] Collections (`List<int>`, `int[]`, `IEnumerable<string>`, dictionaries) are excluded unless `Collection` is set; `string` and `byte[]` are always included.
-- [ ] Static and non-public members excluded; inherited members included; an indexer property is included and its getter throws when invoked (Q21).
-- [ ] `FromType(proto)` (anonymous types), `GetFields<T>()`, `GetFields(proto)`, `GetNames()`, `IEnumerable<T>.GetFieldSettings()`.
+- [x] Each of the 5 public constructors: `Name`, `DataTypeName` (defaults to `FieldType.Name`), `FieldType`, `Getter`, `IsNullGetter`, `DetermineNullByValue`.
+- [x] `FieldSettings<T>(name)`: identity getter for sequences of scalars.
+- [x] `FieldSettings.FromType<T>(option)`: public fields first, then properties; `PublicField`, `PublicProperty`, `Default`/`Both`, `Collection`, `All`.
+- [x] Collections (`List<int>`, `int[]`, `IEnumerable<string>`, dictionaries) are excluded unless `Collection` is set; `string` and `byte[]` are always included.
+- [x] Static and non-public members excluded; inherited members included; an indexer property is included and its getter throws when invoked (Q21).
+- [x] `FromType(proto)` (anonymous types), `GetFields<T>()`, `GetFields(proto)`, `GetNames()`, `IEnumerable<T>.GetFieldSettings()`.
 
 ### U4. Options
 
 Classes: `QueryOptionsTests`, `ReadOptionsTests`, `BulkOptionsTests`, `SqlBulkOptionsTests`, `NpgsqlBulkOptionsTests`, `ColumnDefinitionOptionsTests` (both namespaces).
 
-- [ ] Every public constructor stores its arguments (including all 10 `SqlBulkOptions` arguments; `NpgsqlBulkOptions` leaves `CreateTable` and the other base options unset).
-- [ ] `Clone()` copies every property, returns the same runtime type, returns an independent instance; `SqlBulkOptions.Clone()` shares the `ColumnDefinitionOptions` instance (shallow).
-- [ ] Provider defaults: `QueryOptions`, `BulkOptions`, `ReadOptions` of both providers are the provider-specific types with all values unset.
-- [ ] Protected defaults (through test subclasses): `QueryOptions` (timeout unset, case-insensitive parameters); `BulkOptions` (`Source`, case sensitivity unset, no table creation, schema table used, no existence check); `SqlBulkOptions` (`SqlBulkCopyOptions.Default`, `ColumnDefinitionOptions.Default`).
-- [ ] `SetDefaults(other)` (through test subclasses) fills only unset values; `SqlBulkOptions` takes SQL Server values only from another `SqlBulkOptions` and clones its `ColumnDefinitionOptions`.
-- [ ] Protected copy constructors (through test subclasses): SQL Server / PostgreSQL options built from base options copy the base values; `SqlBulkOptions` copies the SQL Server values from another `SqlBulkOptions` and leaves them unset otherwise.
-- [ ] Timeout precedence on the generated command: none, provider level, context level (`ctx.QueryOptions.CommandTimeoutSeconds = n`), per command (wins); a base `QueryOptions` passed to a SQL Server context works.
-- [ ] Context creation clones the provider options: later changes on either side do not leak.
-- [ ] Case-sensitive parameter matching precedence: default (insensitive), context level, per command.
-- [ ] `ColumnDefinitionOptions`: `Default`, `Max`, `Small` values; `Clone()` copies the primary key list; `FromOption`, `FromDefault`, `FromMax`, `FromSmall` set the primary key and do not change the static source; `ThrowIfUnsupportedType` is false by default.
+- [x] Every public constructor stores its arguments (including all 10 `SqlBulkOptions` arguments; `NpgsqlBulkOptions` leaves `CreateTable` and the other base options unset).
+- [x] `Clone()` copies every property, returns the same runtime type, returns an independent instance; `SqlBulkOptions.Clone()` shares the `ColumnDefinitionOptions` instance (shallow).
+- [x] Provider defaults: `QueryOptions`, `BulkOptions`, `ReadOptions` of both providers are the provider-specific types with all values unset.
+- [x] Protected defaults (through test subclasses): `QueryOptions` (timeout unset, case-insensitive parameters); `BulkOptions` (`Source`, case sensitivity unset, no table creation, schema table used, no existence check); `SqlBulkOptions` (`SqlBulkCopyOptions.Default`, `ColumnDefinitionOptions.Default`).
+- [x] `SetDefaults(other)` (through test subclasses) fills only unset values; `SqlBulkOptions` takes SQL Server values only from another `SqlBulkOptions` and clones its `ColumnDefinitionOptions`.
+- [x] Protected copy constructors (through test subclasses): SQL Server / PostgreSQL options built from base options copy the base values; `SqlBulkOptions` copies the SQL Server values from another `SqlBulkOptions` and leaves them unset otherwise.
+- [x] Timeout precedence on the generated command: none, provider level, context level (`ctx.QueryOptions.CommandTimeoutSeconds = n`), per command (wins); a base `QueryOptions` passed to a SQL Server context works.
+- [x] Context creation clones the provider options: later changes on either side do not leak.
+- [x] Case-sensitive parameter matching precedence: default (insensitive), context level, per command.
+- [x] `ColumnDefinitionOptions`: `Default`, `Max`, `Small` values; `Clone()` copies the primary key list; `FromOption`, `FromDefault`, `FromMax`, `FromSmall` set the primary key and do not change the static source; `ThrowIfUnsupportedType` is false by default.
 
 ### U5. Mapping from data readers
 
@@ -266,68 +266,68 @@ Classes: `ReadAllTests`, `ReadAllAsyncTests`, `ReadAllAnonymousTests`, `ReadAllF
 Input comes from `DataTable.CreateDataReader()` and from a wrapper that implements only
 `IDataReader` (to reach the non-`DbDataReader` async path).
 
-- [ ] `ReadAll<T>`: properties and public fields; `FromTypeOption` (fields only, properties only, `Collection` maps an array column); case-insensitive by default; case-sensitive option; column order does not matter.
-- [ ] `FieldsSelector` × (exact match, extra column, extra member, no overlap) for `Destination` (default), `Source`, `Common`, `Both`: rows mapped, or `InvalidOperationException` with the current message; an undefined selector value gives `ArgumentException`.
-- [ ] Duplicates: duplicate reader columns (case-insensitive and case-sensitive modes); a field and a property whose names differ only by case; `ArgumentException` with the current messages.
-- [ ] Nulls: `DBNull` becomes null for reference and `Nullable<T>` members; `DBNull` into a non-nullable value type throws `InvalidCastException` (Q12).
-- [ ] Conversions (regression set for commit 41af0f9): int→long, long→int, int→decimal, decimal→double, short→int?, string "42"→int, int→string, bool, Guid, byte[], DateTime, DateTimeOffset, TimeSpan; enum from int and from string (case-sensitive, invalid name throws `ArgumentException`); nullable enum from `DBNull`; Guid→string throws `InvalidCastException`.
-- [ ] Get-only property: required by the `Destination` selector, then fails when set (Q13).
-- [ ] Laziness: mapping errors appear when enumerating, not when calling `ReadAll`; enumerating the result a second time yields nothing (forward-only reader).
-- [ ] `ReadAllAnonymous`: matching by constructor parameter names; missing columns with `Common` give default values; `Destination` requires all parameters; case sensitivity; conversions; the first constructor is used for non-anonymous types.
-- [ ] `ReadAllFirstColumn()`: `DBNull` becomes null, while `ReadAll()` keeps `DBNull` in its arrays (Q12); `ReadAllFirstColumn<T>()`: conversion, nullable, enum.
-- [ ] `ReadAll()`: array length equals `FieldCount`.
-- [ ] `GetColumnNames()`.
-- [ ] Async twins of all of the above return the same results; the `IDataReader`-only path works; a cancelled token makes `MoveNext` return false instead of throwing (Q04); empty reader; disposing the enumerator.
+- [x] `ReadAll<T>`: properties and public fields; `FromTypeOption` (fields only, properties only, `Collection` maps an array column); case-insensitive by default; case-sensitive option; column order does not matter.
+- [x] `FieldsSelector` × (exact match, extra column, extra member, no overlap) for `Destination` (default), `Source`, `Common`, `Both`: rows mapped, or `InvalidOperationException` with the current message; an undefined selector value gives `ArgumentException`.
+- [x] Duplicates: duplicate reader columns (case-insensitive and case-sensitive modes); a field and a property whose names differ only by case; `ArgumentException` with the current messages.
+- [x] Nulls: `DBNull` becomes null for reference and `Nullable<T>` members; `DBNull` into a non-nullable value type throws `InvalidCastException` (Q12).
+- [x] Conversions (regression set for commit 41af0f9): int→long, long→int, int→decimal, decimal→double, short→int?, string "42"→int, int→string, bool, Guid, byte[], DateTime, DateTimeOffset, TimeSpan; enum from int and from string (case-sensitive, invalid name throws `ArgumentException`); nullable enum from `DBNull`; Guid→string throws `InvalidCastException`.
+- [x] Get-only property: required by the `Destination` selector, then fails when set (Q13).
+- [x] Laziness: mapping errors appear when enumerating, not when calling `ReadAll`; enumerating the result a second time yields nothing (forward-only reader).
+- [x] `ReadAllAnonymous`: matching by constructor parameter names; missing columns with `Common` give default values; `Destination` requires all parameters; case sensitivity; conversions; the first constructor is used for non-anonymous types.
+- [x] `ReadAllFirstColumn()`: `DBNull` becomes null, while `ReadAll()` keeps `DBNull` in its arrays (Q12); `ReadAllFirstColumn<T>()`: conversion, nullable, enum.
+- [x] `ReadAll()`: array length equals `FieldCount`.
+- [x] `GetColumnNames()`.
+- [x] Async twins of all of the above return the same results; the `IDataReader`-only path works; a cancelled token makes `MoveNext` return false instead of throwing (Q04); empty reader; disposing the enumerator.
 
 ### U6. UniversalDataReader and ToDataReader
 
 Classes: `UniversalDataReaderTests`, `ToDataReaderTests`.
 
-- [ ] All 8 `ToDataReader` overloads (`IEnumerable` and legacy `IAsyncEnumerable`, × settings array / settings + case sensitivity / `FromTypeOption` / defaults): resulting `Settings`; case-sensitive by default.
-- [ ] Metadata: `FieldCount`, `GetName`, `GetOrdinal` (case-sensitive and insensitive; unknown name throws `KeyNotFoundException`), `GetFieldType`, `GetDataTypeName` (CLR type name or custom), `Depth` = 0.
-- [ ] Values: `Read` and `ReadAsync` over both source kinds; `GetValue`, `GetValues` (shorter and longer arrays), both indexers, `IsDBNull` (custom null predicate), typed getters (exact cast: `GetInt64` on an int throws `InvalidCastException`), `GetBytes` / `GetChars` (offsets, lengths, out-of-range returns 0).
-- [ ] Lifecycle: `Close()` on the reader sets `IsClosed` and `Read` then throws `InvalidOperationException`; `Close()` through a `DbDataReader` reference does not close it (Q01); `Dispose()` closes.
-- [ ] Not implemented: `NextResult`, `RecordsAffected`, `HasRows` throw `NotImplementedException` (Q02); `GetEnumerator()` returns the source enumerator, or null for an async source (Q03); `GetSchemaTable()` / `GetColumnSchema()` throw `NotSupportedException` (leads to Q14).
-- [ ] Duplicate names (in case-insensitive mode) throw `ArgumentException` at construction.
-- [ ] Round trip: `ToDataReader().ReadAll<T>()` returns equal objects (sync and async).
+- [x] All 8 `ToDataReader` overloads (`IEnumerable` and legacy `IAsyncEnumerable`, × settings array / settings + case sensitivity / `FromTypeOption` / defaults): resulting `Settings`; case-sensitive by default.
+- [x] Metadata: `FieldCount`, `GetName`, `GetOrdinal` (case-sensitive and insensitive; unknown name throws `KeyNotFoundException`), `GetFieldType`, `GetDataTypeName` (CLR type name or custom), `Depth` = 0.
+- [x] Values: `Read` and `ReadAsync` over both source kinds; `GetValue`, `GetValues` (shorter and longer arrays), both indexers, `IsDBNull` (custom null predicate), typed getters (exact cast: `GetInt64` on an int throws `InvalidCastException`), `GetBytes` / `GetChars` (offsets, lengths, out-of-range returns 0).
+- [x] Lifecycle: `Close()` on the reader sets `IsClosed` and `Read` then throws `InvalidOperationException`; `Close()` through a `DbDataReader` reference does not close it (Q01); `Dispose()` closes.
+- [x] Not implemented: `NextResult`, `RecordsAffected`, `HasRows` throw `NotImplementedException` (Q02); `GetEnumerator()` returns the source enumerator, or null for an async source (Q03); `GetSchemaTable()` / `GetColumnSchema()` throw `NotSupportedException` (leads to Q14).
+- [x] Duplicate names (in case-insensitive mode) throw `ArgumentException` at construction.
+- [x] Round trip: `ToDataReader().ReadAll<T>()` returns equal objects (sync and async).
 
 ### U7. Command compilation *(per provider)*
 
 Class: `CommandCompilatorTests`. Each compiled command is turned into a `DbCommand` through
 `CreateSimple(precompiled)` / `CreateMapped(precompiled)` on a capturing context.
 
-- [ ] `CompileSimple`, `CompileProcedureSimple`: `CommandText`, `CommandType`.
-- [ ] `CompileMapped` (6 overloads): names from text vs explicit list; `FromTypeOption`; proto overloads; settings overloads; case-sensitive and insensitive matching; parameter without a setting throws `ArgumentException`; duplicate parameter names and duplicate settings throw `ArgumentException`; null parameter list throws `NullReferenceException` (Q17).
-- [ ] `CompileProcedure` (6 overloads): stored procedure type; parameters from all settings or from an explicit subset.
-- [ ] `CompileInsert` (5 overloads): fields minus ignored fields; text from the generator; parameters match.
-- [ ] `CompileInsertWithOutput`: output fields; no output fields gives a plain insert; null ignore list.
-- [ ] `CompileUpdate` (10 overloads): keys in `where`, other fields in `set`, `notKeyIgnoreFields` excluded; a key missing from the settings leaves its parameter unmapped (pinned).
-- [ ] `CompileDelete` (5 overloads): explicit keys; no keys uses all members as keys.
-- [ ] `CompileMerge` (10 overloads).
-- [ ] Using a command compiled by one provider instance with a context of another provider instance throws `ArgumentException` (simple and mapped).
-- [ ] `new CommandCompilator(provider)` behaves like `provider.CommandCompilator`; `context.CommandCompilator` is the provider's.
-- [ ] Parameter values: null members become the provider's null; custom `IsNullGetter`; a member whose value is a `DbParameter` is added as is; simple commands name arguments `@p0`, `@p1`, ... by position (a `DbParameter` argument is added as is and still uses up its position), null becomes `DBNull`.
+- [x] `CompileSimple`, `CompileProcedureSimple`: `CommandText`, `CommandType`.
+- [x] `CompileMapped` (6 overloads): names from text vs explicit list; `FromTypeOption`; proto overloads; settings overloads; case-sensitive and insensitive matching; parameter without a setting throws `ArgumentException`; duplicate parameter names and duplicate settings throw `ArgumentException`; null parameter list throws `NullReferenceException` (Q17).
+- [x] `CompileProcedure` (6 overloads): stored procedure type; parameters from all settings or from an explicit subset.
+- [x] `CompileInsert` (5 overloads): fields minus ignored fields; text from the generator; parameters match.
+- [x] `CompileInsertWithOutput`: output fields; no output fields gives a plain insert; null ignore list.
+- [x] `CompileUpdate` (10 overloads): keys in `where`, other fields in `set`, `notKeyIgnoreFields` excluded; a key missing from the settings leaves its parameter unmapped (pinned).
+- [x] `CompileDelete` (5 overloads): explicit keys; no keys uses all members as keys.
+- [x] `CompileMerge` (10 overloads).
+- [x] Using a command compiled by one provider instance with a context of another provider instance throws `ArgumentException` (simple and mapped).
+- [x] `new CommandCompilator(provider)` behaves like `provider.CommandCompilator`; `context.CommandCompilator` is the provider's.
+- [x] Parameter values: null members become the provider's null; custom `IsNullGetter`; a member whose value is a `DbParameter` is added as is; simple commands name arguments `@p0`, `@p1`, ... by position (a `DbParameter` argument is added as is and still uses up its position), null becomes `DBNull`.
 
 ### U8. Command creator extensions *(per provider)*
 
 Class: `CommandCreatorExtensionsTests`.
 
-- [ ] Each of the 43 `CommandCreatorExtensions` overloads in Common produces the expected command (text, type, parameters, timeout), and passes on its options (`queryOptions`; default `fromTypeOption` is `Default` for `CreateMapped` and `Both` for `CreateProcedure`).
-- [ ] `Insert`, `Update`, `Delete`, `Merge` and their async twins build the right command before executing (execution on an unopened connection throws `InvalidOperationException`; real execution is in I7).
-- [ ] `CreateInsertAndGetID` (2 overloads, SQL Server): command text and parameters.
-- [ ] Contexts returned by `CreateContext` are typed as the base classes, so `CreateInsertAndGetID` needs a cast; SQL Server contexts implement `ISqlCommandCreator` at runtime, PostgreSQL contexts have no equivalent.
-- [ ] Custom extensions through `ICommandCreator.Set(...)` (README "Extensibility") work on any context.
-- [ ] Scoped contexts build the command immediately and read member values at that moment (unit part of Q15).
+- [x] Each of the 43 `CommandCreatorExtensions` overloads in Common produces the expected command (text, type, parameters, timeout), and passes on its options (`queryOptions`; default `fromTypeOption` is `Default` for `CreateMapped` and `Both` for `CreateProcedure`).
+- [x] `Insert`, `Update`, `Delete`, `Merge` and their async twins build the right command before executing (execution on an unopened connection throws `InvalidOperationException`; real execution is in I7).
+- [x] `CreateInsertAndGetID` (2 overloads, SQL Server): command text and parameters.
+- [x] Contexts returned by `CreateContext` are typed as the base classes, so `CreateInsertAndGetID` needs a cast; SQL Server contexts implement `ISqlCommandCreator` at runtime, PostgreSQL contexts have no equivalent.
+- [x] Custom extensions through `ICommandCreator.Set(...)` (README "Extensibility") work on any context.
+- [x] Scoped contexts build the command immediately and read member values at that moment (unit part of Q15).
 
 ### U9. Providers and contexts without a database
 
 Class: `ContextProviderTests`.
 
-- [ ] `DefaultInstance` is a singleton; new instances are independent.
-- [ ] Provider members: `CommandTextGenerator`, `QueryOptions`, `BulkOptions`, `ReadOptions`, `CommandCompilator` (types and identity).
-- [ ] `CreateContext(string)` gives the provider's connection string context with `ConnectionString`; `CreateContext(DbConnection)` with an unopened connection gives the connection context; a connection of the other provider throws `InvalidCastException`.
-- [ ] Public constructors of all six context classes take the provider's options.
-- [ ] `DbContext.ContextProvider` and `DbContext.CommandCompilator`.
+- [x] `DefaultInstance` is a singleton; new instances are independent.
+- [x] Provider members: `CommandTextGenerator`, `QueryOptions`, `BulkOptions`, `ReadOptions`, `CommandCompilator` (types and identity).
+- [x] `CreateContext(string)` gives the provider's connection string context with `ConnectionString`; `CreateContext(DbConnection)` with an unopened connection gives the connection context; a connection of the other provider throws `InvalidCastException`.
+- [x] Public constructors of all six context classes take the provider's options.
+- [x] `DbContext.ContextProvider` and `DbContext.CommandCompilator`.
 
 ### U10. Public API snapshot
 
