@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- common settings, packages and project references: ../Directory.Build.props -->
+
+  <ItemGroup>
+    <PackageReference Include="Testcontainers.MsSql" Version="4.16.0" />
+    <PackageReference Include="Testcontainers.PostgreSql" Version="4.16.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Seeds\*.sql" LogicalName="Seeds.%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>
