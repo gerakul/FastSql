@@ -266,18 +266,18 @@ Classes: `ReadAllTests`, `ReadAllAsyncTests`, `ReadAllAnonymousTests`, `ReadAllF
 Input comes from `DataTable.CreateDataReader()` and from a wrapper that implements only
 `IDataReader` (to reach the non-`DbDataReader` async path).
 
-- [ ] `ReadAll<T>`: properties and public fields; `FromTypeOption` (fields only, properties only, `Collection` maps an array column); case-insensitive by default; case-sensitive option; column order does not matter.
-- [ ] `FieldsSelector` × (exact match, extra column, extra member, no overlap) for `Destination` (default), `Source`, `Common`, `Both`: rows mapped, or `InvalidOperationException` with the current message; an undefined selector value gives `ArgumentException`.
-- [ ] Duplicates: duplicate reader columns (case-insensitive and case-sensitive modes); a field and a property whose names differ only by case; `ArgumentException` with the current messages.
-- [ ] Nulls: `DBNull` becomes null for reference and `Nullable<T>` members; `DBNull` into a non-nullable value type throws `InvalidCastException` (Q12).
-- [ ] Conversions (regression set for commit 41af0f9): int→long, long→int, int→decimal, decimal→double, short→int?, string "42"→int, int→string, bool, Guid, byte[], DateTime, DateTimeOffset, TimeSpan; enum from int and from string (case-sensitive, invalid name throws `ArgumentException`); nullable enum from `DBNull`; Guid→string throws `InvalidCastException`.
-- [ ] Get-only property: required by the `Destination` selector, then fails when set (Q13).
-- [ ] Laziness: mapping errors appear when enumerating, not when calling `ReadAll`; enumerating the result a second time yields nothing (forward-only reader).
-- [ ] `ReadAllAnonymous`: matching by constructor parameter names; missing columns with `Common` give default values; `Destination` requires all parameters; case sensitivity; conversions; the first constructor is used for non-anonymous types.
-- [ ] `ReadAllFirstColumn()`: `DBNull` becomes null, while `ReadAll()` keeps `DBNull` in its arrays (Q12); `ReadAllFirstColumn<T>()`: conversion, nullable, enum.
-- [ ] `ReadAll()`: array length equals `FieldCount`.
-- [ ] `GetColumnNames()`.
-- [ ] Async twins of all of the above return the same results; the `IDataReader`-only path works; a cancelled token makes `MoveNext` return false instead of throwing (Q04); empty reader; disposing the enumerator.
+- [x] `ReadAll<T>`: properties and public fields; `FromTypeOption` (fields only, properties only, `Collection` maps an array column); case-insensitive by default; case-sensitive option; column order does not matter.
+- [x] `FieldsSelector` × (exact match, extra column, extra member, no overlap) for `Destination` (default), `Source`, `Common`, `Both`: rows mapped, or `InvalidOperationException` with the current message; an undefined selector value gives `ArgumentException`.
+- [x] Duplicates: duplicate reader columns (case-insensitive and case-sensitive modes); a field and a property whose names differ only by case; `ArgumentException` with the current messages.
+- [x] Nulls: `DBNull` becomes null for reference and `Nullable<T>` members; `DBNull` into a non-nullable value type throws `InvalidCastException` (Q12).
+- [x] Conversions (regression set for commit 41af0f9): int→long, long→int, int→decimal, decimal→double, short→int?, string "42"→int, int→string, bool, Guid, byte[], DateTime, DateTimeOffset, TimeSpan; enum from int and from string (case-sensitive, invalid name throws `ArgumentException`); nullable enum from `DBNull`; Guid→string throws `InvalidCastException`.
+- [x] Get-only property: required by the `Destination` selector, then fails when set (Q13).
+- [x] Laziness: mapping errors appear when enumerating, not when calling `ReadAll`; enumerating the result a second time yields nothing (forward-only reader).
+- [x] `ReadAllAnonymous`: matching by constructor parameter names; missing columns with `Common` give default values; `Destination` requires all parameters; case sensitivity; conversions; the first constructor is used for non-anonymous types.
+- [x] `ReadAllFirstColumn()`: `DBNull` becomes null, while `ReadAll()` keeps `DBNull` in its arrays (Q12); `ReadAllFirstColumn<T>()`: conversion, nullable, enum.
+- [x] `ReadAll()`: array length equals `FieldCount`.
+- [x] `GetColumnNames()`.
+- [x] Async twins of all of the above return the same results; the `IDataReader`-only path works; a cancelled token makes `MoveNext` return false instead of throwing (Q04); empty reader; disposing the enumerator.
 
 ### U6. UniversalDataReader and ToDataReader
 
