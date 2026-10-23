@@ -751,8 +751,10 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
             TableExists(table).Should().BeFalse();
         }
 
-        // the column types CreateTypedSourceTable does not have: binary, nchar, numeric, the max sizes and a type without size
+        // the column types CreateTypedSourceTable does not have: binary, nchar, numeric, the max sizes and a type without size;
+        // SqlClient reports a numeric column as decimal, so the table gets a decimal column
         [Fact]
+        [Trait("UpgradeSensitive", "SqlDataReader column schema")]
         public void WriteToServer_CreateTableFromQueryWithMoreColumnTypes_ReproducesColumns()
         {
             var source = Database.CreateScratchTable("ID int not null, Code binary(4) null, Short nchar(3) null, Price numeric(8, 2) null, "
@@ -764,7 +766,7 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
             Database.Run(ContextKind.Connection, x => SourceContext().CreateSimple($"select * from {source}")
                 .WriteToServer(x, table, new SqlBulkOptions(createTable: true)));
 
-            DescribeColumns(table).Should().Equal("ID int not null", "Code binary(4) null", "Short nchar(3) null", "Price numeric(8,2) null",
+            DescribeColumns(table).Should().Equal("ID int not null", "Code binary(4) null", "Short nchar(3) null", "Price decimal(8,2) null",
                 "Notes varchar(max) null", "Blob varbinary(max) null", "Big bigint null");
             CountRows(table).Should().Be(2);
             CountDifferentRows(source, table).Should().Be(0);
