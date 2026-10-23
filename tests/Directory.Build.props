@@ -1,0 +1,33 @@
+<Project>
+
+  <!-- Applies only to the test projects under tests/, library builds are not affected -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" Version="4.0.2" />
+    <PackageReference Include="AwesomeAssertions" Version="9.6.0" />
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.12.0" />
+    <!-- Same version as Gerakul.FastSql.Common uses. The Ix alias lets AsyncEnumerableCompat name the legacy
+         IAsyncEnumerable<T>, which clashes by name with the one built into .NET -->
+    <PackageReference Include="System.Interactive.Async" Version="3.2.0" Aliases="global,Ix" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\Gerakul.FastSql.SqlServer\Gerakul.FastSql.SqlServer.csproj" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\Gerakul.FastSql.PostgreSQL\Gerakul.FastSql.PostgreSQL.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Shared\**\*.cs" LinkBase="Shared" />
+    <None Include="$(MSBuildThisFileDirectory)xunit.runner.json" Link="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
