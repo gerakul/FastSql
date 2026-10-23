@@ -157,8 +157,10 @@ Ported from `Examples/InitQuery.sql`, so the tests follow the README examples:
 
 The PostgreSQL seed uses quoted PascalCase identifiers (`"Employee"`, `"CompanyID"`), so the same
 C# models work on both providers (the PostgreSQL text generator quotes column names, see Q19).
-`TestProc` becomes a function returning `setof "Employee"`; its exact parameter naming is settled
-in the stored procedure PR (Npgsql 4 uses named notation, verified in the prototype).
+`TestProc` becomes a function returning `setof "Employee"`. Npgsql 4 calls it as
+`select * from TestProc("CompanyID" => ..., "Age" => ...)`: the function name is not quoted (it folds
+to lower case) but the parameter names are, so the function declares quoted parameter names
+(found while building the infrastructure; relevant to I8, `UpgradeSensitive`).
 
 ### 3.7 Context kinds (integration)
 
