@@ -237,12 +237,12 @@ Classes: `SqlContextProviderTests`, `NpgsqlContextProviderTests` (capturing cont
 
 Class: `FieldSettingsTests`.
 
-- [ ] Each of the 5 public constructors: `Name`, `DataTypeName` (defaults to `FieldType.Name`), `FieldType`, `Getter`, `IsNullGetter`, `DetermineNullByValue`.
-- [ ] `FieldSettings<T>(name)`: identity getter for sequences of scalars.
-- [ ] `FieldSettings.FromType<T>(option)`: public fields first, then properties; `PublicField`, `PublicProperty`, `Default`/`Both`, `Collection`, `All`.
-- [ ] Collections (`List<int>`, `int[]`, `IEnumerable<string>`, dictionaries) are excluded unless `Collection` is set; `string` and `byte[]` are always included.
-- [ ] Static and non-public members excluded; inherited members included; an indexer property is included and its getter throws when invoked (Q21).
-- [ ] `FromType(proto)` (anonymous types), `GetFields<T>()`, `GetFields(proto)`, `GetNames()`, `IEnumerable<T>.GetFieldSettings()`.
+- [x] Each of the 5 public constructors: `Name`, `DataTypeName` (defaults to `FieldType.Name`), `FieldType`, `Getter`, `IsNullGetter`, `DetermineNullByValue`.
+- [x] `FieldSettings<T>(name)`: identity getter for sequences of scalars.
+- [x] `FieldSettings.FromType<T>(option)`: public fields first, then properties; `PublicField`, `PublicProperty`, `Default`/`Both`, `Collection`, `All`.
+- [x] Collections (`List<int>`, `int[]`, `IEnumerable<string>`, dictionaries) are excluded unless `Collection` is set; `string` and `byte[]` are always included.
+- [x] Static and non-public members excluded; inherited members included; an indexer property is included and its getter throws when invoked (Q21).
+- [x] `FromType(proto)` (anonymous types), `GetFields<T>()`, `GetFields(proto)`, `GetNames()`, `IEnumerable<T>.GetFieldSettings()`.
 
 ### U4. Options
 
@@ -283,13 +283,13 @@ Input comes from `DataTable.CreateDataReader()` and from a wrapper that implemen
 
 Classes: `UniversalDataReaderTests`, `ToDataReaderTests`.
 
-- [ ] All 8 `ToDataReader` overloads (`IEnumerable` and legacy `IAsyncEnumerable`, × settings array / settings + case sensitivity / `FromTypeOption` / defaults): resulting `Settings`; case-sensitive by default.
-- [ ] Metadata: `FieldCount`, `GetName`, `GetOrdinal` (case-sensitive and insensitive; unknown name throws `KeyNotFoundException`), `GetFieldType`, `GetDataTypeName` (CLR type name or custom), `Depth` = 0.
-- [ ] Values: `Read` and `ReadAsync` over both source kinds; `GetValue`, `GetValues` (shorter and longer arrays), both indexers, `IsDBNull` (custom null predicate), typed getters (exact cast: `GetInt64` on an int throws `InvalidCastException`), `GetBytes` / `GetChars` (offsets, lengths, out-of-range returns 0).
-- [ ] Lifecycle: `Close()` on the reader sets `IsClosed` and `Read` then throws `InvalidOperationException`; `Close()` through a `DbDataReader` reference does not close it (Q01); `Dispose()` closes.
-- [ ] Not implemented: `NextResult`, `RecordsAffected`, `HasRows` throw `NotImplementedException` (Q02); `GetEnumerator()` returns the source enumerator, or null for an async source (Q03); `GetSchemaTable()` / `GetColumnSchema()` throw `NotSupportedException` (leads to Q14).
-- [ ] Duplicate names (in case-insensitive mode) throw `ArgumentException` at construction.
-- [ ] Round trip: `ToDataReader().ReadAll<T>()` returns equal objects (sync and async).
+- [x] All 8 `ToDataReader` overloads (`IEnumerable` and legacy `IAsyncEnumerable`, × settings array / settings + case sensitivity / `FromTypeOption` / defaults): resulting `Settings`; case-sensitive by default.
+- [x] Metadata: `FieldCount`, `GetName`, `GetOrdinal` (case-sensitive and insensitive; unknown name throws `KeyNotFoundException`), `GetFieldType`, `GetDataTypeName` (CLR type name or custom), `Depth` = 0.
+- [x] Values: `Read` and `ReadAsync` over both source kinds; `GetValue`, `GetValues` (shorter and longer arrays), both indexers, `IsDBNull` (custom null predicate), typed getters (exact cast: `GetInt64` on an int throws `InvalidCastException`), `GetBytes` / `GetChars` (offsets, lengths, out-of-range returns 0).
+- [x] Lifecycle: `Close()` on the reader sets `IsClosed` and `Read` then throws `InvalidOperationException`; `Close()` through a `DbDataReader` reference does not close it (Q01); `Dispose()` closes.
+- [x] Not implemented: `NextResult`, `RecordsAffected`, `HasRows` throw `NotImplementedException` (Q02); `GetEnumerator()` returns the source enumerator, or null for an async source (Q03); `GetSchemaTable()` / `GetColumnSchema()` throw `NotSupportedException` (leads to Q14).
+- [x] Duplicate names (in case-insensitive mode) throw `ArgumentException` at construction.
+- [x] Round trip: `ToDataReader().ReadAll<T>()` returns equal objects (sync and async).
 
 ### U7. Command compilation *(per provider)*
 
