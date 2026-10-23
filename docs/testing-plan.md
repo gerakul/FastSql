@@ -399,20 +399,20 @@ read back through `ExecuteQuery<T>`, `ExecuteQueryAnonymous`, `ExecuteQueryFirst
 
 Classes: `InsertTests`, `InsertWithOutputTests`, `UpdateTests`, `DeleteTests`, `MergeTests`, `SqlServerInsertAndGetIdTests`.
 
-- [ ] `Insert`: all columns; ignored fields (identity); nulls; `queryOptions` overload; named and anonymous types; table name forms (`dbo.Employee`, `[Employee]`, `"Employee"`, `public."Employee"`); PostgreSQL table with lower-case columns and PascalCase members fails (Q19).
-- [ ] `CreateInsertWithOutput` (4 overloads): one and several output fields, read through `ExecuteQueryFirstColumn<int>` and `ExecuteQuery<T>`; ignored fields; no output fields gives a plain insert.
-- [ ] `CreateInsertAndGetID` (SQL Server): `ExecuteScalar` returns the identity as `decimal` (Q18); `ExecuteQueryFirstColumn<int>`.
-- [ ] `Update`: single and composite keys; rows affected; no matching row gives 0; nulls written.
-- [ ] `Delete`: by keys; by all members when no keys are given; the README shortcut `new { ID = 2 }`; a null key value matches nothing (Q08).
-- [ ] `Merge`: inserts when missing, updates when present, composite keys; PostgreSQL without a unique constraint on the keys fails (pinned); an object with only key members fails (Q09).
-- [ ] Each method's async twin.
+- [x] `Insert`: all columns; ignored fields (identity); nulls; `queryOptions` overload; named and anonymous types; table name forms (`dbo.Employee`, `[Employee]`, `"Employee"`, `public."Employee"`); PostgreSQL table with lower-case columns and PascalCase members fails (Q19).
+- [x] `CreateInsertWithOutput` (4 overloads): one and several output fields, read through `ExecuteQueryFirstColumn<int>` and `ExecuteQuery<T>`; ignored fields; no output fields gives a plain insert.
+- [x] `CreateInsertAndGetID` (SQL Server): `ExecuteScalar` returns the identity as `decimal` (Q18); `ExecuteQueryFirstColumn<int>`.
+- [x] `Update`: single and composite keys; rows affected; no matching row gives 0; nulls written.
+- [x] `Delete`: by keys; by all members when no keys are given; the README shortcut `new { ID = 2 }`; a null key value matches nothing (Q08).
+- [x] `Merge`: inserts when missing, updates when present, composite keys; PostgreSQL without a unique constraint on the keys fails (pinned); an object with only key members fails (Q09).
+- [x] Each method's async twin.
 
 ### I8. Stored procedures and functions (P)
 
 Class: `StoredProcedureTests`.
 
-- [ ] SQL Server: `TestProc` through `CreateProcedure`; an extra member fails with a server error (pinned); explicit parameter subset; settings overloads; `CreateProcedureSimple` with input, output and return value parameters (values read after execution); a `DbParameter` member used as an output parameter; a procedure with several result sets through `UseReader`.
-- [ ] PostgreSQL (`UpgradeSensitive`): a function returning a table through `CreateProcedure` (named notation, member order does not matter); `CreateProcedureSimple` with parameters from `DbCommand.CreateParameter()`; a void function through `ExecuteNonQuery`; calling a `procedure` fails with Npgsql 4 (pinned).
+- [x] SQL Server: `TestProc` through `CreateProcedure`; an extra member fails with a server error (pinned); explicit parameter subset; settings overloads; `CreateProcedureSimple` with input, output and return value parameters (values read after execution); a `DbParameter` member used as an output parameter; a procedure with several result sets through `UseReader`.
+- [x] PostgreSQL (`UpgradeSensitive`): a function returning a table through `CreateProcedure` (named notation, member order does not matter); `CreateProcedureSimple` with parameters from `DbCommand.CreateParameter()`; a void function through `ExecuteNonQuery`; calling a `procedure` fails with Npgsql 4 (pinned).
 
 ### I9. Bulk copy and data import (P × K × S/A)
 
