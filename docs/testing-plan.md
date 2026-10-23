@@ -205,6 +205,30 @@ properties, indexers, inherited members, and members differing only by case.
 | Public API changes (async types, driver types) | Public API snapshot | Approved files are updated deliberately in the upgrade PR. |
 | Dropping `netstandard1.3` / `net46` | None | Not tested. |
 
+### Upgrade-sensitive behavior found in phase 0
+
+The tests tagged `UpgradeSensitive` (`--filter-trait "UpgradeSensitive=..."` lists them by reason) pin these
+driver and runtime behaviors. Expect them to change in phase 1, and review each change on its own:
+
+- **Npgsql 4 to 6+ / 7+:**
+  - `timestamptz` is returned as UTC instead of local time, and writing a `DateTime` that is not UTC throws (Q87, `PostgreSqlTypeMappingTests`).
+  - Stored procedures are called with `CALL` instead of selecting from a function (the whole `PostgreSqlStoredProcedureTests` class).
+  - Binary `COPY` type handling (Q85, Q111, and the copies in `PostgreSqlBulkCopyTests`).
+  - Async `CommandTimeout` (Q71).
+  - Enum and json handling (Q86, Q89, the enum type pool test).
+  - Parameter type inference (`NpgsqlContextProviderTests.AddWithValue_*`).
+  - Exception types and messages: the `PostgresException` text, `OperationCanceledException` on cancel, `NpgsqlOperationInProgressException` (Q110).
+- **System.Data.SqlClient to Microsoft.Data.SqlClient:**
+  - `uniqueidentifier` reads should work again (Q80); remove the workarounds that avoid Guid columns.
+  - `SqlBulkCopy` rounds instead of truncating since 2.0 (Q82).
+  - Messages: "Execution Timeout Expired" instead of "Timeout expired", the closed connection messages (`Begin*` names for async methods), column mapping messages, the busy connection message (Q110).
+  - `DbType` / `SqlDbType` inference (`SqlContextProviderTests.AddWithValue_*`).
+  - `TaskCanceledException` on cancel.
+  - The bulk load problem noted at the end of [§7](#7-quirks-register).
+- **System.Interactive.Async to the `IAsyncEnumerable<T>` of .NET:** Q40 and Q42 depend on how Ix
+  disposes and reports errors, and every async test goes through `AsyncEnumerableCompat`.
+- **Unsigned CLR types** (I6): SQL Server Insert throws `ArgumentException` and bulk copy converts them; Npgsql throws on both paths.
+
 ## 5. Unit tests
 
 Unit tests need no Docker. Classes marked *(per provider)* are abstract and run for both providers.
@@ -297,7 +321,7 @@ Class: `CommandCompilatorTests`. Each compiled command is turned into a `DbComma
 `CreateSimple(precompiled)` / `CreateMapped(precompiled)` on a capturing context.
 
 - [x] `CompileSimple`, `CompileProcedureSimple`: `CommandText`, `CommandType`.
-- [x] `CompileMapped` (6 overloads): names from text vs explicit list; `FromTypeOption`; proto overloads; settings overloads; case-sensitive and insensitive matching; parameter without a setting throws `ArgumentException`; duplicate parameter names and duplicate settings throw `ArgumentException`; null parameter list throws `NullReferenceException` (Q17).
+- [x] `CompileMapped` (6 overloads): names from text vs explicit list; `FromTypeOption`; proto overloads; settings overloads; case-sensitive and insensitive matching; parameter without a setting throws `ArgumentException`; duplicate parameter names and duplicate settings throw `ArgumentException`; null parameter list throws `ArgumentNullException` (Q17; first expected as `NullReferenceException`).
 - [x] `CompileProcedure` (6 overloads): stored procedure type; parameters from all settings or from an explicit subset.
 - [x] `CompileInsert` (5 overloads): fields minus ignored fields; text from the generator; parameters match.
 - [x] `CompileInsertWithOutput`: output fields; no output fields gives a plain insert; null ignore list.
@@ -424,7 +448,7 @@ Classes: `BulkCopyTests`, `SqlServerBulkCopyOptionsTests`, `PostgreSqlBulkCopyTe
 - [x] With `CaseSensitiveFieldsMatching` set (true or false) the destination columns are read and joined; `Destination`, `Common`, `Both` with mismatches throw `InvalidOperationException`.
 - [x] Nulls; identity columns are generated.
 - [x] `SqlBulkCopyOptions`: `KeepIdentity`, `KeepNulls` (column default), `CheckConstraints`, `FireTriggers`; `TableLock`, `BatchSize`, `BulkCopyTimeout`, `EnableStreaming` accepted (smoke).
-- [x] SQL Server `CreateTable`: from a query reader (column types, lengths, nullability, primary key reproduced, checked in `INFORMATION_SCHEMA`); from `IEnumerable<T>` only with `IgnoreDataReaderSchemaTable = true`, otherwise `NotSupportedException` (Q14); `ColumnDefinitionOptions` `Default` / `Max` / `Small` and a primary key list; an unsupported member type with `ThrowIfUnsupportedType` false and true; `CheckTableIfNotExistsBeforeCreation` with an existing table; an `xml` source column throws `NotSupportedException`.
+- [x] SQL Server `CreateTable`: from a query reader (column types, lengths, nullability, checked in `INFORMATION_SCHEMA`; the source primary key is not reproduced, only `ColumnDefinitionOptions.PrimaryKey` creates one, Q103); from `IEnumerable<T>` only with `IgnoreDataReaderSchemaTable = true`, otherwise `NotSupportedException` (Q14); `ColumnDefinitionOptions` `Default` / `Max` / `Small` and a primary key list; an unsupported member type with `ThrowIfUnsupportedType` false and true; `CheckTableIfNotExistsBeforeCreation` with an existing table; an `xml` source column throws `NotSupportedException`.
 - [x] PostgreSQL `CreateTable` throws `NotImplementedException` (sync and async) (Q10).
 - [x] Cross-provider import: a SQL Server query written into a PostgreSQL table and the reverse, through `IWrappedCommand.WriteToServer`.
 
@@ -432,37 +456,101 @@ Classes: `BulkCopyTests`, `SqlServerBulkCopyOptionsTests`, `PostgreSqlBulkCopyTe
 
 Class: `ReadmeScenarioTests`.
 
-- [ ] Every README snippet, in order: simple example; context creation from a connection string, a connection and a transaction; `UsingConnection` / `UsingTransaction` and async variants; queries `data1` to `data11`; options; anonymous types; first column; non-query; insert and insert with output; update; merge; delete; bulk copy; stored procedures; data import; the extensibility examples (`CreateSelectTop10Employees`, with `limit 10` on PostgreSQL, and `GetTable<T>`).
-- [ ] The async lines keep the README syntax (`await ... .ToArray()`) on purpose: they change together with the README in phase 1.
+- [x] Every README snippet, in order: simple example; context creation from a connection string, a connection and a transaction; `UsingConnection` / `UsingTransaction` and async variants; queries `data1` to `data11`; options; anonymous types; first column; non-query; insert and insert with output; update; merge; delete; bulk copy; stored procedures; data import; the extensibility examples (`CreateSelectTop10Employees`, with `limit 10` on PostgreSQL, and `GetTable<T>`). Snippets that change data run against scratch copies of `Employee` and `Company`. On PostgreSQL the bulk copy snippet and the import of a table into itself fail (Q111), and on connection and transaction contexts both import snippets fail (Q110).
+- [x] The async lines keep the README syntax (`await ... .ToArray()`) on purpose: they change together with the README in phase 1.
 
 ## 7. Quirks register
 
-Behavior found while reading the code and in the prototype. Each item gets a pinning test tagged
-`[Trait("Quirk", "Qnn")]`. Items marked "confirmed" were reproduced in the prototype.
+Behavior that looks unintended, pinned by the tests as it is today. Q01 to Q21 were found while
+reading the code and in the prototype, before the tests were written; the other IDs were found
+by the implementation PRs (each PR had its own block of IDs, so some numbers are unused).
 
-| ID | Behavior | Area | Status |
-|---|---|---|---|
-| Q01 | `UniversalDataReader.Close()` hides `DbDataReader.Close()` instead of overriding it: closing through a `DbDataReader` reference leaves the reader open. | U6 | confirmed |
-| Q02 | `UniversalDataReader.NextResult`, `RecordsAffected`, `HasRows` throw `NotImplementedException`. | U6 | from code |
-| Q03 | `UniversalDataReader.GetEnumerator()` returns the source `IEnumerator<T>` (rows are `T`, not records), or null for an async source. | U6 | confirmed |
-| Q04 | Legacy async enumerators return false from `MoveNext` when the token is cancelled, instead of throwing. | U5, I5 | confirmed |
-| Q05 | PostgreSQL `WriteToServerAsync` performs the copy synchronously. | I9 | from code |
-| Q06 | Cancellation token ignored by `ExecuteNonQueryAsync` on connection string contexts and by `UseReaderAsync` on scoped contexts; connection string contexts open the connection without the token for non-query, scalar, `UseReaderAsync` and bulk copy (async queries do pass it). | I5 | from code |
-| Q07 | `CommandTextGenerator.Delete("T", "ID")` binds to the `whereClause` overload and produces `delete from T where ID;`. | U1 | confirmed |
-| Q08 | `Delete` with a null key value compares with `= NULL` and deletes nothing. | I7 | from code |
-| Q09 | `Update` / `Merge` with no non-key members produce invalid SQL. | U1, I7 | from code |
-| Q10 | PostgreSQL bulk copy with `CreateTable` throws `NotImplementedException`; the public PostgreSQL `ColumnDefinitionOptions` is unused (copy of the SQL Server one). | U4, I9 | from code |
-| Q11 | Parameter discovery treats `@` inside string literals and e-mail addresses as parameters. | U2 | from code |
-| Q12 | `DBNull` into a non-nullable value type throws `InvalidCastException`; `ReadAll()` keeps `DBNull` while `ReadAllFirstColumn()` returns null. | U5 | confirmed |
-| Q13 | Get-only properties count as destination members when reading, then fail when set. | U5 | from code |
-| Q14 | SQL Server bulk copy of `IEnumerable<T>` with `CreateTable` throws `NotSupportedException` unless `IgnoreDataReaderSchemaTable` is true. | U6, I9 | confirmed |
-| Q15 | Member values are read when the command is executed on connection string contexts, but when it is created on scoped contexts; scoped contexts reuse one `DbCommand` for repeated executions. | U8, I3 | confirmed |
-| Q16 | SQL Server bulk copy with the default `Source` selector maps columns case-sensitively (`name` does not match `Name`). | I9 | confirmed |
-| Q17 | Compiling a mapped command with a null parameter list throws `NullReferenceException`. | U7 | from code |
-| Q18 | `CreateInsertAndGetID(...).ExecuteScalar()` returns the identity as `decimal`; `CreateContext` returns base types, so the method needs a cast to `ISqlCommandCreator`. | U8, I7 | confirmed |
-| Q19 | The PostgreSQL text generator quotes column names but not table names, so members must match column case exactly while table names need manual quoting. | U1, I7 | from code |
-| Q20 | Identifier quoting does not escape quote characters inside names. | U1 | from code |
-| Q21 | Indexer properties are included by `FieldSettings.FromType` and their getters throw when invoked. | U3 | from code |
+- Every item is pinned by tests tagged `[Trait("Quirk", "Qnn")]`; `git grep 'Trait("Quirk", "Qnn")' -- tests`
+  lists them. The "Pinned in" column names the test classes (unit areas U*, integration areas I*).
+- "confirmed" means reproduced by those tests on the pinned server images and drivers.
+- Merged IDs were found twice; their tests carry the kept ID.
+- Items that depend on the driver or runtime version also carry `UpgradeSensitive` (see
+  [§4](#upgrade-sensitive-behavior-found-in-phase-0)).
+
+### Found while planning (Q01 to Q21)
+
+| ID | Behavior | Area | Status | Pinned in |
+|---|---|---|---|---|
+| Q01 | `UniversalDataReader.Close()` hides `DbDataReader.Close()` instead of overriding it: closing through a `DbDataReader` or `IDataReader` reference, or with the inherited `CloseAsync`, leaves the reader open. | U6 | confirmed | `UniversalDataReaderTests` |
+| Q02 | `UniversalDataReader.NextResult`, `NextResultAsync`, `RecordsAffected`, `HasRows` throw `NotImplementedException`. | U6 | confirmed | `UniversalDataReaderTests` |
+| Q03 | `UniversalDataReader.GetEnumerator()` returns the source `IEnumerator<T>` (rows are `T`, not records, and it shares the position with `Read`), or null for an async source. | U6 | confirmed | `UniversalDataReaderTests` |
+| Q04 | Legacy async enumerators return false from `MoveNext` when the token is cancelled, instead of throwing; a later `MoveNext` with a live token goes on with the next row, and a mapping error is not raised. | U5, I5 | confirmed | `ReadAllAsyncTests`, `ExecutionSemanticsTests` |
+| Q05 | PostgreSQL `WriteToServerAsync` performs the copy synchronously: the returned task is already completed, and a cancelled token is ignored. | I9 | confirmed | `PostgreSqlBulkCopyTests` |
+| Q06 | Cancellation token ignored by `ExecuteNonQueryAsync` on connection string contexts and by `UseReaderAsync` on scoped contexts. Connection string contexts also open the connection without the token for non-query, scalar, `UseReaderAsync` and bulk copy, but this is observable only for `ExecuteNonQueryAsync`: the others pass the token to the execute call anyway. | I5 | confirmed (partly observable) | `ExecutionSemanticsTests` |
+| Q07 | `CommandTextGenerator.Delete("T", "ID")` binds to the `whereClause` overload and produces `delete from T where ID;`. | U1 | confirmed | `CommandTextGeneratorTests` |
+| Q08 | `Delete` with a null key value compares with `= NULL` and deletes nothing. | I7 | confirmed | `DeleteTests` |
+| Q09 | `Update` / `Merge` with no non-key members produce invalid SQL (an empty `set` clause), which the server rejects. | U1, I7 | confirmed | `SqlCommandTextGeneratorTests`, `NpgsqlCommandTextGeneratorTests`, `UpdateTests`, `MergeTests` |
+| Q10 | PostgreSQL bulk copy with `CreateTable` throws `NotImplementedException` ("Table creation is not implemented for PostgreSQL"), sync and async, however the option is set; the public PostgreSQL `ColumnDefinitionOptions` is an unused copy of the SQL Server one. | U4, I9 | confirmed | `ColumnDefinitionOptionsTests` (PostgreSQL), `NpgsqlBulkOptionsTests`, `PostgreSqlBulkCopyTests` |
+| Q11 | Parameter discovery treats `@` inside string literals, comments and e-mail addresses as parameters. | U2 | confirmed | `ProviderHooksTests` |
+| Q12 | `DBNull` into a non-nullable value type throws `InvalidCastException`; `ReadAll()` keeps `DBNull` while `ReadAllFirstColumn()` returns null. See Q50 for enums and Q112 for `UniversalDataReader`. | U5 | confirmed | `ReadAll*Tests`, `ValueConversionTests` |
+| Q13 | Get-only properties count as destination members when reading, then fail when set ("Property set method not found."). | U5 | confirmed | `ReadAllTests`, `ReadAllAsyncTests` |
+| Q14 | SQL Server bulk copy of `IEnumerable<T>` with `CreateTable` throws `NotSupportedException` unless `IgnoreDataReaderSchemaTable` is true, because `UniversalDataReader.GetSchemaTable()` / `GetColumnSchema()` throw it (while `CanGetColumnSchema()` returns true). | U6, I9 | confirmed | `UniversalDataReaderTests`, `SqlServerBulkCopyOptionsTests` |
+| Q15 | Member values are read when the command is executed on connection string contexts, but when it is created on scoped contexts; scoped contexts reuse one `DbCommand` for repeated executions. See also Q92. | U8, I3 | confirmed | `CommandCreatorExtensionsTests`, `WrappedCommandQueryTests` |
+| Q16 | SQL Server bulk copy with the default `Source` selector maps columns case-sensitively (`name` does not match `Name`). | I9 | confirmed | `SqlServerBulkCopyOptionsTests` |
+| Q17 | Compiling a mapped command with a null parameter list throws `ArgumentNullException` (parameter `source`, from LINQ) instead of a clear error. The plan first expected `NullReferenceException`. | U7 | confirmed (corrected) | `CommandCompilatorTests` |
+| Q18 | `CreateInsertAndGetID(...).ExecuteScalar()` returns the identity as `decimal`; `CreateContext` returns base types, so the method needs a cast to `ISqlCommandCreator`. | U8, I7 | confirmed | `SqlCommandCreatorTests`, `SqlServerInsertAndGetIdTests` |
+| Q19 | PostgreSQL quotes column names but not table names, in the text generator and in bulk copy (`COPY`), so members must match column case exactly while table names need manual quoting. | U1, I7, I9 | confirmed | `NpgsqlCommandTextGeneratorTests`, `PostgreSqlInsertTests`, `PostgreSqlBulkCopyTests` |
+| Q20 | Identifier quoting does not escape quote characters inside names. | U1 | confirmed | `SqlCommandTextGeneratorTests`, `NpgsqlCommandTextGeneratorTests` |
+| Q21 | Indexer properties are included by `FieldSettings.FromType` and their getters throw when invoked (`TargetParameterCountException`). See Q53 for reading. | U3 | confirmed | `FieldSettingsTests` |
+
+### Found while implementing (Q30 and later)
+
+| ID | Behavior | Area | Status | Pinned in |
+|---|---|---|---|---|
+| Q30 | The text generators quote column names but use the field name as the parameter name, so a name that needs quoting gives invalid SQL (`[First Name] = @First Name`). | U1 | confirmed | `CommandTextGeneratorTests` |
+| Q31 | A `ReadOptions` instance passed directly to the reading methods on a reader, or to the raw `DbCommandExtensions.ExecuteQuery*`, is filled with the defaults in place when enumeration starts. Contexts clone the options first, so `IWrappedCommand` callers are not affected. | U4, U5, I4 | confirmed | `ReadOptionsTests`, `ReadAll*Tests`, `DbCommandExtensionsTests` |
+| Q32 | An empty explicit parameter name throws `IndexOutOfRangeException` instead of an `ArgumentException`. | U2 | confirmed | `ProviderHooksTests` |
+| Q33 | Parameter discovery from the text is case-sensitive while matching is case-insensitive by default, so one parameter spelled in two cases (`@ID`, `@id`) throws "Parameter names has been duplicated"; with case-sensitive matching it gives two parameters. | U2, U7 | confirmed | `ProviderHooksTests`, `CommandCompilatorTests` |
+| Q40 | `UniversalDataReader` never disposes the source enumerator (`Close` and `Dispose` don't), for both source kinds. | U6 | confirmed | `UniversalDataReaderTests` |
+| Q41 | `UniversalDataReader.ReadAsync` ignores its token: with a cancelled token it still reads the next row. | U6 | confirmed | `UniversalDataReaderTests` |
+| Q42 | `UniversalDataReader.Read()` over a legacy async source blocks on the task, so a source exception surfaces wrapped in `AggregateException`; `ReadAsync` and enumerable sources throw the original exception. | U6 | confirmed | `UniversalDataReaderTests` |
+| Q43 | `UniversalDataReader.GetBytes` / `GetChars` with a null buffer throw `NullReferenceException` instead of returning the length; `GetChars` works only for `char[]` values, a `string` value throws `InvalidCastException`. | U6 | confirmed | `UniversalDataReaderTests` |
+| Q44 | `UniversalDataReader` value getters never check the reader state: before the first `Read` they run on `default(T)`, after the end they return the last row, after `Close` they keep working. | U6 | confirmed | `UniversalDataReaderTests` |
+| Q45 | Collection detection looks only at the implemented interfaces: a member typed as the non-generic `IEnumerable` counts as a scalar, and any type implementing `IEnumerable<byte>` (`List<byte>`) counts as a scalar like `byte[]`. Used by `FromType` and by reading. | U3, U5 | confirmed | `FieldSettingsTests` |
+| Q46 | Write-only properties are included by `FieldSettings.FromType`; their getter throws `ArgumentException` ("Property Get method was not found."). | U3 | confirmed | `FieldSettingsTests` |
+| Q47 | `UniversalDataReader.GetValue` returns null (not `DBNull.Value`) for a null member while `IsDBNull` is true, and with by-value null detection a getter returning `DBNull.Value` is not `IsDBNull`. Consequence: Q112. | U6 | confirmed | `UniversalDataReaderTests` |
+| Q48 | A member hidden with `new` and another type appears twice in `FieldSettings.FromType`, so `ToDataReader()` throws `ArgumentException` for the duplicate name even when case-sensitive. | U3, U6 | confirmed | `FieldSettingsTests`, `ToDataReaderTests` |
+| Q50 | `DBNull` into a non-nullable enum throws `ArgumentException` from `Enum.ToObject`, not the `InvalidCastException` of other value types (Q12). | U5 | confirmed | `ValueConversionTests` |
+| Q51 | Merged into Q31 (the same behavior, found again). | U5 | merged into Q31 | – |
+| Q52 | A value that does not implement `IConvertible` (`Guid`, `byte[]`, `DateTimeOffset`, `TimeSpan`, arrays) maps only into a member of exactly its type; an `object` or interface member throws `InvalidCastException` "Object must implement IConvertible.". Introduced by the values casting fix 41af0f9 (before it, such values were assigned directly). See also Q87. | U5 | confirmed | `ValueConversionTests`, `ReadAllTests`, `ReadAllAsyncTests` |
+| Q53 | `ReadAll<T>` counts an indexer as a destination member named `Item`: the default `Destination` selector then needs an `Item` column, and with one, setting it throws `TargetParameterCountException`. | U5 | confirmed | `ReadAllTests`, `ReadAllAsyncTests` |
+| Q54 | `ReadAllAnonymous` with a type that has no public constructor throws `InvalidOperationException` "Sequence contains no elements" on enumeration. | U5 | confirmed | `ReadAllAnonymousTests` |
+| Q60 | `CreateSimple(text, null)` binds the `null` to the `params` array itself, so building the command throws `NullReferenceException`; `(object)null` gives a `DBNull` parameter. | U8 | confirmed | `CommandCreatorExtensionsTests` |
+| Q61 | `CreateInsertAndGetID` casts the creator to `DbContext`, so an `ISqlCommandCreator` that is not a context throws `InvalidCastException`. | U8 | confirmed | `SqlCommandCreatorTests` |
+| Q70 | The async mapped queries (`ExecuteQueryAsync<T>`, `ExecuteQueryAnonymousAsync`) open the reader before building the mapping and leak it when building fails (for example a missing column with the default selector). On scoped contexts and raw commands the next command on the connection then fails, and on SQL Server a transaction can be neither committed nor rolled back. Sync methods and connection string contexts clean up. | I3, I4, I5 | confirmed | `DbCommandExtensionsTests`, `ExecutionSemanticsTests` |
+| Q71 | PostgreSQL: Npgsql 4 does not apply `CommandTimeout` to async execution, so a timeout shorter than the server's work fails the sync methods but not `ExecuteNonQueryAsync`, `ExecuteScalarAsync` or `ExecuteQueryAsync`. | I5 | confirmed | `PostgreSqlExecutionSemanticsTests` |
+| Q80 | SQL Server: System.Data.SqlClient 4.5.1 cannot read `uniqueidentifier` values on .NET 9 and later (`TypeLoadException` for `SqlGuidCaster`). On the mapping paths the reader is left half read, and disposing it waits for the command timeout (`SqlException` "Timeout expired"). Bulk copy from such a query fails the same way. Writing Guids works. A driver and runtime issue, not library code. | I6, I9 | confirmed | `SqlServerTypeMappingTests`, `SqlServerBulkCopyOptionsTests` |
+| Q81 | SQL Server: `DateTime` parameters are sent as `datetime`, so Insert into `datetime2` loses precision and dates before 1753 fail with `SqlTypeException` even for `date` / `datetime2` columns; bulk copy keeps the full precision and range. | I6 | confirmed | `SqlServerTypeMappingTests` |
+| Q82 | SQL Server: bulk copy truncates extra fractional digits (decimal, datetimeoffset) while Insert rounds on the server. | I6 | confirmed | `SqlServerTypeMappingTests` |
+| Q83 | SQL Server: a C# enum written into a string column stores the number through Insert and the name through bulk copy. | I6 | confirmed | `SqlServerTypeMappingTests` |
+| Q84 | SQL Server: a `DateTime` written into `datetimeoffset` gets offset +00:00 through Insert but the client machine's local offset through bulk copy. | I6 | confirmed | `SqlServerTypeMappingTests` |
+| Q85 | PostgreSQL: binary `COPY` writes each value with the type Npgsql infers from its CLR type, not with the column type, so `int` into `bigint`, `DateTime` into `date` (even when read from a `date` column) and similar combinations fail on the server; Insert lets the server cast the same values. | I6, I9 | confirmed | `PostgreSqlTypeMappingTests`, `PostgreSqlBulkCopyTests` |
+| Q86 | PostgreSQL: string parameters are `text`, so Insert into `json`, `jsonb` and enum-type columns fails; bulk copy works for `json` and enum types but fails for `jsonb`. | I6 | confirmed | `PostgreSqlTypeMappingTests` |
+| Q87 | `DateTime` and `DateTimeOffset` do not convert into each other when reading. On PostgreSQL this hits every `timestamptz` column (Npgsql 4 returns a local `DateTime`); `timestamptz` also stores any `DateTime` as wall clock. | I6 | confirmed | `PostgreSqlTypeMappingTests`, `SqlServerTypeMappingTests` |
+| Q88 | Array members are skipped silently with the default `FromTypeOption`: Insert and enumerable bulk copy leave the column NULL, `ExecuteQuery<T>` leaves the member null; `FromTypeOption.Collection` is needed. | I6 | confirmed | `PostgreSqlTypeMappingTests` |
+| Q89 | PostgreSQL: Npgsql 4 cannot write a C# enum at all (Insert or bulk copy, into enum-type, integer or text columns) unless the enum is registered with Npgsql. | I6 | confirmed | `PostgreSqlTypeMappingTests` |
+| Q90 | The ignore lists of `Insert`, `CreateInsertWithOutput` and `CreateInsertAndGetID` are compared case-sensitively, although parameter matching is case-insensitive by default: `Insert(t, value, "id")` does not ignore `ID`. | I7 | confirmed | `InsertTests` |
+| Q91 | PostgreSQL `Merge` (`insert ... on conflict ... do update`) checks the NOT NULL constraints of the proposed insert row first, so an object that leaves out a NOT NULL column fails even when the row exists; SQL Server `MERGE` updates the given columns. | I7 | confirmed | `PostgreSqlMergeTests`, `SqlServerMergeTests` |
+| Q92 | Connection string contexts rebuild the command for every execution and add the same caller-supplied `DbParameter` objects again, so the second execution of such an `IWrappedCommand` throws; scoped contexts reuse their command. See Q15. | I3, I8 | confirmed | `StoredProcedureTests` |
+| Q100 | SQL Server `CreateTable` with an unsupported member type and `ThrowIfUnsupportedType` false (the default) throws `NullReferenceException`, even when `fields` excludes that member. | I9 | confirmed | `SqlServerBulkCopyOptionsTests` |
+| Q101 | Merged into Q85 (the same behavior, found again). | I9 | merged into Q85 | – |
+| Q102 | Merged into Q80 (the same behavior, found again). | I9 | merged into Q80 | – |
+| Q103 | SQL Server `CreateTable` from a query reader does not reproduce the source primary key (the reader reports no key information); only `ColumnDefinitionOptions.PrimaryKey` creates one. | I9 | confirmed | `SqlServerBulkCopyOptionsTests` |
+| Q104 | SQL Server `CreateTable` with `IgnoreDataReaderSchemaTable` over a database reader creates value-type columns as `not null`, because the reader reports `int`, not `int?`, so a null value then fails. | I9 | confirmed | `SqlServerBulkCopyOptionsTests` |
+| Q110 | A data import whose source and destination are the same scoped context fails: the source reader keeps the connection busy while the bulk copy needs it (SQL Server `InvalidOperationException`, PostgreSQL `NpgsqlOperationInProgressException`). Connection string contexts use a connection each and work. The README import examples hit this with connection and transaction contexts. | I9, I10 | confirmed | `ReadmeScenarioTests` |
+| Q111 | PostgreSQL bulk copy writes the identity (`serial`) values of the source, unlike SQL Server, which generates them unless `KeepIdentity` is set. So the README bulk copy example (new objects with `ID = 0`) and the README import of a table into itself fail with a duplicate key (23505) on PostgreSQL. | I9, I10 | confirmed | `PostgreSqlBulkCopyTests`, `PostgreSqlReadmeScenarioTests` |
+| Q112 | Reading a `UniversalDataReader` (`ToDataReader()`) null value into a non-nullable value-type member gives the default value (0) instead of the `InvalidCastException` of database readers (Q12), because `GetValue` returns null (Q47); `ReadAllFirstColumn<int>()` throws `NullReferenceException` instead. | U5, U6 | confirmed | `ToDataReaderTests` |
+
+Observed but not pinned: a failed async SQL Server bulk copy (a client-side null check failing in the
+middle of the copy) once returned its pooled connection in the middle of the bulk load, and the next
+command on that connection failed with "Bulk load data was expected but not sent. The batch will be
+terminated." It did not reproduce in isolation (timing dependent), so the affected test uses an
+unpooled connection. Worth checking again after the move to Microsoft.Data.SqlClient.
 
 ## 8. CI
 
@@ -487,10 +575,55 @@ Workflow `.github/workflows/tests.yml`:
 - Phase 0 is done when all checklist items in this plan are ticked, CI is green on
   `modernization`, and you have reviewed the quirks register.
 
-Rough size (to be refined while implementing): about 450 to 550 unit test cases and 700 to 1,000
-integration test cases, counting theory rows and the provider / context kind / sync-async
-combinations. Expected run time: unit tests under 15 seconds, integration tests a few minutes in
-CI including image pulls.
+The plan's first estimate was about 450 to 550 unit test cases and 700 to 1,000 integration test
+cases (counting theory rows and the provider / context kind / sync-async combinations), with unit
+tests under 15 seconds and integration tests a few minutes in CI including image pulls.
+
+### Results after PR 10
+
+Test cases as reported by the runner, and run times in CI (GitHub Actions, `ubuntu-latest`):
+
+| Project | Test cases | Test run | Job, including restore and build |
+|---|---|---|---|
+| Unit | 1,747 | about 2 s | about 40 s |
+| Integration | 2,499 | about 70 s, including the container starts | about 1 min 45 s |
+
+Coverage of the `netstandard2.0` build, unit and integration results merged (a line counts as
+covered when either project runs it; branch numbers take the better project per line, so they are
+approximate):
+
+| Assembly | Lines covered | Line rate | Branches covered | Branch rate |
+|---|---|---|---|---|
+| Gerakul.FastSql.Common | 1,048 / 1,055 | 99.3% | 444 / 450 | 98.7% |
+| Gerakul.FastSql.SqlServer | 367 / 375 | 97.9% | 254 / 269 | 94.4% |
+| Gerakul.FastSql.PostgreSQL | 190 / 307 | 61.9% | 97 / 237 | 40.9% |
+
+Every public and protected member with a body is executed. The remaining uncovered code is
+internal or private, and none of it is reachable in a way a test could pin:
+
+| Code | Uncovered | Why |
+|---|---|---|
+| PostgreSQL `ColumnDefinition`, the internal `DataReaderExtensions.GetColumnDefinitions` and `EnumerableExtensions` helpers | 112 lines | Dead: a copy of the SQL Server table creation code. It would run only behind `CreateTable`, which throws `NotImplementedException` first (Q10). |
+| PostgreSQL `NpgsqlBulkCopy.Transaction` and `NpgsqlBulkOptions` properties | 4 lines | Dead: never used (the binary import does not take a transaction). |
+| `NpgsqlBulkCopy.Connection` and `MsSqlBulkCopy.Connection` fallback (`return null`) | 1 + 1 lines | Unreachable: a bulk copy is only created for connection and transaction contexts. |
+| SQL Server `ColumnDefinition.GetColumnDefinitions(IEnumerable<FieldSettings<T>>)` and both `CreateTableScript<T>` overloads, the internal `EnumerableExtensions` script helpers | 7 lines | Dead: "temporary internal" helpers that nothing calls. |
+| `DataReaderAttachedToConnectionStringContext.Context` and `DataReaderAttachedToScopedContext.Context` | 2 lines | Dead: the internal `IBulkWriter.Context` property is never read. |
+| `DataReaderExtensions.GetBulkWriter`: "Unknown type of context" | 1 line | Unreachable: every context is a `ScopedContext` or a `ConnectionStringContext`, and `DbContext` cannot be subclassed outside the library (it has an internal abstract member). |
+| `ReadInfo<T>.Dispose` | 3 lines | Dead: never called; the readers are disposed directly. |
+| `ReadInfoFactory.CreateAnonymous`: case-sensitive duplicate constructor parameter names | 1 line | Unreachable from C#, which does not allow duplicate parameter names. |
+| Branches: the `numeric` case of SQL Server `ColumnDefinition.GetTypeDeclaration` and the compiler-generated branches of that string switch; `options ?? ColumnDefinitionOptions.Default` in `FromFieldType`; the null-option and `IsKey ??` branches of the SQL Server `GetColumnDefinitions`; one null-conditional combination in the async enumerators' dispose (`state?.ReadInfo?.Reader?.Dispose()`) | the other partly covered branches | Unreachable: SqlClient reports `numeric` columns as `decimal`, the options are never null there (the defaults fill them), the reader always reports `IsKey`, and the enumerator state is never null when it is disposed. |
+
+PR 10 closed the gaps that were reachable:
+- null values from `UniversalDataReader` into non-nullable members (Q112);
+- a property hiding an inherited field of the same name;
+- the `ContextProvider` extension points `ApplyQueryOptions(cmd, null)` and `GetTyped` with `needClone`;
+- more SQL Server `CreateTable` column types and nullable member types.
+
+Done criteria:
+
+- [x] All checklist items in this plan are ticked.
+- [ ] CI is green on `modernization` (for you to confirm after merging PR 10; CI on the PR 10 branch is green).
+- [ ] You have reviewed the quirks register ([§7](#7-quirks-register)).
 
 ## 10. Delivery plan
 
@@ -518,6 +651,11 @@ parallel.
 Member counts are public and protected members as reported by `PublicApiGenerator`
 (about 445 in total, across 42 types).
 
+Checked against the coverage results in PR 10 ([§9](#9-coverage-and-definition-of-done)): every public and
+protected member with a body is executed by at least one test, and all uncovered lines are in internal or
+private code. The "Covered by" column lists the areas that test each type on purpose; the README scenarios
+(I10) also go through most of the Common types.
+
 ### Gerakul.FastSql.Common
 
 | Type | Members | Covered by |
@@ -529,15 +667,15 @@ Member counts are public and protected members as reported by `PublicApiGenerato
 | `CommandCompilator` | 46 | U7 |
 | `SimpleCommand`, `MappedCommand<T>` | 2 + 2 | U7 |
 | `CommandTextGenerator` | 12 | U1 |
-| `ContextProvider` | 21 | U2, U9, I2 |
-| `DbContext`, `ScopedContext`, `ConnectionStringContext`, `ConnectionContext`, `TransactionContext` | 7 + 2 + 9 + 6 + 2 | U9, I2, I3 |
+| `ContextProvider` | 21 | U2 (including the protected extension points `ApplyQueryOptions` and `GetTyped`, through a provider subclass), U9, I2 |
+| `DbContext`, `ScopedContext`, `ConnectionStringContext`, `ConnectionContext`, `TransactionContext` | 7 + 2 + 9 + 6 + 2 | U9, I2, I3, I10 |
 | `QueryOptions`, `ReadOptions`, `BulkOptions` | 9 + 5 + 11 | U4, I3, I9 |
 | `FieldSettings<T>`, `FieldSettings`, `FieldSettingsExtension` | 11 + 4 + 1 | U3 |
 | `FromTypeOption`, `FieldsSelector` (enums) | – | U3, U5, I9 |
 | `DataReaderExtensions` | 21 | U5 (reading), I9 (`WriteToServer` ×6) |
 | `DbCommandExtensions` | 10 | I4 |
 | `EnumerableExtensions` | 15 | U6 (`ToDataReader` ×8), I9 (`WriteToServer` ×6), U3 (`GetFieldSettings`) |
-| `UniversalDataReader<T>` | 37 | U6 |
+| `UniversalDataReader<T>` | 37 | U6 (and U5 through `ToDataReader().ReadAll*`, Q112) |
 | `BulkCopy` (abstract, protected members) | 9 | Indirectly through I9 (not constructible without a custom provider) |
 
 ### Gerakul.FastSql.SqlServer
@@ -562,4 +700,4 @@ Member counts are public and protected members as reported by `PublicApiGenerato
 | `NpgsqlCommandTextGenerator` | 10 | U1 |
 | `NpgsqlQueryOptions` | 6 | U4 |
 | `NpgsqlBulkOptions` | 6 | U4, I9 |
-| `ColumnDefinitionOptions` | 16 | U4 (unused by the provider, Q10) |
+| `ColumnDefinitionOptions` | 16 | U4 (unused by the provider, Q10; the internal table creation code behind it is dead, see §9) |

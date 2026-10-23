@@ -230,6 +230,7 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
         // there is no identity handling: values in the source are written as they are
         [Theory]
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
+        [Trait("Quirk", "Q111")]
         public void WriteToServer_IdentityColumnInSource_WritesSourceValues(ContextKind kind)
         {
             var table = Database.CreateScratchTable("\"ID\" serial primary key, \"Name\" varchar(50) null");
@@ -245,7 +246,7 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
 
         // each value is written with the PostgreSQL type Npgsql infers from its CLR type, not with the column type
         [Fact]
-        [Trait("Quirk", "Q101")]
+        [Trait("Quirk", "Q85")]
         [Trait("UpgradeSensitive", "Npgsql binary COPY type inference")]
         public void WriteToServer_IntValueIntoBigintColumn_ThrowsPostgresException()
         {
@@ -258,7 +259,7 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
         }
 
         [Fact]
-        [Trait("Quirk", "Q101")]
+        [Trait("Quirk", "Q85")]
         [Trait("UpgradeSensitive", "Npgsql binary COPY type inference")]
         public async Task WriteToServerAsync_IntValueIntoBigintColumn_ThrowsPostgresExceptionAsync()
         {
@@ -272,7 +273,7 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
         }
 
         [Fact]
-        [Trait("Quirk", "Q101")]
+        [Trait("Quirk", "Q85")]
         [Trait("UpgradeSensitive", "Npgsql binary COPY type inference")]
         public void WriteToServer_DateColumnFromQuery_ThrowsPostgresException()
         {

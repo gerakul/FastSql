@@ -260,6 +260,7 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
+        [Trait("Quirk", "Q33")]
         public void CompileMapped_SameNameInDifferentCaseInText_ThrowsArgumentException()
         {
             Action act = () => Compilator.CompileMapped<Person>("select @ID, @id");

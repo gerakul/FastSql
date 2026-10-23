@@ -482,7 +482,7 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
-        [Trait("Quirk", "Q51")]
+        [Trait("Quirk", "Q31")]
         public void ReadAllAnonymous_PassedOptions_UnsetValuesAreFilledOnEnumeration()
         {
             var options = new ReadOptions(caseSensitiveFieldsMatching: true);
@@ -498,7 +498,7 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
-        [Trait("Quirk", "Q51")]
+        [Trait("Quirk", "Q31")]
         public async Task ReadAllAnonymousAsync_PassedOptions_UnsetValuesAreFilledOnFirstMoveNextAsync()
         {
             var options = new ReadOptions(caseSensitiveFieldsMatching: true);
