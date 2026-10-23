@@ -390,10 +390,10 @@ For each type (with a nullable twin): write through parameters (`Insert`) and th
 read back through `ExecuteQuery<T>`, `ExecuteQueryAnonymous`, `ExecuteQueryFirstColumn<T>` and
 `ExecuteQuery()` (recording the CLR type the driver returns).
 
-- [ ] SQL Server: bit, tinyint, smallint, int, bigint, decimal, numeric, money, float, real, date, time, datetime, datetime2, smalldatetime, datetimeoffset, uniqueidentifier, char, varchar, nchar, nvarchar, nvarchar(max), varbinary, varbinary(max), xml (as string), rowversion (as byte[]).
-- [ ] PostgreSQL: boolean, smallint, integer, bigint, numeric, real, double precision, date, time, timestamp, timestamptz (instant and `Kind` asserted separately), interval, uuid, char, varchar, text, bytea, json and jsonb (as string), int[] and text[] (with `FromTypeOption.Collection`), a PostgreSQL enum type read into a C# enum.
-- [ ] Enums stored as int and as string; enum values written as parameters.
-- [ ] Edge values: min/max, decimal precision and scale, unicode, empty string vs null, empty byte array, `DateTime.MinValue` into `datetime` (error pinned).
+- [x] SQL Server: bit, tinyint, smallint, int, bigint, decimal, numeric, money, float, real, date, time, datetime, datetime2, smalldatetime, datetimeoffset, uniqueidentifier, char, varchar, nchar, nvarchar, nvarchar(max), varbinary, varbinary(max), xml (as string), rowversion (as byte[]).
+- [x] PostgreSQL: boolean, smallint, integer, bigint, numeric, real, double precision, date, time, timestamp, timestamptz (instant and `Kind` asserted separately), interval, uuid, char, varchar, text, bytea, json and jsonb (as string), int[] and text[] (with `FromTypeOption.Collection`), a PostgreSQL enum type read into a C# enum.
+- [x] Enums stored as int and as string; enum values written as parameters.
+- [x] Edge values: min/max, decimal precision and scale, unicode, empty string vs null, empty byte array, `DateTime.MinValue` into `datetime` (error pinned).
 
 ### I7. Data modification (P × K × S/A)
 
