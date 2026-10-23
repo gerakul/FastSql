@@ -35,32 +35,47 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
             return Spec.Quote(identifier);
         }
 
-        protected override void AssertBulkCopyResult(Action bulkCopy, string table)
+        protected override void ShouldThrowConnectionBusy(Action import, string sourceCommandText)
         {
-            bulkCopy.Should().Throw<PostgresException>();
-            ReadEmployees(table).Should().BeEquivalentTo(SeedData.Employees, o => o.WithStrictOrdering());
+            import.Should().ThrowExactly<NpgsqlOperationInProgressException>()
+                .WithMessage($"A command is already in progress: {sourceCommandText}");
         }
 
-        protected override void AssertImportIntoSourceTableResult(ContextKind kind, Action import, string table)
+        #region Bulk copy and data import
+
+        // binary COPY writes the ID member (0 for every new employee), so the second row violates the primary key
+        // and nothing is copied
+        [Theory]
+        [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
+        [Trait("Quirk", "Q111")]
+        [Trait("UpgradeSensitive", "Npgsql exception type")]
+        public void BulkCopy_NewEmployees_ThrowsDuplicateKeyOnIdZero(ContextKind kind)
         {
-            import.Should().Throw<Exception>();
-            ReadEmployees(table).Should().BeEquivalentTo(SeedData.Employees, o => o.WithStrictOrdering());
+            var employeeTable = CreateEmployeeTable(true);
+
+            Action act = () => BulkCopyNewEmployees(kind, employeeTable);
+
+            act.Should().ThrowExactly<PostgresException>()
+                .WithMessage($"23505: duplicate key value violates unique constraint \"{employeeTable}_pkey\"");
+            ReadEmployees(employeeTable).Should().BeEquivalentTo(SeedData.Employees, o => o.WithStrictOrdering());
         }
 
-        protected override void AssertImportFromProcedureResult(ContextKind kind, Action import, string table)
+        // the copied rows keep their IDs, which are already in the table
+        [Fact]
+        [Trait("Quirk", "Q111")]
+        [Trait("UpgradeSensitive", "Npgsql exception type")]
+        public void DataImport_QueryIntoItsSourceTableOnConnectionStringContext_ThrowsDuplicateKey()
         {
-            if (kind == ContextKind.ConnectionString)
-            {
-                import();
+            var employeeTable = CreateEmployeeTable(true);
 
-                ReadEmployees(table).Should().BeEquivalentTo(new[] { SeedData.Employees[0] });
-            }
-            else
-            {
-                import.Should().Throw<Exception>();
-                CountRows(table).Should().Be(0);
-            }
+            Action act = () => ImportQueryIntoItsSourceTable(ContextKind.ConnectionString, employeeTable);
+
+            act.Should().ThrowExactly<PostgresException>()
+                .WithMessage($"23505: duplicate key value violates unique constraint \"{employeeTable}_pkey\"");
+            ReadEmployees(employeeTable).Should().BeEquivalentTo(SeedData.Employees, o => o.WithStrictOrdering());
         }
+
+        #endregion
 
         #region Extensibility
 

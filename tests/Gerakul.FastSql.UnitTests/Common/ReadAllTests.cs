@@ -54,6 +54,16 @@ namespace Gerakul.FastSql.UnitTests.Common
             public int Value { get; set; }
         }
 
+        public class HiddenFieldBase
+        {
+            public int Value;
+        }
+
+        public class PropertyHidingField : HiddenFieldBase
+        {
+            public new int Value { get; set; }
+        }
+
         public class Nullables
         {
             public int ID { get; set; }
@@ -487,6 +497,19 @@ namespace Gerakul.FastSql.UnitTests.Common
             result[0].Value.Should().Be(2);
         }
 
+        // the only way to get a field and a property with exactly the same name: a property hiding an inherited field
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void ReadAll_PropertyHidingInheritedFieldOfSameName_ThrowsArgumentException(bool caseSensitive)
+        {
+            var reader = new ReaderTable().Column<int>("Value").Row(2).CreateReader();
+
+            Action act = () => reader.ReadAll<PropertyHidingField>(new ReadOptions(caseSensitiveFieldsMatching: caseSensitive)).ToList();
+
+            act.Should().ThrowExactly<ArgumentException>().WithMessage("Destination object field names has been duplicated");
+        }
+
         #endregion
 
         #region Nulls and field conversions
@@ -613,7 +636,7 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
-        [Trait("Quirk", "Q51")]
+        [Trait("Quirk", "Q31")]
         public void ReadAll_PassedOptions_UnsetValuesAreFilledOnEnumeration()
         {
             var options = new ReadOptions(caseSensitiveFieldsMatching: true);

@@ -19,8 +19,9 @@ namespace Gerakul.FastSql.IntegrationTests.Common
     // - the async lines keep the README syntax "await ... .ToArray()" on purpose: ToArray is the extension of
     //   System.Interactive.Async 3.2, so these lines change together with the README when the library moves to the
     //   IAsyncEnumerable<T> of .NET (plan §4). Everywhere else async results go through AsyncEnumerableCompat.
-    // The extensibility examples have provider specific SQL, so they are in the concrete classes.
-    // Concrete classes are in the provider folders.
+    // The bulk copy example, the data import of a table into itself on a connection string context and the extensibility
+    // examples behave differently or have provider specific SQL, so their tests are in the concrete classes, which are in
+    // the provider folders.
     public abstract class ReadmeScenarioTests<TDatabase> : IClassFixture<TDatabase> where TDatabase : DatabaseFixture
     {
         protected ReadmeScenarioTests(TDatabase database)
@@ -43,12 +44,8 @@ namespace Gerakul.FastSql.IntegrationTests.Common
         // an identifier as the README writes it: bare on SQL Server, quoted on PostgreSQL
         protected abstract string N(string identifier);
 
-        // what the README bulk copy and data import examples do on the provider (see the concrete classes)
-        protected abstract void AssertBulkCopyResult(Action bulkCopy, string table);
-
-        protected abstract void AssertImportIntoSourceTableResult(ContextKind kind, Action import, string table);
-
-        protected abstract void AssertImportFromProcedureResult(ContextKind kind, Action import, string table);
+        // the exception for a bulk copy into the connection of a scoped context whose source reader is still open (Q110)
+        protected abstract void ShouldThrowConnectionBusy(Action import, string sourceCommandText);
 
         #region Simple example
 
@@ -445,23 +442,7 @@ namespace Gerakul.FastSql.IntegrationTests.Common
 
         #region Bulk copy, stored procedures, data import
 
-        [Theory]
-        [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
-        public void BulkCopy_NewEmployees_ProviderResult(ContextKind kind)
-        {
-            var employeeTable = CreateEmployeeTable(true);
-
-            AssertBulkCopyResult(() => Database.Run(kind, context =>
-            {
-                Employee[] newEmployees = new Employee[] {
-                    new Employee() { CompanyID = 1, Name = "New Employee1", Age = 23, StartWorking = DateTime.UtcNow },
-                    new Employee() { CompanyID = 1, Name = "New Employee2", StartWorking = DateTime.UtcNow },
-                    new Employee() { CompanyID = 2, Name = "New Employee1" }
-                };
-
-                newEmployees.WriteToServer(context, employeeTable);
-            }), employeeTable);
-        }
+        // the bulk copy tests are in the concrete classes: SQL Server generates the IDs, PostgreSQL writes the members' IDs (Q111)
 
         [Theory]
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
@@ -485,26 +466,78 @@ namespace Gerakul.FastSql.IntegrationTests.Common
             data11.Should().BeEquivalentTo(new[] { SeedData.Employees[0] });
         }
 
+        // the import of a table into itself on a connection string context is in the concrete classes (PostgreSQL: Q111)
+
+        // the source reader and the bulk copy need the same connection, which is busy while the reader is open
         [Theory]
-        [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
-        public void DataImport_QueryIntoItsSourceTable_ProviderResult(ContextKind kind)
+        [InlineData(ContextKind.Connection)]
+        [InlineData(ContextKind.Transaction)]
+        [Trait("Quirk", "Q110")]
+        [Trait("UpgradeSensitive", "driver exception for a busy connection")]
+        public void DataImport_QueryIntoItsSourceTableOnScopedContext_ThrowsBecauseConnectionIsBusy(ContextKind kind)
         {
             // the README imports Employee into itself; here a scratch copy of it
             var employeeTable = CreateEmployeeTable(true);
+            var commandText = $"select * from {employeeTable}";
 
-            AssertImportIntoSourceTableResult(kind, () => Database.Run(kind, context =>
-                context.CreateSimple($"select * from {employeeTable}").WriteToServer(context, employeeTable)), employeeTable);
+            ShouldThrowConnectionBusy(() => ImportQueryIntoItsSourceTable(kind, employeeTable), commandText);
+
+            ReadEmployees(employeeTable).Should().BeEquivalentTo(SeedData.Employees, o => o.WithStrictOrdering());
         }
 
-        [Theory]
-        [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
-        public void DataImport_ProcedureIntoTable_ProviderResult(ContextKind kind)
+        [Fact]
+        public void DataImport_ProcedureIntoTableOnConnectionStringContext_CopiesRows()
         {
             // TestProc reads the seed table and writes into an empty scratch copy of Employee
             var employeeTable = CreateEmployeeTable(false);
 
-            AssertImportFromProcedureResult(kind, () => Database.Run(kind, context =>
-                context.CreateProcedure("TestProc", new { CompanyID = 1, Age = 40 }).WriteToServer(context, employeeTable)), employeeTable);
+            ImportProcedureIntoTable(ContextKind.ConnectionString, employeeTable);
+
+            // ID 1 on both providers: generated by SQL Server (an empty table), written as read on PostgreSQL (Q111)
+            ReadEmployees(employeeTable).Should().BeEquivalentTo(new[] { SeedData.Employees[0] });
+        }
+
+        [Theory]
+        [InlineData(ContextKind.Connection)]
+        [InlineData(ContextKind.Transaction)]
+        [Trait("Quirk", "Q110")]
+        [Trait("UpgradeSensitive", "driver exception for a busy connection")]
+        public void DataImport_ProcedureIntoTableOnScopedContext_ThrowsBecauseConnectionIsBusy(ContextKind kind)
+        {
+            var employeeTable = CreateEmployeeTable(false);
+
+            ShouldThrowConnectionBusy(() => ImportProcedureIntoTable(kind, employeeTable), "TestProc");
+
+            CountRows(employeeTable).Should().Be(0);
+        }
+
+        #endregion
+
+        #region README snippets used by the provider specific tests
+
+        protected void BulkCopyNewEmployees(ContextKind kind, string employeeTable)
+        {
+            Database.Run(kind, context =>
+            {
+                Employee[] newEmployees = new Employee[] {
+                    new Employee() { CompanyID = 1, Name = "New Employee1", Age = 23, StartWorking = DateTime.UtcNow },
+                    new Employee() { CompanyID = 1, Name = "New Employee2", StartWorking = DateTime.UtcNow },
+                    new Employee() { CompanyID = 2, Name = "New Employee1" }
+                };
+
+                newEmployees.WriteToServer(context, employeeTable);
+            });
+        }
+
+        protected void ImportQueryIntoItsSourceTable(ContextKind kind, string employeeTable)
+        {
+            // NOTE: Here are only a couple of data import examples, but WriteToServer functionality can be applied for any IWrappedCommand
+            Database.Run(kind, context => context.CreateSimple($"select * from {employeeTable}").WriteToServer(context, employeeTable));
+        }
+
+        protected void ImportProcedureIntoTable(ContextKind kind, string employeeTable)
+        {
+            Database.Run(kind, context => context.CreateProcedure("TestProc", new { CompanyID = 1, Age = 40 }).WriteToServer(context, employeeTable));
         }
 
         #endregion

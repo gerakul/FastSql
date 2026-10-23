@@ -86,7 +86,7 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
         // System.Data.SqlClient 4.5.1 cannot read uniqueidentifier values on .NET 9 and later: its SqlBuffer.SqlGuidCaster no longer loads.
         // Unpooled connections, because the failed connections are left in an unusable state.
         [Fact]
-        [Trait("Quirk", "Q102")]
+        [Trait("Quirk", "Q80")]
         [Trait("UpgradeSensitive", "System.Data.SqlClient 4.5.1 on .NET 9+")]
         public void WriteToServer_UniqueidentifierColumnFromQuery_ThrowsTypeLoadException()
         {
@@ -751,6 +751,45 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
             TableExists(table).Should().BeFalse();
         }
 
+        // the column types CreateTypedSourceTable does not have: binary, nchar, numeric, the max sizes and a type without size
+        [Fact]
+        public void WriteToServer_CreateTableFromQueryWithMoreColumnTypes_ReproducesColumns()
+        {
+            var source = Database.CreateScratchTable("ID int not null, Code binary(4) null, Short nchar(3) null, Price numeric(8, 2) null, "
+                + "Notes varchar(max) null, Blob varbinary(max) null, Big bigint null");
+            Database.Execute($"insert into {source} values (1, 0x01020304, N'abc', 12.34, 'long text', 0x0506, 5000000000), "
+                + "(2, null, null, null, null, null, null)");
+            var table = NewTableName();
+
+            Database.Run(ContextKind.Connection, x => SourceContext().CreateSimple($"select * from {source}")
+                .WriteToServer(x, table, new SqlBulkOptions(createTable: true)));
+
+            DescribeColumns(table).Should().Equal("ID int not null", "Code binary(4) null", "Short nchar(3) null", "Price numeric(8,2) null",
+                "Notes varchar(max) null", "Blob varbinary(max) null", "Big bigint null");
+            CountRows(table).Should().Be(2);
+            CountDifferentRows(source, table).Should().Be(0);
+        }
+
+        // the nullable twins of the member types TypedRow has only as non-nullable
+        [Fact]
+        public void WriteToServer_CreateTableFromEnumerableWithNullableMembers_CreatesNullableColumns()
+        {
+            var table = NewTableName();
+
+            Database.Run(ContextKind.Connection, x => NullableTypedRows.WriteToServer(x, table, new BulkOptions(createTable: true, ignoreDataReaderSchemaTable: true)));
+
+            DescribeColumns(table).Should().Equal("ID int not null", "Tiny tinyint null", "Small smallint null", "Big bigint null",
+                "Single real null", "Ratio float null", "Amount decimal(38,18) null", "Uid uniqueidentifier null");
+            // compared on the server: the driver cannot read uniqueidentifier values on this runtime (Q80)
+            CountRows(table).Should().Be(2);
+            Database.Run(ContextKind.ConnectionString, x => x.CreateSimple($"select count(*) from {table} where ID = 1 and Tiny = 200 and Small = -7 "
+                    + "and Big = 5000000000 and Single = 1.5 and Ratio = 0.25 and Amount = 12.5 and Uid = '6f9619ff-8b86-d011-b42d-00c04fc964ff'")
+                .ExecuteQueryFirstColumn<int>().Single()).Should().Be(1);
+            Database.Run(ContextKind.ConnectionString, x => x.CreateSimple($"select count(*) from {table} where ID = 2 and Tiny is null and Small is null "
+                    + "and Big is null and Single is null and Ratio is null and Amount is null and Uid is null")
+                .ExecuteQueryFirstColumn<int>().Single()).Should().Be(1);
+        }
+
         #endregion
 
         #region Helpers
@@ -828,7 +867,7 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
 
         private string CreateTypedSourceTable()
         {
-            // no uniqueidentifier column: the driver cannot read it on this runtime (Q102)
+            // no uniqueidentifier column: the driver cannot read it on this runtime (Q80)
             var table = Database.CreateScratchTable("ID int not null primary key, Code char(5) not null, Name nvarchar(50) not null, "
                 + "Note varchar(20) null, Body nvarchar(max) null, Amount decimal(10, 3) null, Created datetime2(3) not null, Legacy datetime null, "
                 + "Duration time(2) null, Moment datetimeoffset(5) null, Data varbinary(100) null, Flag bit not null, Ratio float null");
@@ -948,7 +987,7 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
             return Database.Run(ContextKind.ConnectionString, x => x.CreateSimple($"select * from {table} order by {orderBy}").ExecuteQuery<T>().ToArray());
         }
 
-        // every column but Uid: the driver cannot read uniqueidentifier values on this runtime (Q102)
+        // every column but Uid: the driver cannot read uniqueidentifier values on this runtime (Q80)
         private TypedRow[] ReadTypedRowsWithoutUid(string table)
         {
             return Database.Run(ContextKind.ConnectionString, x => x.CreateSimple("select ID, Number, Big, Small, Tiny, Flag, MaybeFlag, Amount, Ratio, Single, "
@@ -1012,6 +1051,16 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
             }
         };
 
+        private static NullableTypedRow[] NullableTypedRows => new[]
+        {
+            new NullableTypedRow()
+            {
+                ID = 1, Tiny = 200, Small = -7, Big = 5000000000L, Single = 1.5f, Ratio = 0.25, Amount = 12.5m,
+                Uid = new Guid("6f9619ff-8b86-d011-b42d-00c04fc964ff")
+            },
+            new NullableTypedRow() { ID = 2 }
+        };
+
         private static SizedRow[] SizedRows => new[]
         {
             new SizedRow() { ID = 1, Name = "first", Data = new byte[] { 1, 2 }, Amount = 1.25m, Created = new DateTime(2020, 1, 2, 3, 4, 5) },
@@ -1053,6 +1102,18 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
             public Guid Uid { get; set; }
             public string Name { get; set; }
             public byte[] Data { get; set; }
+        }
+
+        private class NullableTypedRow
+        {
+            public int ID { get; set; }
+            public byte? Tiny { get; set; }
+            public short? Small { get; set; }
+            public long? Big { get; set; }
+            public float? Single { get; set; }
+            public double? Ratio { get; set; }
+            public decimal? Amount { get; set; }
+            public Guid? Uid { get; set; }
         }
 
         // members whose column sizes depend on ColumnDefinitionOptions

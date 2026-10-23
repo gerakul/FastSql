@@ -35,58 +35,50 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
             return identifier;
         }
 
-        // SqlBulkCopy ignores the source values of the identity column (no KeepIdentity), so the new rows get new IDs
-        protected override void AssertBulkCopyResult(Action bulkCopy, string table)
+        protected override void ShouldThrowConnectionBusy(Action import, string sourceCommandText)
         {
-            var before = DateTime.UtcNow;
-            bulkCopy();
-            var after = DateTime.UtcNow;
+            import.Should().ThrowExactly<InvalidOperationException>()
+                .WithMessage("There is already an open DataReader associated with this Command which must be closed first.");
+        }
 
-            var added = ReadEmployees(table).Skip(5).ToArray();
+        #region Bulk copy and data import
+
+        // SqlBulkCopy ignores the source values of the identity column (no KeepIdentity), so the new rows get new IDs
+        [Theory]
+        [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
+        public void BulkCopy_NewEmployees_InsertsRowsWithGeneratedIds(ContextKind kind)
+        {
+            var employeeTable = CreateEmployeeTable(true);
+            var before = DateTime.UtcNow;
+
+            BulkCopyNewEmployees(kind, employeeTable);
+
+            var after = DateTime.UtcNow;
+            var added = ReadEmployees(employeeTable).Skip(5).ToArray();
             added.Select(x => new { x.ID, x.CompanyID, x.Name, x.Phone, x.Age }).Should().BeEquivalentTo(new[]
             {
                 new { ID = 6, CompanyID = 1, Name = "New Employee1", Phone = (string)null, Age = (int?)23 },
                 new { ID = 7, CompanyID = 1, Name = "New Employee2", Phone = (string)null, Age = (int?)null },
                 new { ID = 8, CompanyID = 2, Name = "New Employee1", Phone = (string)null, Age = (int?)null }
             }, o => o.WithStrictOrdering());
-            // the datetime column keeps the wall clock of DateTime.UtcNow (rounded to 1/300 s), so compare with UTC wall clock values
+            // the datetime column keeps the wall clock of DateTime.UtcNow (rounded to 1/300 s), so it is compared with UTC wall clock values
             added[0].StartWorking.Should().BeOnOrAfter(before.AddSeconds(-1)).And.BeOnOrBefore(after.AddSeconds(1));
             added[1].StartWorking.Should().BeOnOrAfter(before.AddSeconds(-1)).And.BeOnOrBefore(after.AddSeconds(1));
             added[2].StartWorking.Should().BeNull();
         }
 
-        protected override void AssertImportIntoSourceTableResult(ContextKind kind, Action import, string table)
+        [Fact]
+        public void DataImport_QueryIntoItsSourceTableOnConnectionStringContext_CopiesRowsWithNewIds()
         {
-            if (kind == ContextKind.ConnectionString)
-            {
-                import();
+            var employeeTable = CreateEmployeeTable(true);
 
-                // the copies get new IDs (6 to 10)
-                var rows = ReadEmployees(table);
-                var expected = SeedData.Employees.Concat(SeedData.Employees.Select(x => WithId(x, x.ID + 5)));
-                rows.Should().BeEquivalentTo(expected, o => o.WithStrictOrdering());
-            }
-            else
-            {
-                import.Should().Throw<InvalidOperationException>();
-                ReadEmployees(table).Should().BeEquivalentTo(SeedData.Employees, o => o.WithStrictOrdering());
-            }
+            ImportQueryIntoItsSourceTable(ContextKind.ConnectionString, employeeTable);
+
+            var expected = SeedData.Employees.Concat(SeedData.Employees.Select(x => WithId(x, x.ID + 5)));
+            ReadEmployees(employeeTable).Should().BeEquivalentTo(expected, o => o.WithStrictOrdering());
         }
 
-        protected override void AssertImportFromProcedureResult(ContextKind kind, Action import, string table)
-        {
-            if (kind == ContextKind.ConnectionString)
-            {
-                import();
-
-                ReadEmployees(table).Should().BeEquivalentTo(new[] { SeedData.Employees[0] });
-            }
-            else
-            {
-                import.Should().Throw<InvalidOperationException>();
-                CountRows(table).Should().Be(0);
-            }
-        }
+        #endregion
 
         #region Extensibility
 

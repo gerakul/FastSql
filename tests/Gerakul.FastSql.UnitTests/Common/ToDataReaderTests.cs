@@ -36,6 +36,18 @@ namespace Gerakul.FastSql.UnitTests.Common
             public int ID { get; set; }
         }
 
+        private class NullableValue
+        {
+            public int? Value { get; set; }
+            public string Name { get; set; }
+        }
+
+        private class NonNullableValue
+        {
+            public int Value { get; set; }
+            public string Name { get; set; }
+        }
+
         private class OtherTypeHidingBase
         {
             public int Value { get; set; }
@@ -416,6 +428,41 @@ namespace Gerakul.FastSql.UnitTests.Common
 
             result.Should().BeEquivalentTo(values, o => o.WithStrictOrdering());
             result[0].Created.Kind.Should().Be(DateTimeKind.Utc);
+        }
+
+        // UniversalDataReader.GetValue returns null, not DBNull, for a null member (Q47), so the mapping code sets null
+        // into a non-nullable member instead of failing like it does for DBNull (Q12)
+        [Fact]
+        [Trait("Quirk", "Q112")]
+        public void ToDataReader_ReadAllNullIntoNonNullableMember_SetsDefaultValue()
+        {
+            var values = new[] { new NullableValue() { Value = null, Name = "John" } };
+
+            var result = values.ToDataReader().ReadAll<NonNullableValue>().ToList();
+
+            result.Should().BeEquivalentTo(new[] { new NonNullableValue() { Value = 0, Name = "John" } });
+        }
+
+        [Fact]
+        [Trait("Quirk", "Q112")]
+        public void ToDataReader_ReadAllAnonymousNullIntoNonNullableParameter_PassesDefaultValue()
+        {
+            var values = new[] { new NullableValue() { Value = null, Name = "John" } };
+
+            var result = values.ToDataReader().ReadAllAnonymous(new { Value = 1, Name = "" }).ToList();
+
+            result.Should().BeEquivalentTo(new[] { new { Value = 0, Name = "John" } });
+        }
+
+        [Fact]
+        [Trait("Quirk", "Q112")]
+        public void ToDataReader_ReadAllFirstColumnNullIntoNonNullableType_ThrowsNullReferenceException()
+        {
+            var reader = new int?[] { null }.ToDataReader(new FieldSettings<int?>("Value"));
+
+            Action act = () => reader.ReadAllFirstColumn<int>().ToList();
+
+            act.Should().ThrowExactly<NullReferenceException>();
         }
 
         #endregion
