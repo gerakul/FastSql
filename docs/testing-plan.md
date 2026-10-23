@@ -296,38 +296,38 @@ Classes: `UniversalDataReaderTests`, `ToDataReaderTests`.
 Class: `CommandCompilatorTests`. Each compiled command is turned into a `DbCommand` through
 `CreateSimple(precompiled)` / `CreateMapped(precompiled)` on a capturing context.
 
-- [ ] `CompileSimple`, `CompileProcedureSimple`: `CommandText`, `CommandType`.
-- [ ] `CompileMapped` (6 overloads): names from text vs explicit list; `FromTypeOption`; proto overloads; settings overloads; case-sensitive and insensitive matching; parameter without a setting throws `ArgumentException`; duplicate parameter names and duplicate settings throw `ArgumentException`; null parameter list throws `NullReferenceException` (Q17).
-- [ ] `CompileProcedure` (6 overloads): stored procedure type; parameters from all settings or from an explicit subset.
-- [ ] `CompileInsert` (5 overloads): fields minus ignored fields; text from the generator; parameters match.
-- [ ] `CompileInsertWithOutput`: output fields; no output fields gives a plain insert; null ignore list.
-- [ ] `CompileUpdate` (10 overloads): keys in `where`, other fields in `set`, `notKeyIgnoreFields` excluded; a key missing from the settings leaves its parameter unmapped (pinned).
-- [ ] `CompileDelete` (5 overloads): explicit keys; no keys uses all members as keys.
-- [ ] `CompileMerge` (10 overloads).
-- [ ] Using a command compiled by one provider instance with a context of another provider instance throws `ArgumentException` (simple and mapped).
-- [ ] `new CommandCompilator(provider)` behaves like `provider.CommandCompilator`; `context.CommandCompilator` is the provider's.
-- [ ] Parameter values: null members become the provider's null; custom `IsNullGetter`; a member whose value is a `DbParameter` is added as is; simple commands name arguments `@p0`, `@p1`, ... by position (a `DbParameter` argument is added as is and still uses up its position), null becomes `DBNull`.
+- [x] `CompileSimple`, `CompileProcedureSimple`: `CommandText`, `CommandType`.
+- [x] `CompileMapped` (6 overloads): names from text vs explicit list; `FromTypeOption`; proto overloads; settings overloads; case-sensitive and insensitive matching; parameter without a setting throws `ArgumentException`; duplicate parameter names and duplicate settings throw `ArgumentException`; null parameter list throws `NullReferenceException` (Q17).
+- [x] `CompileProcedure` (6 overloads): stored procedure type; parameters from all settings or from an explicit subset.
+- [x] `CompileInsert` (5 overloads): fields minus ignored fields; text from the generator; parameters match.
+- [x] `CompileInsertWithOutput`: output fields; no output fields gives a plain insert; null ignore list.
+- [x] `CompileUpdate` (10 overloads): keys in `where`, other fields in `set`, `notKeyIgnoreFields` excluded; a key missing from the settings leaves its parameter unmapped (pinned).
+- [x] `CompileDelete` (5 overloads): explicit keys; no keys uses all members as keys.
+- [x] `CompileMerge` (10 overloads).
+- [x] Using a command compiled by one provider instance with a context of another provider instance throws `ArgumentException` (simple and mapped).
+- [x] `new CommandCompilator(provider)` behaves like `provider.CommandCompilator`; `context.CommandCompilator` is the provider's.
+- [x] Parameter values: null members become the provider's null; custom `IsNullGetter`; a member whose value is a `DbParameter` is added as is; simple commands name arguments `@p0`, `@p1`, ... by position (a `DbParameter` argument is added as is and still uses up its position), null becomes `DBNull`.
 
 ### U8. Command creator extensions *(per provider)*
 
 Class: `CommandCreatorExtensionsTests`.
 
-- [ ] Each of the 43 `CommandCreatorExtensions` overloads in Common produces the expected command (text, type, parameters, timeout), and passes on its options (`queryOptions`; default `fromTypeOption` is `Default` for `CreateMapped` and `Both` for `CreateProcedure`).
-- [ ] `Insert`, `Update`, `Delete`, `Merge` and their async twins build the right command before executing (execution on an unopened connection throws `InvalidOperationException`; real execution is in I7).
-- [ ] `CreateInsertAndGetID` (2 overloads, SQL Server): command text and parameters.
-- [ ] Contexts returned by `CreateContext` are typed as the base classes, so `CreateInsertAndGetID` needs a cast; SQL Server contexts implement `ISqlCommandCreator` at runtime, PostgreSQL contexts have no equivalent.
-- [ ] Custom extensions through `ICommandCreator.Set(...)` (README "Extensibility") work on any context.
-- [ ] Scoped contexts build the command immediately and read member values at that moment (unit part of Q15).
+- [x] Each of the 43 `CommandCreatorExtensions` overloads in Common produces the expected command (text, type, parameters, timeout), and passes on its options (`queryOptions`; default `fromTypeOption` is `Default` for `CreateMapped` and `Both` for `CreateProcedure`).
+- [x] `Insert`, `Update`, `Delete`, `Merge` and their async twins build the right command before executing (execution on an unopened connection throws `InvalidOperationException`; real execution is in I7).
+- [x] `CreateInsertAndGetID` (2 overloads, SQL Server): command text and parameters.
+- [x] Contexts returned by `CreateContext` are typed as the base classes, so `CreateInsertAndGetID` needs a cast; SQL Server contexts implement `ISqlCommandCreator` at runtime, PostgreSQL contexts have no equivalent.
+- [x] Custom extensions through `ICommandCreator.Set(...)` (README "Extensibility") work on any context.
+- [x] Scoped contexts build the command immediately and read member values at that moment (unit part of Q15).
 
 ### U9. Providers and contexts without a database
 
 Class: `ContextProviderTests`.
 
-- [ ] `DefaultInstance` is a singleton; new instances are independent.
-- [ ] Provider members: `CommandTextGenerator`, `QueryOptions`, `BulkOptions`, `ReadOptions`, `CommandCompilator` (types and identity).
-- [ ] `CreateContext(string)` gives the provider's connection string context with `ConnectionString`; `CreateContext(DbConnection)` with an unopened connection gives the connection context; a connection of the other provider throws `InvalidCastException`.
-- [ ] Public constructors of all six context classes take the provider's options.
-- [ ] `DbContext.ContextProvider` and `DbContext.CommandCompilator`.
+- [x] `DefaultInstance` is a singleton; new instances are independent.
+- [x] Provider members: `CommandTextGenerator`, `QueryOptions`, `BulkOptions`, `ReadOptions`, `CommandCompilator` (types and identity).
+- [x] `CreateContext(string)` gives the provider's connection string context with `ConnectionString`; `CreateContext(DbConnection)` with an unopened connection gives the connection context; a connection of the other provider throws `InvalidCastException`.
+- [x] Public constructors of all six context classes take the provider's options.
+- [x] `DbContext.ContextProvider` and `DbContext.CommandCompilator`.
 
 ### U10. Public API snapshot
 
