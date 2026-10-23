@@ -347,40 +347,40 @@ Matrix shorthand: **P** = both providers, **K** = all three context kinds, **S/A
 
 Class: `ContextLifecycleTests`.
 
-- [ ] `UsingConnection` / `UsingConnectionAsync`: the connection is open inside and closed afterwards; an exception propagates and the connection is still closed.
-- [ ] `UsingTransaction` / `UsingTransactionAsync`, with and without an isolation level, on connection string and connection contexts: commit on success; rollback and rethrow on exception; the isolation level reaches the server; `Unspecified` gives the server default.
-- [ ] Nested `UsingConnection` then `UsingTransaction`.
-- [ ] `CreateContext(DbTransaction)` and the transaction context constructors: commands run inside the transaction; a rollback by the caller discards them.
-- [ ] A connection context over a closed connection throws `InvalidOperationException` (the library does not open it).
-- [ ] Child contexts inherit the parent context's options, not the provider's.
+- [x] `UsingConnection` / `UsingConnectionAsync`: the connection is open inside and closed afterwards; an exception propagates and the connection is still closed.
+- [x] `UsingTransaction` / `UsingTransactionAsync`, with and without an isolation level, on connection string and connection contexts: commit on success; rollback and rethrow on exception; the isolation level reaches the server; `Unspecified` gives the server default.
+- [x] Nested `UsingConnection` then `UsingTransaction`.
+- [x] `CreateContext(DbTransaction)` and the transaction context constructors: commands run inside the transaction; a rollback by the caller discards them.
+- [x] A connection context over a closed connection throws `InvalidOperationException` (the library does not open it).
+- [x] Child contexts inherit the parent context's options, not the provider's.
 
 ### I3. Query execution (P × K × S/A)
 
 Class: `WrappedCommandQueryTests`.
 
-- [ ] `ExecuteQuery<T>`, `ExecuteQuery()`, `ExecuteQueryAnonymous`, `ExecuteQueryFirstColumn()`, `ExecuteQueryFirstColumn<T>()`, `ExecuteScalar`, `ExecuteNonQuery` (rows affected) and their async twins, against the seed data.
-- [ ] Parameters: positional `@p0`, `@p1`; null argument; mapped from anonymous and named types; explicit names; settings; precompiled simple and mapped commands reused across contexts of the same provider.
-- [ ] `UseReader`, `UseReaderAsync` (both overloads): reader open inside, closed afterwards; multiple result sets reachable with `NextResult`; `ExecuteQuery*` reads only the first result set.
-- [ ] `ReadOptions` precedence: per call, context level, provider level.
-- [ ] Executing the same `IWrappedCommand` twice; member values read at execution (connection string context) vs at creation (scoped contexts) (Q15).
-- [ ] Empty result sets.
-- [ ] Server errors surface as `DbException`; the concrete exception type is recorded (`UpgradeSensitive`).
+- [x] `ExecuteQuery<T>`, `ExecuteQuery()`, `ExecuteQueryAnonymous`, `ExecuteQueryFirstColumn()`, `ExecuteQueryFirstColumn<T>()`, `ExecuteScalar`, `ExecuteNonQuery` (rows affected) and their async twins, against the seed data.
+- [x] Parameters: positional `@p0`, `@p1`; null argument; mapped from anonymous and named types; explicit names; settings; precompiled simple and mapped commands reused across contexts of the same provider.
+- [x] `UseReader`, `UseReaderAsync` (both overloads): reader open inside, closed afterwards; multiple result sets reachable with `NextResult`; `ExecuteQuery*` reads only the first result set.
+- [x] `ReadOptions` precedence: per call, context level, provider level.
+- [x] Executing the same `IWrappedCommand` twice; member values read at execution (connection string context) vs at creation (scoped contexts) (Q15).
+- [x] Empty result sets.
+- [x] Server errors surface as `DbException`; the concrete exception type is recorded (`UpgradeSensitive`).
 
 ### I4. Raw DbCommand extensions (P × S/A)
 
 Class: `DbCommandExtensionsTests`.
 
-- [ ] All 10 `DbCommandExtensions` methods on a provider `DbCommand`.
-- [ ] The reader is disposed after full enumeration; disposing early closes it, and the connection can run another command.
+- [x] All 10 `DbCommandExtensions` methods on a provider `DbCommand`.
+- [x] The reader is disposed after full enumeration; disposing early closes it, and the connection can run another command.
 
 ### I5. Execution semantics: laziness, resources, cancellation, timeouts (P)
 
 Class: `ExecutionSemanticsTests`.
 
-- [ ] Laziness: query methods return without touching the database; invalid SQL fails only on enumeration.
-- [ ] No leaked sessions on connection string contexts after full enumeration, partial enumeration then dispose, an exception during enumeration, `UseReader`, bulk copy, and the async variants; exactly one extra session while an enumeration is open.
-- [ ] Cancellation: a cancelled token on `ExecuteQueryAsync`, `ExecuteScalarAsync` (scoped and connection string contexts); `ExecuteNonQueryAsync` on a connection string context and `UseReaderAsync` on scoped contexts ignore the token (Q06); `MoveNext` with a cancelled token returns false (Q04).
-- [ ] Command timeout: `QueryOptions(1)` with a 3 second server sleep fails with a `DbException` (detail `UpgradeSensitive`).
+- [x] Laziness: query methods return without touching the database; invalid SQL fails only on enumeration.
+- [x] No leaked sessions on connection string contexts after full enumeration, partial enumeration then dispose, an exception during enumeration, `UseReader`, bulk copy, and the async variants; exactly one extra session while an enumeration is open.
+- [x] Cancellation: a cancelled token on `ExecuteQueryAsync`, `ExecuteScalarAsync` (scoped and connection string contexts); `ExecuteNonQueryAsync` on a connection string context and `UseReaderAsync` on scoped contexts ignore the token (Q06); `MoveNext` with a cancelled token returns false (Q04).
+- [x] Command timeout: `QueryOptions(1)` with a 3 second server sleep fails with a `DbException` (detail `UpgradeSensitive`).
 
 ### I6. Type mapping (per provider, `UpgradeSensitive`)
 
