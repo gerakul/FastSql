@@ -1,9 +1,9 @@
 ﻿using Gerakul.FastSql.Common;
 using Gerakul.FastSql.PostgreSQL;
 using Gerakul.FastSql.SqlServer;
+using Microsoft.Data.SqlClient;
 using System;
 using System.Data.Common;
-using System.Data.SqlClient;
 using System.Linq;
 using System.Threading.Tasks;
 

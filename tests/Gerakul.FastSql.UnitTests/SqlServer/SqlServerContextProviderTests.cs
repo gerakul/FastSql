@@ -1,10 +1,10 @@
 using System;
 using System.Data.Common;
-using System.Data.SqlClient;
 using Gerakul.FastSql.Common;
 using Gerakul.FastSql.SqlServer;
 using Gerakul.FastSql.Tests.Shared;
 using Gerakul.FastSql.UnitTests.Common;
+using Microsoft.Data.SqlClient;
 
 namespace Gerakul.FastSql.UnitTests.SqlServer
 {

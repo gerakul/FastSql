@@ -1,6 +1,6 @@
 ﻿using Gerakul.FastSql.Common;
+using Microsoft.Data.SqlClient;
 using System.Data.Common;
-using System.Data.SqlClient;
 
 namespace Gerakul.FastSql.SqlServer
 {

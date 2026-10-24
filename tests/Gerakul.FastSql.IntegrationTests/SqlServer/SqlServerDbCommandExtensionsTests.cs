@@ -17,7 +17,7 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
 
         protected override string OpenReaderMessage(string openCommandText)
         {
-            return "There is already an open DataReader associated with this Command which must be closed first.";
+            return "There is already an open DataReader associated with this Connection which must be closed first.";
         }
     }
 }

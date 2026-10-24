@@ -1,11 +1,11 @@
 using System;
 using System.Data.Common;
-using System.Data.SqlClient;
 using System.Linq;
 using AwesomeAssertions;
 using Gerakul.FastSql.IntegrationTests.Common;
 using Gerakul.FastSql.IntegrationTests.Infrastructure;
 using Gerakul.FastSql.Tests.Shared;
+using Microsoft.Data.SqlClient;
 using Xunit;
 
 namespace Gerakul.FastSql.IntegrationTests.SqlServer
@@ -38,7 +38,7 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
         protected override void ShouldThrowConnectionBusy(Action import, string sourceCommandText)
         {
             import.Should().ThrowExactly<InvalidOperationException>()
-                .WithMessage("There is already an open DataReader associated with this Command which must be closed first.");
+                .WithMessage("There is already an open DataReader associated with this Connection which must be closed first.");
         }
 
         #region Bulk copy and data import

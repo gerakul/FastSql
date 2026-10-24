@@ -1,9 +1,9 @@
 using System.Data.Common;
-using System.Data.SqlClient;
 using Gerakul.FastSql.Common;
 using Gerakul.FastSql.IntegrationTests.Common;
 using Gerakul.FastSql.IntegrationTests.Infrastructure;
 using Gerakul.FastSql.SqlServer;
+using Microsoft.Data.SqlClient;
 using Xunit;
 
 namespace Gerakul.FastSql.IntegrationTests.SqlServer

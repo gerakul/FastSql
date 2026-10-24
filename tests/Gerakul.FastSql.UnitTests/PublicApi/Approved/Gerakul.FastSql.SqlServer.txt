@@ -29,13 +29,13 @@ namespace Gerakul.FastSql.SqlServer
     {
         protected SqlBulkOptions(Gerakul.FastSql.Common.BulkOptions bulkOptions) { }
         protected SqlBulkOptions(bool defaultOptions) { }
-        public SqlBulkOptions(int? batchSize = default, int? bulkCopyTimeout = default, System.Data.SqlClient.SqlBulkCopyOptions? sqlBulkCopyOptions = default, Gerakul.FastSql.Common.FieldsSelector? fieldsSelector = default, bool? caseSensitiveFieldsMatching = default, bool? enableStreaming = default, bool? createTable = default, Gerakul.FastSql.SqlServer.ColumnDefinitionOptions columnDefinitionOptions = null, bool? ignoreDataReaderSchemaTable = default, bool? checkTableIfNotExistsBeforeCreation = default) { }
+        public SqlBulkOptions(int? batchSize = default, int? bulkCopyTimeout = default, Microsoft.Data.SqlClient.SqlBulkCopyOptions? sqlBulkCopyOptions = default, Gerakul.FastSql.Common.FieldsSelector? fieldsSelector = default, bool? caseSensitiveFieldsMatching = default, bool? enableStreaming = default, bool? createTable = default, Gerakul.FastSql.SqlServer.ColumnDefinitionOptions columnDefinitionOptions = null, bool? ignoreDataReaderSchemaTable = default, bool? checkTableIfNotExistsBeforeCreation = default) { }
         public int? BatchSize { get; set; }
         public int? BulkCopyTimeout { get; set; }
         public Gerakul.FastSql.SqlServer.ColumnDefinitionOptions ColumnDefinitionOptions { get; set; }
         protected override Gerakul.FastSql.Common.BulkOptions Default { get; }
         public bool? EnableStreaming { get; set; }
-        public System.Data.SqlClient.SqlBulkCopyOptions? SqlBulkCopyOptions { get; set; }
+        public Microsoft.Data.SqlClient.SqlBulkCopyOptions? SqlBulkCopyOptions { get; set; }
         public override Gerakul.FastSql.Common.BulkOptions Clone() { }
         protected override Gerakul.FastSql.Common.BulkOptions SetDefaults(Gerakul.FastSql.Common.BulkOptions defaultOptions) { }
     }
@@ -55,8 +55,8 @@ namespace Gerakul.FastSql.SqlServer
     }
     public class SqlConnectionContext : Gerakul.FastSql.Common.ConnectionContext, Gerakul.FastSql.Common.ICommandCreator, Gerakul.FastSql.SqlServer.ISqlCommandCreator
     {
-        public SqlConnectionContext(Gerakul.FastSql.SqlServer.SqlContextProvider contextProvider, System.Data.SqlClient.SqlConnection connection) { }
-        protected SqlConnectionContext(Gerakul.FastSql.Common.ContextProvider contextProvider, System.Data.SqlClient.SqlConnection connection, Gerakul.FastSql.Common.QueryOptions queryOptions, Gerakul.FastSql.Common.BulkOptions bulkOptions, Gerakul.FastSql.Common.ReadOptions readOptions) { }
+        public SqlConnectionContext(Gerakul.FastSql.SqlServer.SqlContextProvider contextProvider, Microsoft.Data.SqlClient.SqlConnection connection) { }
+        protected SqlConnectionContext(Gerakul.FastSql.Common.ContextProvider contextProvider, Microsoft.Data.SqlClient.SqlConnection connection, Gerakul.FastSql.Common.QueryOptions queryOptions, Gerakul.FastSql.Common.BulkOptions bulkOptions, Gerakul.FastSql.Common.ReadOptions readOptions) { }
         public override System.Data.Common.DbCommand CreateCommand(string commandText) { }
     }
     public class SqlConnectionStringContext : Gerakul.FastSql.Common.ConnectionStringContext, Gerakul.FastSql.Common.ICommandCreator, Gerakul.FastSql.SqlServer.ISqlCommandCreator
@@ -95,8 +95,8 @@ namespace Gerakul.FastSql.SqlServer
     }
     public class SqlTransactionContext : Gerakul.FastSql.Common.TransactionContext, Gerakul.FastSql.Common.ICommandCreator, Gerakul.FastSql.SqlServer.ISqlCommandCreator
     {
-        public SqlTransactionContext(Gerakul.FastSql.SqlServer.SqlContextProvider contextProvider, System.Data.SqlClient.SqlTransaction transaction) { }
-        protected SqlTransactionContext(Gerakul.FastSql.Common.ContextProvider contextProvider, System.Data.SqlClient.SqlTransaction transaction, Gerakul.FastSql.Common.QueryOptions queryOptions, Gerakul.FastSql.Common.BulkOptions bulkOptions, Gerakul.FastSql.Common.ReadOptions readOptions) { }
+        public SqlTransactionContext(Gerakul.FastSql.SqlServer.SqlContextProvider contextProvider, Microsoft.Data.SqlClient.SqlTransaction transaction) { }
+        protected SqlTransactionContext(Gerakul.FastSql.Common.ContextProvider contextProvider, Microsoft.Data.SqlClient.SqlTransaction transaction, Gerakul.FastSql.Common.QueryOptions queryOptions, Gerakul.FastSql.Common.BulkOptions bulkOptions, Gerakul.FastSql.Common.ReadOptions readOptions) { }
         public override System.Data.Common.DbCommand CreateCommand(string commandText) { }
     }
 }

@@ -6,7 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Data.SqlClient" />
+    <PackageReference Include="Microsoft.Data.SqlClient" />
+    <!-- Microsoft.Data.SqlClient 7.1.1 brings System.Security.Cryptography.Pkcs 9.0.18, which has known vulnerabilities
+         (CVE-2026-84008, CVE-2026-70162); 10.0.13 is the fixed version for .NET 10 -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
   </ItemGroup>
 
   <ItemGroup>

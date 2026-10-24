@@ -1,8 +1,8 @@
 ﻿using Gerakul.FastSql.Common;
+using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
-using System.Data.SqlClient;
 using System.Linq;
 using System.Text.RegularExpressions;
 
