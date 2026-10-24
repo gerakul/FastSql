@@ -20,6 +20,6 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
 
         protected override Type ServerExceptionType => typeof(PostgresException);
 
-        protected override string NoSuchTableMessage => "42P01: relation \"no_such_table\" does not exist";
+        protected override string NoSuchTableMessage => "42P01: relation \"no_such_table\" does not exist*";
     }
 }

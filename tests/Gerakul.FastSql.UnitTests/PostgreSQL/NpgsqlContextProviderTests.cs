@@ -73,39 +73,32 @@ namespace Gerakul.FastSql.UnitTests.PostgreSQL
             parameter.DbType.Should().Be(DbType.Object);
         }
 
+        // Npgsql 10 resolves the type from the value when the command is executed, so a parameter that only has a value
+        // reports no type. Npgsql 4 inferred DbType and NpgsqlDbType from the value (string: String / Text, int: Int32 /
+        // Integer, and so on) and threw NotSupportedException for the NpgsqlDbType of an enum.
         [Theory]
         [Trait("UpgradeSensitive", "NpgsqlParameter type inference")]
-        [InlineData("string", DbType.String, NpgsqlDbType.Text)]
-        [InlineData("int", DbType.Int32, NpgsqlDbType.Integer)]
-        [InlineData("long", DbType.Int64, NpgsqlDbType.Bigint)]
-        [InlineData("short", DbType.Int16, NpgsqlDbType.Smallint)]
-        [InlineData("byte", DbType.Int16, NpgsqlDbType.Smallint)]
-        [InlineData("decimal", DbType.Decimal, NpgsqlDbType.Numeric)]
-        [InlineData("double", DbType.Double, NpgsqlDbType.Double)]
-        [InlineData("float", DbType.Single, NpgsqlDbType.Real)]
-        [InlineData("bool", DbType.Boolean, NpgsqlDbType.Boolean)]
-        [InlineData("DateTime", DbType.DateTime, NpgsqlDbType.Timestamp)]
-        [InlineData("DateTimeOffset", DbType.DateTimeOffset, NpgsqlDbType.TimestampTz)]
-        [InlineData("TimeSpan", DbType.Object, NpgsqlDbType.Interval)]
-        [InlineData("Guid", DbType.Guid, NpgsqlDbType.Uuid)]
-        [InlineData("byte[]", DbType.Binary, NpgsqlDbType.Bytea)]
-        public void AddWithValue_Value_InfersParameterType(string kind, DbType expectedDbType, NpgsqlDbType expectedNpgsqlDbType)
+        [InlineData("string")]
+        [InlineData("int")]
+        [InlineData("long")]
+        [InlineData("short")]
+        [InlineData("byte")]
+        [InlineData("decimal")]
+        [InlineData("double")]
+        [InlineData("float")]
+        [InlineData("bool")]
+        [InlineData("DateTime")]
+        [InlineData("DateTimeOffset")]
+        [InlineData("TimeSpan")]
+        [InlineData("Guid")]
+        [InlineData("byte[]")]
+        [InlineData("enum")]
+        public void AddWithValue_Value_ParameterTypeIsNotInferredBeforeExecution(string kind)
         {
             var parameter = (NpgsqlParameter)ParameterWithValue(SampleValue(kind));
 
-            parameter.DbType.Should().Be(expectedDbType);
-            parameter.NpgsqlDbType.Should().Be(expectedNpgsqlDbType);
-        }
-
-        [Fact]
-        [Trait("UpgradeSensitive", "NpgsqlParameter type inference")]
-        public void AddWithValue_EnumValue_HasObjectDbTypeAndNoNpgsqlDbType()
-        {
-            var parameter = (NpgsqlParameter)ParameterWithValue(SampleValue("enum"));
-
             parameter.DbType.Should().Be(DbType.Object);
-            Func<NpgsqlDbType> act = () => parameter.NpgsqlDbType;
-            act.Should().Throw<NotSupportedException>().WithMessage("Can't infer NpgsqlDbType for type *+SampleEnum*");
+            parameter.NpgsqlDbType.Should().Be(NpgsqlDbType.Unknown);
         }
     }
 }

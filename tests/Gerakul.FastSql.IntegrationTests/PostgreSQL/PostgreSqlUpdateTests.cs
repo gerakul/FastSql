@@ -18,9 +18,9 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
 
         protected override Type ServerExceptionType => typeof(PostgresException);
 
-        protected override string EmptySetClauseMessage => "42601: syntax error at or near \"where\"";
+        protected override string EmptySetClauseMessage => "42601: syntax error at or near \"where\"*";
 
         // Npgsql leaves the unknown @ID in the text, and PostgreSQL reads it as the prefix operator @ applied to the column id
-        protected override string UnmappedKeyParameterMessage => "42703: column \"id\" does not exist";
+        protected override string UnmappedKeyParameterMessage => "42703: column \"id\" does not exist*";
     }
 }

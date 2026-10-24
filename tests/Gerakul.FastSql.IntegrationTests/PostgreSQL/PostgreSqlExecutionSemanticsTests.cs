@@ -1,6 +1,5 @@
 using System;
 using System.Diagnostics;
-using System.IO;
 using System.Threading.Tasks;
 using AwesomeAssertions;
 using Gerakul.FastSql.Common;
@@ -30,12 +29,12 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
             return typeof(OperationCanceledException);
         }
 
-        // Npgsql 4 enforces the timeout as a socket read timeout
+        // Npgsql enforces the timeout as a read timeout (the inner exception was an IOException in Npgsql 4)
         protected override void AssertCommandTimeout(Exception exception)
         {
             var npgsqlException = exception.Should().BeOfType<NpgsqlException>().Which;
             npgsqlException.Message.Should().Be("Exception while reading from stream");
-            npgsqlException.InnerException.Should().BeOfType<IOException>();
+            npgsqlException.InnerException.Should().BeOfType<TimeoutException>().Which.Message.Should().Be("Timeout during reading attempt");
         }
 
         protected override Type OpenReaderExceptionType => typeof(NpgsqlOperationInProgressException);
@@ -45,34 +44,32 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
             return "A command is already in progress: " + openCommandText;
         }
 
+        // Npgsql 4 did not apply CommandTimeout to async execution (Q71), so the whole sleep ran
         [Theory]
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
-        [Trait("Quirk", "Q71")]
-        [Trait("UpgradeSensitive", "Npgsql 4 does not apply CommandTimeout to async execution")]
-        public async Task ExecuteNonQueryAsync_CommandTimeoutShorterThanServerSleep_RunsToCompletionAsync(ContextKind kind)
+        [Trait("UpgradeSensitive", "Npgsql 7+ applies CommandTimeout to async execution")]
+        public async Task ExecuteNonQueryAsync_CommandTimeoutShorterThanServerSleep_ThrowsNpgsqlExceptionAsync(ContextKind kind)
         {
             var stopwatch = Stopwatch.StartNew();
 
             var exception = await CatchAsync(() => Database.RunAsync(kind, x => x.CreateSimple(new QueryOptions(1), SleepCommandText(3)).ExecuteNonQueryAsync(Token)));
 
-            exception.Should().BeNull();
-            // the whole sleep ran (a lower bound only, so a slow machine cannot break it)
-            stopwatch.Elapsed.Should().BeGreaterThan(TimeSpan.FromSeconds(2.5));
+            AssertCommandTimeout(exception);
+            // the sleep was cut short (an upper bound below the sleep only, so a slow machine cannot break it)
+            stopwatch.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(2.9));
         }
 
         [Fact]
-        [Trait("Quirk", "Q71")]
-        [Trait("UpgradeSensitive", "Npgsql 4 does not apply CommandTimeout to async execution")]
-        public async Task QueryMethodsAsync_CommandTimeoutShorterThanServerSleep_RunToCompletionAsync()
+        [Trait("UpgradeSensitive", "Npgsql 7+ applies CommandTimeout to async execution")]
+        public async Task QueryMethodsAsync_CommandTimeoutShorterThanServerSleep_ThrowNpgsqlExceptionAsync()
         {
             var context = Spec.DefaultProvider.CreateContext(Database.ConnectionString);
 
-            var scalar = await context.CreateSimple(new QueryOptions(1), SleepCommandText(3)).ExecuteScalarAsync(Token);
-            var rows = await context.CreateSimple(new QueryOptions(1), SleepCommandText(3)).ExecuteQueryAsync(Token).ToListCompat(Token);
+            var scalar = await CatchAsync(() => context.CreateSimple(new QueryOptions(1), SleepCommandText(3)).ExecuteScalarAsync(Token));
+            var rows = await CatchAsync(() => context.CreateSimple(new QueryOptions(1), SleepCommandText(3)).ExecuteQueryAsync(Token).ToListCompat(Token));
 
-            // pg_sleep returns void, which Npgsql 4 reads as DBNull
-            scalar.Should().Be(DBNull.Value);
-            rows.Should().ContainSingle().Which.Should().Equal(DBNull.Value);
+            AssertCommandTimeout(scalar);
+            AssertCommandTimeout(rows);
         }
     }
 }

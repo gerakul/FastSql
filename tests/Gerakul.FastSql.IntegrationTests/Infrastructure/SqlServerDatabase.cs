@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 
 namespace Gerakul.FastSql.IntegrationTests.Infrastructure
@@ -26,6 +28,17 @@ namespace Gerakul.FastSql.IntegrationTests.Infrastructure
         protected override string WithSessionTracking(string connectionString, string applicationName)
         {
             return new SqlConnectionStringBuilder(connectionString) { Pooling = false, ApplicationName = applicationName }.ConnectionString;
+        }
+
+        // TestProc is a stored procedure, so the call runs as it is
+        public override void CallTestProc(Action call, params string[] arguments)
+        {
+            call();
+        }
+
+        public override Task CallTestProcAsync(Func<Task> call, params string[] arguments)
+        {
+            return call();
         }
 
         protected override IEnumerable<string> SplitScript(string script)

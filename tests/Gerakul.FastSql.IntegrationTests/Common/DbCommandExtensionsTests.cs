@@ -371,7 +371,7 @@ namespace Gerakul.FastSql.IntegrationTests.Common
 
                     Action anotherCommand = () => CountCompanies(connection);
 
-                    anotherCommand.Should().Throw<InvalidOperationException>().WithMessage(OpenReaderMessage(command.CommandText))
+                    anotherCommand.Should().Throw<Exception>().WithMessage(OpenReaderMessage(command.CommandText))
                     .Which.Should().BeOfType(OpenReaderExceptionType);
                 }
 
@@ -392,7 +392,7 @@ namespace Gerakul.FastSql.IntegrationTests.Common
 
                     Action anotherCommand = () => CountCompanies(connection);
 
-                    anotherCommand.Should().Throw<InvalidOperationException>().WithMessage(OpenReaderMessage(command.CommandText))
+                    anotherCommand.Should().Throw<Exception>().WithMessage(OpenReaderMessage(command.CommandText))
                     .Which.Should().BeOfType(OpenReaderExceptionType);
                 }
 
@@ -431,7 +431,7 @@ namespace Gerakul.FastSql.IntegrationTests.Common
                 // the reader was opened before the mapping failed and nothing disposes it, not even the enumerator
                 Action anotherCommand = () => CountCompanies(connection);
 
-                anotherCommand.Should().Throw<InvalidOperationException>().WithMessage(OpenReaderMessage(command.CommandText))
+                anotherCommand.Should().Throw<Exception>().WithMessage(OpenReaderMessage(command.CommandText))
                     .Which.Should().BeOfType(OpenReaderExceptionType);
             }
         }
@@ -450,7 +450,7 @@ namespace Gerakul.FastSql.IntegrationTests.Common
 
                 Action anotherCommand = () => CountCompanies(connection);
 
-                anotherCommand.Should().Throw<InvalidOperationException>().WithMessage(OpenReaderMessage(command.CommandText))
+                anotherCommand.Should().Throw<Exception>().WithMessage(OpenReaderMessage(command.CommandText))
                     .Which.Should().BeOfType(OpenReaderExceptionType);
             }
         }

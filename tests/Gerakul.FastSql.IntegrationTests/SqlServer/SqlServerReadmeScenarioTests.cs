@@ -78,6 +78,21 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
             ReadEmployees(employeeTable).Should().BeEquivalentTo(expected, o => o.WithStrictOrdering());
         }
 
+        // the source reader and the bulk copy need the same connection, which is busy while the reader is open
+        [Theory]
+        [InlineData(ContextKind.Connection)]
+        [InlineData(ContextKind.Transaction)]
+        [Trait("Quirk", "Q110")]
+        [Trait("UpgradeSensitive", "driver exception for a busy connection")]
+        public void DataImport_ProcedureIntoTableOnScopedContext_ThrowsBecauseConnectionIsBusy(ContextKind kind)
+        {
+            var employeeTable = CreateEmployeeTable(false);
+
+            ShouldThrowConnectionBusy(() => ImportProcedureIntoTable(kind, employeeTable), "TestProc");
+
+            CountRows(employeeTable).Should().Be(0);
+        }
+
         #endregion
 
         #region Extensibility

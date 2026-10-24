@@ -47,6 +47,18 @@ namespace Gerakul.FastSql.Common
                 }
             }
 
+            // Npgsql 10 returns DateOnly and TimeOnly for date and time columns (earlier versions returned DateTime and
+            // TimeSpan); Convert.ChangeType cannot convert them, so members of the old types get the old values
+            if (value is DateOnly dateOnly && convertingType == typeof(DateTime))
+            {
+                return dateOnly.ToDateTime(TimeOnly.MinValue);
+            }
+
+            if (value is TimeOnly timeOnly && convertingType == typeof(TimeSpan))
+            {
+                return timeOnly.ToTimeSpan();
+            }
+
             return Convert.ChangeType(value, convertingType);
         }
 

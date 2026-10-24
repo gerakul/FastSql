@@ -693,7 +693,7 @@ namespace Gerakul.FastSql.IntegrationTests.Common
 
         #region Command timeout
 
-        // the async variants are in the provider classes: Npgsql 4 does not apply the timeout to async execution (Q71)
+        // the async variants are in the provider classes: Npgsql 4 did not apply the timeout to async execution (Q71)
 
         [Theory]
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
