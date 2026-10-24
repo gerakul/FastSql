@@ -34,7 +34,7 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/Directory.Build.props', '**/*.csproj') }}
           restore-keys: nuget-${{ runner.os }}-
 
-      # all current library targets, so build breaks outside the tested netstandard2.0 build are caught too
+      # the whole solution, so build breaks in Examples are caught too
       - name: Build
         run: dotnet build FastSql.slnx --configuration Release
 

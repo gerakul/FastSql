@@ -16,9 +16,9 @@ namespace Gerakul.FastSql.IntegrationTests.Common
     // - identifiers go through N(...): bare on SQL Server, as in the README, quoted on PostgreSQL, whose seed uses
     //   quoted PascalCase names (the README's "examples for PostgreSQL would look same" holds only with quoting, Q19);
     // - snippets that change data run against scratch copies of Employee and Company, because the seed data is read only;
-    // - the async lines keep the README syntax "await ... .ToArray()" on purpose: ToArray is the extension of
-    //   System.Interactive.Async 3.2, so these lines change together with the README when the library moves to the
-    //   IAsyncEnumerable<T> of .NET (plan §4). Everywhere else async results go through AsyncEnumerableCompat.
+    // - the async lines keep the README syntax "await ... .ToArrayAsync()" on purpose (ToArrayAsync of
+    //   System.Linq.AsyncEnumerable, part of .NET), so they change together with the README. Everywhere else async
+    //   results go through AsyncEnumerableCompat.
     // The bulk copy example, the data import of a table into itself on a connection string context and the extensibility
     // examples behave differently or have provider specific SQL, so their tests are in the concrete classes, which are in
     // the provider folders.
@@ -180,7 +180,7 @@ namespace Gerakul.FastSql.IntegrationTests.Common
                 // doing something with connectionContext (attached to opened connection)
                 usedConnection = connectionContext.Connection;
                 connectionContext.Connection.State.Should().Be(ConnectionState.Open);
-                (await connectionContext.CreateSimple($"select * from {N("Employee")}").ExecuteQueryAsync<Employee>().ToArray())
+                (await connectionContext.CreateSimple($"select * from {N("Employee")}").ExecuteQueryAsync<Employee>().ToArrayAsync())
                     .Should().HaveCount(5);
                 // for example using transaction
                 await connectionContext.UsingTransactionAsync(async transactionContext =>
@@ -248,7 +248,7 @@ namespace Gerakul.FastSql.IntegrationTests.Common
         public async Task Data2_SimpleRetrievingAsync_ReturnsAllEmployeesAsync(ContextKind kind)
         {
             var data2 = await Database.RunAsync(kind, async context =>
-                await context.CreateSimple($"select * from {N("Employee")}").ExecuteQueryAsync<Employee>().ToArray());
+                await context.CreateSimple($"select * from {N("Employee")}").ExecuteQueryAsync<Employee>().ToArrayAsync());
 
             data2.Should().BeEquivalentTo(SeedData.Employees);
         }
@@ -270,7 +270,7 @@ namespace Gerakul.FastSql.IntegrationTests.Common
         {
             var data4 = await Database.RunAsync(kind, async context =>
                 await context.CreateSimple($"select * from {N("Employee")} where {N("CompanyID")} = @p0 and {N("Age")} > @p1", 1, 40)
-                    .ExecuteQueryAsync<Employee>().ToArray());
+                    .ExecuteQueryAsync<Employee>().ToArrayAsync());
 
             data4.Should().BeEquivalentTo(new[] { SeedData.Employees[0] });
         }
@@ -292,7 +292,7 @@ namespace Gerakul.FastSql.IntegrationTests.Common
         {
             var data6 = await Database.RunAsync(kind, async context =>
                 await context.CreateMapped($"select * from {N("Employee")} where {N("CompanyID")} = @CompanyID and {N("Age")} > @Age", new { CompanyID = 1, Age = 40 })
-                    .ExecuteQueryAsync<Employee>().ToArray());
+                    .ExecuteQueryAsync<Employee>().ToArrayAsync());
 
             data6.Should().BeEquivalentTo(new[] { SeedData.Employees[0] });
         }

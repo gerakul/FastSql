@@ -85,18 +85,18 @@ Simple retrieving data
   ```csharp
   var data1 = context.CreateSimple("select * from Employee").ExecuteQuery<Employee>().ToArray();
   // or async
-  var data2 = await context.CreateSimple("select * from Employee").ExecuteQueryAsync<Employee>().ToArray();
+  var data2 = await context.CreateSimple("select * from Employee").ExecuteQueryAsync<Employee>().ToArrayAsync();
   ```
 Using parameters
   ```csharp
   // simple
   var data3 = context.CreateSimple("select * from Employee where CompanyID = @p0 and Age > @p1", 1, 40).ExecuteQuery<Employee>().ToArray();
   // or async
-  var data4 = await context.CreateSimple("select * from Employee where CompanyID = @p0 and Age > @p1", 1, 40).ExecuteQueryAsync<Employee>().ToArray();
+  var data4 = await context.CreateSimple("select * from Employee where CompanyID = @p0 and Age > @p1", 1, 40).ExecuteQueryAsync<Employee>().ToArrayAsync();
   // parameters mapped to object
   var data5 = context.CreateMapped("select * from Employee where CompanyID = @CompanyID and Age > @Age", new { CompanyID = 1, Age = 40 }).ExecuteQuery<Employee>().ToArray();
   // or async
-  var data6 = await context.CreateMapped("select * from Employee where CompanyID = @CompanyID and Age > @Age", new { CompanyID = 1, Age = 40 }).ExecuteQueryAsync<Employee>().ToArray();
+  var data6 = await context.CreateMapped("select * from Employee where CompanyID = @CompanyID and Age > @Age", new { CompanyID = 1, Age = 40 }).ExecuteQueryAsync<Employee>().ToArrayAsync();
   ```
 
 **NOTE:** all commands can be executed asynchronously but examples below only show synchronous execution in order not to complicate them.

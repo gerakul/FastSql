@@ -13,7 +13,7 @@ using static Gerakul.FastSql.UnitTests.Common.ReadAllTests;
 
 namespace Gerakul.FastSql.UnitTests.Common
 {
-    // ReadAllAsync<T> twins of ReadAllTests (same models), and the behavior of the legacy async enumerators returned by
+    // ReadAllAsync<T> twins of ReadAllTests (same models), and the behavior of the async enumerators returned by
     // all ReadAll*Async methods: the IDataReader-only path, cancellation (Q04), disposal, Current, empty readers.
     public class ReadAllAsyncTests
     {
@@ -34,11 +34,11 @@ namespace Gerakul.FastSql.UnitTests.Common
         // the enumerator of any ReadAll*Async result, with Current boxed
         private sealed class Cursor : IDisposable
         {
-            private readonly Func<CancellationToken, Task<bool>> moveNext;
+            private readonly Func<Task<bool>> moveNext;
             private readonly Func<object> current;
             private readonly Action dispose;
 
-            private Cursor(Func<CancellationToken, Task<bool>> moveNext, Func<object> current, Action dispose)
+            private Cursor(Func<Task<bool>> moveNext, Func<object> current, Action dispose)
             {
                 this.moveNext = moveNext;
                 this.current = current;
@@ -47,14 +47,14 @@ namespace Gerakul.FastSql.UnitTests.Common
 
             public static Cursor From<T>(CompatAsyncEnumerator<T> enumerator)
             {
-                return new Cursor(x => enumerator.MoveNextAsync(x), () => enumerator.Current, enumerator.Dispose);
+                return new Cursor(enumerator.MoveNextAsync, () => enumerator.Current, enumerator.Dispose);
             }
 
             public object Current => current();
 
-            public Task<bool> MoveNextAsync(CancellationToken cancellationToken)
+            public Task<bool> MoveNextAsync()
             {
-                return moveNext(cancellationToken);
+                return moveNext();
             }
 
             public void Dispose()
@@ -68,20 +68,20 @@ namespace Gerakul.FastSql.UnitTests.Common
             return new ReaderTable().Column<int>("ID").Column<string>("Name").Row(1, "John").Row(2, "Kate");
         }
 
-        private static Cursor OpenCursor(AsyncMethod method, IDataReader reader)
+        private static Cursor OpenCursor(AsyncMethod method, IDataReader reader, CancellationToken cancellationToken)
         {
             switch (method)
             {
                 case AsyncMethod.ReadAllOfT:
-                    return Cursor.From(reader.ReadAllAsync<Person>().GetEnumeratorCompat());
+                    return Cursor.From(reader.ReadAllAsync<Person>().GetEnumeratorCompat(cancellationToken));
                 case AsyncMethod.ReadAllObjects:
-                    return Cursor.From(reader.ReadAllAsync().GetEnumeratorCompat());
+                    return Cursor.From(reader.ReadAllAsync().GetEnumeratorCompat(cancellationToken));
                 case AsyncMethod.ReadAllAnonymous:
-                    return Cursor.From(reader.ReadAllAnonymousAsync(new { ID = 0, Name = (string)null }).GetEnumeratorCompat());
+                    return Cursor.From(reader.ReadAllAnonymousAsync(new { ID = 0, Name = (string)null }).GetEnumeratorCompat(cancellationToken));
                 case AsyncMethod.ReadAllFirstColumn:
-                    return Cursor.From(reader.ReadAllFirstColumnAsync().GetEnumeratorCompat());
+                    return Cursor.From(reader.ReadAllFirstColumnAsync().GetEnumeratorCompat(cancellationToken));
                 case AsyncMethod.ReadAllFirstColumnOfT:
-                    return Cursor.From(reader.ReadAllFirstColumnAsync<int>().GetEnumeratorCompat());
+                    return Cursor.From(reader.ReadAllFirstColumnAsync<int>().GetEnumeratorCompat(cancellationToken));
                 default:
                     throw new ArgumentOutOfRangeException(nameof(method));
             }
@@ -109,9 +109,9 @@ namespace Gerakul.FastSql.UnitTests.Common
         private static async Task<List<object>> ReadToEndAsync(AsyncMethod method, IDataReader reader)
         {
             var list = new List<object>();
-            using (var cursor = OpenCursor(method, reader))
+            using (var cursor = OpenCursor(method, reader, TestContext.Current.CancellationToken))
             {
-                while (await cursor.MoveNextAsync(TestContext.Current.CancellationToken))
+                while (await cursor.MoveNextAsync())
                 {
                     list.Add(cursor.Current);
                 }
@@ -154,9 +154,9 @@ namespace Gerakul.FastSql.UnitTests.Common
         {
             var reader = new ReaderTable().Column<int>("ID").Column<string>("Name").CreateReader();
 
-            using (var cursor = OpenCursor(method, reader))
+            using (var cursor = OpenCursor(method, reader, TestContext.Current.CancellationToken))
             {
-                (await cursor.MoveNextAsync(TestContext.Current.CancellationToken)).Should().BeFalse();
+                (await cursor.MoveNextAsync()).Should().BeFalse();
             }
         }
 
@@ -166,10 +166,10 @@ namespace Gerakul.FastSql.UnitTests.Common
         {
             var expectedDefault = method == AsyncMethod.ReadAllFirstColumnOfT ? (object)0 : null;
 
-            using (var cursor = OpenCursor(method, People().CreateReader()))
+            using (var cursor = OpenCursor(method, People().CreateReader(), TestContext.Current.CancellationToken))
             {
                 var beforeFirst = cursor.Current;
-                while (await cursor.MoveNextAsync(TestContext.Current.CancellationToken))
+                while (await cursor.MoveNextAsync())
                 {
                 }
 
@@ -185,33 +185,35 @@ namespace Gerakul.FastSql.UnitTests.Common
         {
             var reader = People().CreateInterfaceOnlyReader();
 
-            using (var cursor = OpenCursor(method, reader))
+            using (var cursor = OpenCursor(method, reader, new CancellationToken(true)))
             {
-                (await cursor.MoveNextAsync(new CancellationToken(true))).Should().BeFalse();
+                (await cursor.MoveNextAsync()).Should().BeFalse();
             }
 
             reader.ReadCalls.Should().Be(0);
         }
 
+        // The built-in IAsyncEnumerator<T> gets its token once, when it is created, so a token cancelled after the first
+        // row stays cancelled: the legacy enumerator could go on with a live token on the next call, this one cannot.
         [Theory]
         [MemberData(nameof(AsyncMethods))]
         [Trait("Quirk", "Q04")]
-        public async Task ReadAsync_CancelledTokenAfterFirstRow_MoveNextReturnsFalseAndLaterCallsContinueAsync(AsyncMethod method)
+        public async Task ReadAsync_TokenCancelledAfterFirstRow_MoveNextReturnsFalseWithoutReadingAsync(AsyncMethod method)
         {
-            var expected = ReadSync(method, People().CreateReader());
+            var reader = People().CreateReader();
 
-            using (var cursor = OpenCursor(method, People().CreateReader()))
+            using (var cancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken))
+            using (var cursor = OpenCursor(method, reader, cancellation.Token))
             {
-                (await cursor.MoveNextAsync(CancellationToken.None)).Should().BeTrue();
-                var first = cursor.Current;
+                (await cursor.MoveNextAsync()).Should().BeTrue();
+                cancellation.Cancel();
 
-                (await cursor.MoveNextAsync(new CancellationToken(true))).Should().BeFalse();
-
-                (await cursor.MoveNextAsync(CancellationToken.None)).Should().BeTrue();
-                var second = cursor.Current;
-
-                new[] { first, second }.Should().BeEquivalentTo(expected, o => o.WithStrictOrdering());
+                (await cursor.MoveNextAsync()).Should().BeFalse();
+                (await cursor.MoveNextAsync()).Should().BeFalse();
             }
+
+            reader.Read().Should().BeTrue();
+            reader.GetInt32(0).Should().Be(2);
         }
 
         [Theory]
@@ -219,12 +221,12 @@ namespace Gerakul.FastSql.UnitTests.Common
         public async Task ReadAsync_DisposedEnumerator_MoveNextReturnsFalseAndReaderStaysOpenAsync(AsyncMethod method)
         {
             var reader = People().CreateReader();
-            var cursor = OpenCursor(method, reader);
+            var cursor = OpenCursor(method, reader, TestContext.Current.CancellationToken);
 
-            (await cursor.MoveNextAsync(TestContext.Current.CancellationToken)).Should().BeTrue();
+            (await cursor.MoveNextAsync()).Should().BeTrue();
             cursor.Dispose();
 
-            (await cursor.MoveNextAsync(TestContext.Current.CancellationToken)).Should().BeFalse();
+            (await cursor.MoveNextAsync()).Should().BeFalse();
             reader.IsClosed.Should().BeFalse();
             reader.Read().Should().BeTrue();
             reader.GetInt32(0).Should().Be(2);
@@ -641,12 +643,12 @@ namespace Gerakul.FastSql.UnitTests.Common
             var reader = new ReaderTable().Column<int>("ID").Row(1).CreateReader();
 
             CompatAsyncEnumerator<Person> enumerator = null;
-            Action create = () => enumerator = reader.ReadAllAsync<Person>().GetEnumeratorCompat();
+            Action create = () => enumerator = reader.ReadAllAsync<Person>().GetEnumeratorCompat(TestContext.Current.CancellationToken);
 
             create.Should().NotThrow();
             using (enumerator)
             {
-                Func<Task> moveNext = () => enumerator.MoveNextAsync(TestContext.Current.CancellationToken);
+                Func<Task> moveNext = () => enumerator.MoveNextAsync();
                 await moveNext.Should().ThrowExactlyAsync<InvalidOperationException>().WithMessage(DestinationMessage);
             }
         }
@@ -657,9 +659,9 @@ namespace Gerakul.FastSql.UnitTests.Common
         {
             var reader = new ReaderTable().Column<int>("ID").Row(1).CreateReader();
 
-            using (var enumerator = reader.ReadAllAsync<Person>().GetEnumeratorCompat())
+            using (var enumerator = reader.ReadAllAsync<Person>().GetEnumeratorCompat(new CancellationToken(true)))
             {
-                (await enumerator.MoveNextAsync(new CancellationToken(true))).Should().BeFalse();
+                (await enumerator.MoveNextAsync()).Should().BeFalse();
             }
         }
 
@@ -668,12 +670,12 @@ namespace Gerakul.FastSql.UnitTests.Common
         {
             var reader = new ReaderTable().Column<int>("ID").Column<string>("Name").Row(1, "John").Row(null, "Kate").CreateReader();
 
-            using (var enumerator = reader.ReadAllAsync<Person>().GetEnumeratorCompat())
+            using (var enumerator = reader.ReadAllAsync<Person>().GetEnumeratorCompat(TestContext.Current.CancellationToken))
             {
-                (await enumerator.MoveNextAsync(TestContext.Current.CancellationToken)).Should().BeTrue();
+                (await enumerator.MoveNextAsync()).Should().BeTrue();
                 enumerator.Current.Name.Should().Be("John");
 
-                Func<Task> moveNext = () => enumerator.MoveNextAsync(TestContext.Current.CancellationToken);
+                Func<Task> moveNext = () => enumerator.MoveNextAsync();
                 await moveNext.Should().ThrowExactlyAsync<InvalidCastException>();
             }
         }

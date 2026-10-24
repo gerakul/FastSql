@@ -450,9 +450,9 @@ namespace Gerakul.FastSql.UnitTests.Common
 
             var result = reader.ReadAllAnonymousAsync(new { ID = 0, Name = "" });
 
-            using (var enumerator = result.GetEnumeratorCompat())
+            using (var enumerator = result.GetEnumeratorCompat(TestContext.Current.CancellationToken))
             {
-                Func<Task> moveNext = () => enumerator.MoveNextAsync(TestContext.Current.CancellationToken);
+                Func<Task> moveNext = () => enumerator.MoveNextAsync();
                 await moveNext.Should().ThrowExactlyAsync<InvalidOperationException>().WithMessage(DestinationMessage);
             }
         }

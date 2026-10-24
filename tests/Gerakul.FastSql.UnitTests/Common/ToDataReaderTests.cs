@@ -14,7 +14,7 @@ namespace Gerakul.FastSql.UnitTests.Common
         public enum SourceKind
         {
             Enumerable,
-            LegacyAsyncEnumerable
+            AsyncEnumerable
         }
 
         private enum Status
@@ -148,7 +148,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Theory]
         [InlineData(SourceKind.Enumerable)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable)]
+        [InlineData(SourceKind.AsyncEnumerable)]
         public void ToDataReader_NoArguments_UsesDefaultMembersCaseSensitive(SourceKind source)
         {
             var rows = CreateRows();
@@ -164,8 +164,8 @@ namespace Gerakul.FastSql.UnitTests.Common
         [Theory]
         [InlineData(SourceKind.Enumerable, true)]
         [InlineData(SourceKind.Enumerable, false)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable, true)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable, false)]
+        [InlineData(SourceKind.AsyncEnumerable, true)]
+        [InlineData(SourceKind.AsyncEnumerable, false)]
         public void ToDataReader_CaseSensitivity_UsesDefaultMembers(SourceKind source, bool caseSensitive)
         {
             var rows = CreateRows();
@@ -180,7 +180,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Theory]
         [InlineData(SourceKind.Enumerable)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable)]
+        [InlineData(SourceKind.AsyncEnumerable)]
         public void ToDataReader_SettingsArray_UsesGivenSettingsCaseSensitive(SourceKind source)
         {
             var rows = CreateRows();
@@ -202,7 +202,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Theory]
         [InlineData(SourceKind.Enumerable)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable)]
+        [InlineData(SourceKind.AsyncEnumerable)]
         public void ToDataReader_SettingsAsSeparateArguments_UsesGivenSettingsCaseSensitive(SourceKind source)
         {
             var rows = CreateRows();
@@ -219,7 +219,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Theory]
         [InlineData(SourceKind.Enumerable)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable)]
+        [InlineData(SourceKind.AsyncEnumerable)]
         public void ToDataReader_EmptySettingsArray_GivesReaderWithoutColumns(SourceKind source)
         {
             var rows = CreateRows();
@@ -236,7 +236,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Theory]
         [InlineData(SourceKind.Enumerable)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable)]
+        [InlineData(SourceKind.AsyncEnumerable)]
         public void ToDataReader_SettingsSequence_IsCaseSensitiveByDefault(SourceKind source)
         {
             var rows = CreateRows();
@@ -256,8 +256,8 @@ namespace Gerakul.FastSql.UnitTests.Common
         [Theory]
         [InlineData(SourceKind.Enumerable, true)]
         [InlineData(SourceKind.Enumerable, false)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable, true)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable, false)]
+        [InlineData(SourceKind.AsyncEnumerable, true)]
+        [InlineData(SourceKind.AsyncEnumerable, false)]
         public void ToDataReader_SettingsSequenceAndCaseSensitivity_UsesGivenSettings(SourceKind source, bool caseSensitive)
         {
             var rows = CreateRows();
@@ -277,7 +277,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Theory]
         [InlineData(SourceKind.Enumerable)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable)]
+        [InlineData(SourceKind.AsyncEnumerable)]
         public void ToDataReader_FromTypeOption_UsesSelectedMembersCaseSensitive(SourceKind source)
         {
             var rows = CreateRows();
@@ -293,8 +293,8 @@ namespace Gerakul.FastSql.UnitTests.Common
         [Theory]
         [InlineData(SourceKind.Enumerable, true)]
         [InlineData(SourceKind.Enumerable, false)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable, true)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable, false)]
+        [InlineData(SourceKind.AsyncEnumerable, true)]
+        [InlineData(SourceKind.AsyncEnumerable, false)]
         public void ToDataReader_FromTypeOptionAndCaseSensitivity_UsesSelectedMembers(SourceKind source, bool caseSensitive)
         {
             var rows = CreateRows();
@@ -309,7 +309,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Theory]
         [InlineData(SourceKind.Enumerable)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable)]
+        [InlineData(SourceKind.AsyncEnumerable)]
         public void ToDataReader_ReadsSourceValues(SourceKind source)
         {
             var rows = CreateRows();
@@ -370,7 +370,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Theory]
         [InlineData(SourceKind.Enumerable)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable)]
+        [InlineData(SourceKind.AsyncEnumerable)]
         public void ToDataReader_ReadAll_ReturnsEqualObjects(SourceKind source)
         {
             var employees = CreateEmployees();
@@ -385,7 +385,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Theory]
         [InlineData(SourceKind.Enumerable)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable)]
+        [InlineData(SourceKind.AsyncEnumerable)]
         public async Task ToDataReader_ReadAllAsync_ReturnsEqualObjectsAsync(SourceKind source)
         {
             var employees = CreateEmployees();
@@ -400,7 +400,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Theory]
         [InlineData(SourceKind.Enumerable)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable)]
+        [InlineData(SourceKind.AsyncEnumerable)]
         public void ToDataReader_ReadAllOfManyTypes_ReturnsEqualObjects(SourceKind source)
         {
             var values = CreateDetailed();
@@ -416,7 +416,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Theory]
         [InlineData(SourceKind.Enumerable)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable)]
+        [InlineData(SourceKind.AsyncEnumerable)]
         public async Task ToDataReader_ReadAllAsyncOfManyTypes_ReturnsEqualObjectsAsync(SourceKind source)
         {
             var values = CreateDetailed();

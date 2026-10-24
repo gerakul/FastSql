@@ -8,10 +8,7 @@
 
   <ItemGroup Label="Libraries">
     <PackageVersion Include="Npgsql" Version="4.0.2" />
-    <PackageVersion Include="System.Data.Common" Version="4.3.0" />
     <PackageVersion Include="System.Data.SqlClient" Version="4.5.1" />
-    <PackageVersion Include="System.Interactive.Async" Version="3.2.0" />
-    <PackageVersion Include="System.Reflection.TypeExtensions" Version="4.5.1" />
   </ItemGroup>
 
   <ItemGroup Label="Tests">

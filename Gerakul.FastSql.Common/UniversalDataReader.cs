@@ -51,7 +51,7 @@ namespace Gerakul.FastSql.Common
         public UniversalDataReader(IAsyncEnumerable<T> values, IEnumerable<FieldSettings<T>> settings, bool caseSensitive)
            : this(settings, caseSensitive)
         {
-            this.asyncEnumerator = values.GetEnumerator();
+            this.asyncEnumerator = values.GetAsyncEnumerator();
         }
 
         private void ApplySettings()
@@ -127,7 +127,7 @@ namespace Gerakul.FastSql.Common
 
             if (enumerator == null)
             {
-                if (asyncEnumerator.MoveNext().Result)
+                if (asyncEnumerator.MoveNextAsync().AsTask().Result)
                 {
                     curRow = asyncEnumerator.Current;
                     return true;
@@ -154,7 +154,7 @@ namespace Gerakul.FastSql.Common
 
             if (enumerator == null)
             {
-                if (await asyncEnumerator.MoveNext().ConfigureAwait(false))
+                if (await asyncEnumerator.MoveNextAsync().ConfigureAwait(false))
                 {
                     curRow = asyncEnumerator.Current;
                     return true;

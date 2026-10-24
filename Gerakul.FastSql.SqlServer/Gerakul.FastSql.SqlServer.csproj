@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard1.3;netstandard2.0;net46</TargetFrameworks>
     <Version>1.1.0</Version>
     <Description>Implementation FastSql for MS Sql Server: Light-weight, flexible and easy to use C# library to retrieve and manipulate (including bulk copy) data in SQL databases.</Description>
   </PropertyGroup>

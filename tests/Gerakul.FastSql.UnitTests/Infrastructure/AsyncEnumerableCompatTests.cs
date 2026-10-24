@@ -68,13 +68,13 @@ namespace Gerakul.FastSql.UnitTests.Infrastructure
         [Fact]
         public async Task GetEnumeratorCompat_EnumeratesItems()
         {
-            using (var enumerator = new[] { 10, 20 }.ToAsyncEnumerableCompat().GetEnumeratorCompat())
+            using (var enumerator = new[] { 10, 20 }.ToAsyncEnumerableCompat().GetEnumeratorCompat(TestContext.Current.CancellationToken))
             {
-                (await enumerator.MoveNextAsync(TestContext.Current.CancellationToken)).Should().BeTrue();
+                (await enumerator.MoveNextAsync()).Should().BeTrue();
                 enumerator.Current.Should().Be(10);
-                (await enumerator.MoveNextAsync(TestContext.Current.CancellationToken)).Should().BeTrue();
+                (await enumerator.MoveNextAsync()).Should().BeTrue();
                 enumerator.Current.Should().Be(20);
-                (await enumerator.MoveNextAsync(TestContext.Current.CancellationToken)).Should().BeFalse();
+                (await enumerator.MoveNextAsync()).Should().BeFalse();
             }
         }
 

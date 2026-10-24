@@ -225,14 +225,14 @@ namespace Gerakul.FastSql.IntegrationTests.Common
             var context = CreateTrackedContext(applicationName);
             var query = context.CreateSimple(SelectEmployees()).ExecuteQueryAsync<Employee>(cancellationToken: Token);
 
-            using (var enumerator = query.GetEnumeratorCompat())
+            using (var enumerator = query.GetEnumeratorCompat(Token))
             {
                 Database.CountSessions(applicationName).Should().Be(0);
 
-                (await enumerator.MoveNextAsync(Token)).Should().BeTrue();
+                (await enumerator.MoveNextAsync()).Should().BeTrue();
                 Database.WaitForSessionCount(applicationName, 1).Should().Be(1);
 
-                (await enumerator.MoveNextAsync(Token)).Should().BeTrue();
+                (await enumerator.MoveNextAsync()).Should().BeTrue();
                 Database.CountSessions(applicationName).Should().Be(1);
             }
 
@@ -306,9 +306,9 @@ namespace Gerakul.FastSql.IntegrationTests.Common
 
             Func<Task> conversionFails = async () =>
             {
-                using (var enumerator = context.CreateSimple(SelectAges()).ExecuteQueryFirstColumnAsync<int>(Token).GetEnumeratorCompat())
+                using (var enumerator = context.CreateSimple(SelectAges()).ExecuteQueryFirstColumnAsync<int>(Token).GetEnumeratorCompat(Token))
                 {
-                    while (await enumerator.MoveNextAsync(Token))
+                    while (await enumerator.MoveNextAsync())
                     {
                         ages.Add(enumerator.Current);
                     }
@@ -649,27 +649,30 @@ namespace Gerakul.FastSql.IntegrationTests.Common
             results.Should().AllSatisfy(x => ((System.Collections.ICollection)x).Count.Should().Be(0));
         }
 
+        // The built-in IAsyncEnumerator<T> gets its token once, when it is created, so a token cancelled in the middle
+        // stays cancelled: the legacy enumerator could go on with a live token on the next call, this one cannot.
         [Theory]
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
         [Trait("Quirk", "Q04")]
-        public async Task MoveNext_CancelledTokenInTheMiddle_ReturnsFalseAndEnumerationCanContinueAsync(ContextKind kind)
+        public async Task MoveNext_TokenCancelledInTheMiddle_ReturnsFalseAsync(ContextKind kind)
         {
             var ids = await Database.RunAsync(kind, async x =>
             {
                 var result = new List<object>();
-                using (var enumerator = x.CreateSimple(SelectEmployees()).ExecuteQueryFirstColumnAsync<int>(Token).GetEnumeratorCompat())
+                using (var cancellation = CancellationTokenSource.CreateLinkedTokenSource(Token))
+                using (var enumerator = x.CreateSimple(SelectEmployees()).ExecuteQueryFirstColumnAsync<int>(Token).GetEnumeratorCompat(cancellation.Token))
                 {
-                    result.Add(await enumerator.MoveNextAsync(Token));
+                    result.Add(await enumerator.MoveNextAsync());
                     result.Add(enumerator.Current);
-                    result.Add(await enumerator.MoveNextAsync(new CancellationToken(true)));
-                    result.Add(await enumerator.MoveNextAsync(Token));
-                    result.Add(enumerator.Current);
+                    cancellation.Cancel();
+                    result.Add(await enumerator.MoveNextAsync());
+                    result.Add(await enumerator.MoveNextAsync());
                 }
 
                 return result;
             });
 
-            ids.Should().Equal(true, 1, false, true, 2);
+            ids.Should().Equal(true, 1, false, false);
         }
 
         [Fact]
@@ -679,9 +682,9 @@ namespace Gerakul.FastSql.IntegrationTests.Common
             var applicationName = NewApplicationName();
             var context = CreateTrackedContext(applicationName);
 
-            using (var enumerator = context.CreateSimple(SelectEmployees()).ExecuteQueryAsync<Employee>(cancellationToken: Token).GetEnumeratorCompat())
+            using (var enumerator = context.CreateSimple(SelectEmployees()).ExecuteQueryAsync<Employee>(cancellationToken: Token).GetEnumeratorCompat(new CancellationToken(true)))
             {
-                (await enumerator.MoveNextAsync(new CancellationToken(true))).Should().BeFalse();
+                (await enumerator.MoveNextAsync()).Should().BeFalse();
                 Database.CountSessions(applicationName).Should().Be(0);
             }
         }

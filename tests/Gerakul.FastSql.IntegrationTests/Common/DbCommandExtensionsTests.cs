@@ -386,9 +386,9 @@ namespace Gerakul.FastSql.IntegrationTests.Common
             using (var connection = await Database.OpenConnectionAsync())
             using (var command = CreateCommand(connection, SelectEmployees()))
             {
-                using (var enumerator = command.ExecuteQueryAsync<Employee>(cancellationToken: Token).GetEnumeratorCompat())
+                using (var enumerator = command.ExecuteQueryAsync<Employee>(cancellationToken: Token).GetEnumeratorCompat(Token))
                 {
-                    (await enumerator.MoveNextAsync(Token)).Should().BeTrue();
+                    (await enumerator.MoveNextAsync()).Should().BeTrue();
 
                     Action anotherCommand = () => CountCompanies(connection);
 
@@ -421,9 +421,9 @@ namespace Gerakul.FastSql.IntegrationTests.Common
             using (var connection = await Database.OpenConnectionAsync())
             using (var command = CreateCommand(connection, SelectCompanyIdAndName()))
             {
-                using (var enumerator = command.ExecuteQueryAsync<Company>(cancellationToken: Token).GetEnumeratorCompat())
+                using (var enumerator = command.ExecuteQueryAsync<Company>(cancellationToken: Token).GetEnumeratorCompat(Token))
                 {
-                    Func<Task> moveNext = () => enumerator.MoveNextAsync(Token);
+                    Func<Task> moveNext = () => enumerator.MoveNextAsync();
 
                     await moveNext.Should().ThrowAsync<InvalidOperationException>().WithMessage(DestinationSelectorMessage);
                 }
