@@ -58,10 +58,13 @@ namespace Gerakul.FastSql.IntegrationTests.Common
         [Fact]
         public void TestProc_ReturnsEmployeesOfCompanyOlderThanAge()
         {
-            var employees = Database.Run(ContextKind.ConnectionString, x => x.CreateProcedure("TestProc", new { CompanyID = 1, Age = 40 })
-                .ExecuteQuery<Employee>().ToArray());
+            Database.CallTestProc(() =>
+            {
+                var employees = Database.Run(ContextKind.ConnectionString, x => x.CreateProcedure("TestProc", new { CompanyID = 1, Age = 40 })
+                    .ExecuteQuery<Employee>().ToArray());
 
-            employees.Should().BeEquivalentTo(new[] { SeedData.Employees[0] });
+                employees.Should().BeEquivalentTo(new[] { SeedData.Employees[0] });
+            }, "CompanyID", "Age");
         }
 
         [Theory]

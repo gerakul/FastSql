@@ -1,7 +1,7 @@
 using System.Data.Common;
-using System.Data.SqlClient;
 using Gerakul.FastSql.Common;
 using Gerakul.FastSql.SqlServer;
+using Microsoft.Data.SqlClient;
 
 namespace Gerakul.FastSql.Tests.Shared
 {

@@ -1,11 +1,11 @@
 using System;
-using System.Data.SqlClient;
 using System.Threading.Tasks;
 using AwesomeAssertions;
 using Gerakul.FastSql.Common;
 using Gerakul.FastSql.IntegrationTests.Common;
 using Gerakul.FastSql.IntegrationTests.Infrastructure;
 using Gerakul.FastSql.Tests.Shared;
+using Microsoft.Data.SqlClient;
 using Xunit;
 
 namespace Gerakul.FastSql.IntegrationTests.SqlServer
@@ -32,14 +32,15 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
         {
             var sqlException = exception.Should().BeOfType<SqlException>().Which;
             sqlException.Number.Should().Be(-2);
-            sqlException.Message.Should().Be("Timeout expired.  The timeout period elapsed prior to completion of the operation or the server is not responding.");
+            // the sync ExecuteNonQuery adds the server's "Operation cancelled by user." as a second line
+            sqlException.Message.Should().StartWith("Execution Timeout Expired.  The timeout period elapsed prior to completion of the operation or the server is not responding.");
         }
 
         protected override Type OpenReaderExceptionType => typeof(InvalidOperationException);
 
         protected override string OpenReaderMessage(string openCommandText)
         {
-            return "There is already an open DataReader associated with this Command which must be closed first.";
+            return "There is already an open DataReader associated with this Connection which must be closed first.";
         }
 
         [Theory]

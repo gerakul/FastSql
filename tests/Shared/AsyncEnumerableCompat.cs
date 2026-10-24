@@ -1,26 +1,23 @@
-extern alias Ix;
-
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using IxGeneric = Ix::System.Collections.Generic;
-using IxLinq = Ix::System.Linq;
 
 namespace Gerakul.FastSql.Tests.Shared
 {
     // The only place in the test suite that knows which IAsyncEnumerable<T> the library exposes.
-    // Today it is the legacy one from System.Interactive.Async 3.2 (GetEnumerator / MoveNext(CancellationToken)).
-    // When the library moves to the IAsyncEnumerable<T> built into .NET, only this file should change.
+    // Today it is the one built into .NET (GetAsyncEnumerator(CancellationToken) / MoveNextAsync()), which replaced
+    // the legacy one from System.Interactive.Async 3.2 (GetEnumerator() / MoveNext(CancellationToken)).
     public static class AsyncEnumerableCompat
     {
-        public static async Task<List<T>> ToListCompat<T>(this IxGeneric.IAsyncEnumerable<T> source,
+        public static async Task<List<T>> ToListCompat<T>(this IAsyncEnumerable<T> source,
             CancellationToken cancellationToken = default(CancellationToken))
         {
             var list = new List<T>();
-            using (var enumerator = source.GetEnumeratorCompat())
+            using (var enumerator = source.GetEnumeratorCompat(cancellationToken))
             {
-                while (await enumerator.MoveNextAsync(cancellationToken).ConfigureAwait(false))
+                while (await enumerator.MoveNextAsync().ConfigureAwait(false))
                 {
                     list.Add(enumerator.Current);
                 }
@@ -30,13 +27,13 @@ namespace Gerakul.FastSql.Tests.Shared
         }
 
         // reads at most count items and then disposes the enumerator, leaving the rest unread
-        public static async Task<List<T>> TakeCompat<T>(this IxGeneric.IAsyncEnumerable<T> source, int count,
+        public static async Task<List<T>> TakeCompat<T>(this IAsyncEnumerable<T> source, int count,
             CancellationToken cancellationToken = default(CancellationToken))
         {
             var list = new List<T>();
-            using (var enumerator = source.GetEnumeratorCompat())
+            using (var enumerator = source.GetEnumeratorCompat(cancellationToken))
             {
-                while (list.Count < count && await enumerator.MoveNextAsync(cancellationToken).ConfigureAwait(false))
+                while (list.Count < count && await enumerator.MoveNextAsync().ConfigureAwait(false))
                 {
                     list.Add(enumerator.Current);
                 }
@@ -45,23 +42,26 @@ namespace Gerakul.FastSql.Tests.Shared
             return list;
         }
 
-        public static CompatAsyncEnumerator<T> GetEnumeratorCompat<T>(this IxGeneric.IAsyncEnumerable<T> source)
+        // the built-in enumerator gets its cancellation token once, when it is created
+        public static CompatAsyncEnumerator<T> GetEnumeratorCompat<T>(this IAsyncEnumerable<T> source,
+            CancellationToken cancellationToken = default(CancellationToken))
         {
-            return new CompatAsyncEnumerator<T>(source.GetEnumerator());
+            return new CompatAsyncEnumerator<T>(source.GetAsyncEnumerator(cancellationToken));
         }
 
         // produces the library's async sequence type from in-memory items (input for ToDataReader and similar)
-        public static IxGeneric.IAsyncEnumerable<T> ToAsyncEnumerableCompat<T>(this IEnumerable<T> source)
+        public static IAsyncEnumerable<T> ToAsyncEnumerableCompat<T>(this IEnumerable<T> source)
         {
-            return IxLinq.AsyncEnumerable.ToAsyncEnumerable(source);
+            return AsyncEnumerable.ToAsyncEnumerable(source);
         }
     }
 
+    // a synchronously disposable wrapper, so tests keep using "using" blocks
     public sealed class CompatAsyncEnumerator<T> : IDisposable
     {
-        private readonly IxGeneric.IAsyncEnumerator<T> enumerator;
+        private readonly IAsyncEnumerator<T> enumerator;
 
-        internal CompatAsyncEnumerator(IxGeneric.IAsyncEnumerator<T> enumerator)
+        internal CompatAsyncEnumerator(IAsyncEnumerator<T> enumerator)
         {
             this.enumerator = enumerator;
         }
@@ -74,14 +74,14 @@ namespace Gerakul.FastSql.Tests.Shared
             }
         }
 
-        public Task<bool> MoveNextAsync(CancellationToken cancellationToken = default(CancellationToken))
+        public Task<bool> MoveNextAsync()
         {
-            return enumerator.MoveNext(cancellationToken);
+            return enumerator.MoveNextAsync().AsTask();
         }
 
         public void Dispose()
         {
-            enumerator.Dispose();
+            enumerator.DisposeAsync().AsTask().GetAwaiter().GetResult();
         }
     }
 }

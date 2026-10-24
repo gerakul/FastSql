@@ -1,5 +1,4 @@
 using System;
-using System.Data.SqlClient;
 using System.Data.SqlTypes;
 using System.Globalization;
 using System.Linq;
@@ -8,19 +7,19 @@ using AwesomeAssertions;
 using Gerakul.FastSql.Common;
 using Gerakul.FastSql.IntegrationTests.Common;
 using Gerakul.FastSql.IntegrationTests.Infrastructure;
+using Microsoft.Data.SqlClient;
 using Xunit;
 
 namespace Gerakul.FastSql.IntegrationTests.SqlServer
 {
     // I6 for SQL Server: values written through Insert (parameters) and bulk copy, read back through every read path.
-    // Everything here depends on System.Data.SqlClient 4.5.1 (UpgradeSensitive).
+    // Everything here depends on the driver, Microsoft.Data.SqlClient (UpgradeSensitive).
     [Trait("Provider", "SqlServer")]
     public class SqlServerTypeMappingTests : TypeMappingTests<SqlServerDatabase>
     {
-        private const string Driver = "System.Data.SqlClient 4.5.1: CLR types returned and values written";
-        private const string DateTimeParameter = "System.Data.SqlClient sends DateTime parameters as datetime";
-        private const string BulkCopyScale = "System.Data.SqlClient SqlBulkCopy truncates extra scale (Microsoft.Data.SqlClient rounds)";
-        private const string GuidReading = "System.Data.SqlClient 4.5.1 cannot read uniqueidentifier on .NET 10";
+        private const string Driver = "Microsoft.Data.SqlClient: CLR types returned and values written";
+        private const string DateTimeParameter = "SqlClient sends DateTime parameters as datetime";
+        private const string BulkCopyScale = "SqlBulkCopy rounds extra decimal scale (since Microsoft.Data.SqlClient 2.0) but truncates extra datetimeoffset scale";
 
         private static readonly Guid sampleGuid = new Guid("0f8fad5b-d9cb-469f-a165-70867728950e");
 
@@ -62,6 +61,8 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
             new TypeCase<string, string>("nvarchar(max)", new[] { "", new string('x', 10000) + "Ж" }),
             new TypeCase<byte[], byte[]>("varbinary(10)", new[] { new byte[0], new byte[] { 1, 2, 3 }, Enumerable.Repeat((byte)0xFF, 10).ToArray() }),
             new TypeCase<byte[], byte[]>("varbinary(max)", new[] { new byte[0], Enumerable.Range(0, 10000).Select(x => (byte)x).ToArray() }),
+            // System.Data.SqlClient 4.5.1 could not read uniqueidentifier values on .NET 9 and later (Q80, fixed by Microsoft.Data.SqlClient)
+            new TypeCase<Guid, Guid?>("uniqueidentifier", new[] { Guid.Empty, sampleGuid }),
             // xml is written and read as a string; the server normalizes it
             new TypeCase<string, string>("xml", new[] { "<a x='1'><b/></a>", "" }, expected: new[] { "<a x=\"1\"><b /></a>", "" })
         };
@@ -331,10 +332,9 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
 
         [Theory]
         [InlineData(TypeMappingWritePath.Insert, "123.46")]
-        [InlineData(TypeMappingWritePath.BulkCopy, "123.45")]
-        [Trait("Quirk", "Q82")]
+        [InlineData(TypeMappingWritePath.BulkCopy, "123.46")]
         [Trait("UpgradeSensitive", BulkCopyScale)]
-        public void Write_DecimalWithExtraScale_InsertRoundsBulkCopyTruncates(TypeMappingWritePath writePath, string expected)
+        public void Write_DecimalWithExtraScale_IsRoundedByBothPaths(TypeMappingWritePath writePath, string expected)
         {
             var table = CreateValueTable("decimal(10,2)");
 
@@ -376,21 +376,21 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
             Action act = () => WriteValue(table, TypeMappingWritePath.BulkCopy, 12345.6m);
 
             act.Should().ThrowExactly<InvalidOperationException>()
-                .WithMessage("The given value of type Decimal from the data source cannot be converted to type decimal of the specified target column.");
+                .WithMessage("The given value '12345.6' of type Decimal from the data source cannot be converted to type decimal for Column 1 [Value].");
         }
 
         [Theory]
         [MemberData(nameof(WritePaths))]
         [Trait("UpgradeSensitive", "SqlDecimal to System.Decimal conversion in the driver")]
-        public void Read_DecimalThatOverflowsSystemDecimalAtColumnScale_ThrowsOverflowException(TypeMappingWritePath writePath)
+        public void Read_DecimalThatOverflowsSystemDecimalAtColumnScale_ReturnsValue(TypeMappingWritePath writePath)
         {
             var table = CreateValueTable("decimal(38,10)");
 
-            // fits System.Decimal, but not with 10 decimal places (30 digits)
+            // fits System.Decimal, but not with 10 decimal places (30 digits): the driver lowers the scale to fit
+            // (System.Data.SqlClient threw OverflowException "Conversion overflows.")
             WriteValue(table, writePath, 12345678901234567890.12m);
-            Action act = () => ReadValue<decimal>(table);
 
-            act.Should().ThrowExactly<OverflowException>().WithMessage("Conversion overflows.");
+            ReadValue<decimal>(table).ToString(CultureInfo.InvariantCulture).Should().Be("12345678901234567890.12000000");
         }
 
         [Theory]
@@ -473,104 +473,6 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
             Action act = () => WriteValue(table, writePath, "not xml <");
 
             act.Should().ThrowExactly<SqlException>().WithMessage("XML parsing: line 1, character 9, unexpected end of input");
-        }
-
-        #endregion
-
-        #region uniqueidentifier
-
-        [Theory]
-        [MemberData(nameof(WritePaths))]
-        [Trait("Quirk", "Q80")]
-        [Trait("UpgradeSensitive", GuidReading)]
-        public void Write_Guid_IsStoredAsUniqueidentifier(TypeMappingWritePath writePath)
-        {
-            var table = CreateValueTable("uniqueidentifier");
-
-            WriteValue(table, writePath, sampleGuid);
-
-            // read as text: reading the uniqueidentifier itself fails (Q80)
-            var text = CreateContext().CreateSimple($"select cast([Value] as char(36)) from {table}").ExecuteQueryFirstColumn<string>().Single();
-            text.Should().Be("0F8FAD5B-D9CB-469F-A165-70867728950E");
-        }
-
-        [Fact]
-        [Trait("Quirk", "Q80")]
-        [Trait("UpgradeSensitive", GuidReading)]
-        public void ExecuteQueryUntyped_Uniqueidentifier_ThrowsTypeLoadException()
-        {
-            var table = CreateValueTable("uniqueidentifier");
-            Database.Execute($"insert into {table} values (1, '{sampleGuid}')");
-
-            WithOwnPool(context =>
-            {
-                Action act = () => context.CreateSimple($"select [Id], [Value] from {table}").ExecuteQuery().ToList();
-
-                act.Should().ThrowExactly<TypeLoadException>()
-                    .WithMessage("Could not load type 'SqlGuidCaster' from assembly 'System.Data.SqlClient, Version=4.4.0.0, Culture=neutral, "
-                        + "PublicKeyToken=b03f5f7f11d50a3a' because it contains an object field at offset 0 that is incorrectly aligned "
-                        + "or overlapped by a non-object field.");
-            });
-        }
-
-        [Theory]
-        [InlineData("ExecuteQuery<T>")]
-        [InlineData("ExecuteQueryAnonymous")]
-        [InlineData("ExecuteQueryFirstColumn<T>")]
-        [Trait("Quirk", "Q80")]
-        [Trait("UpgradeSensitive", GuidReading)]
-        public void ReadMapped_Uniqueidentifier_ThrowsTimeoutWhileDisposingReader(string readPath)
-        {
-            // one row: with more rows the half-read stream is parsed as garbage, and the error depends on the guid's bytes
-            var table = CreateValueTable("uniqueidentifier");
-            Database.Execute($"insert into {table} values (1, '{sampleGuid}')");
-            // the wait for the rest of the half-read column ends with the command timeout
-            var options = new QueryOptions(1);
-
-            WithOwnPool(context =>
-            {
-                // mapping calls IsDBNull before GetValue; the TypeLoadException leaves the column half read, and the library's
-                // disposal of the reader then waits for data that never comes, so its SqlException replaces the TypeLoadException
-                Action act = () =>
-                {
-                    switch (readPath)
-                    {
-                        case "ExecuteQuery<T>":
-                            context.CreateSimple(options, $"select [Id], [Value] from {table}").ExecuteQuery<ValueRow<Guid>>().ToList();
-                            break;
-                        case "ExecuteQueryAnonymous":
-                            context.CreateSimple(options, $"select [Id], [Value] from {table}").ExecuteQueryAnonymous(new { Id = 0, Value = Guid.Empty }).ToList();
-                            break;
-                        default:
-                            context.CreateSimple(options, $"select [Value] from {table}").ExecuteQueryFirstColumn<Guid>().ToList();
-                            break;
-                    }
-                };
-
-                act.Should().ThrowExactly<SqlException>()
-                    .WithMessage("Timeout expired.  The timeout period elapsed prior to completion of the operation or the server is not responding.");
-            });
-        }
-
-        // runs the action on a connection string context with a pool of its own, because a failed uniqueidentifier read
-        // leaves a broken connection in the pool; the pool is cleared afterwards
-        private void WithOwnPool(Action<DbContext> action)
-        {
-            var connectionString = new SqlConnectionStringBuilder(Database.ConnectionString)
-            {
-                ApplicationName = "fastsql-guid-" + Guid.NewGuid().ToString("N")
-            }.ConnectionString;
-            try
-            {
-                action(Spec.DefaultProvider.CreateContext(connectionString));
-            }
-            finally
-            {
-                using (var connection = new SqlConnection(connectionString))
-                {
-                    SqlConnection.ClearPool(connection);
-                }
-            }
         }
 
         #endregion

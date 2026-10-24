@@ -37,8 +37,8 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
 
         protected override void ShouldThrowConnectionBusy(Action import, string sourceCommandText)
         {
-            import.Should().ThrowExactly<NpgsqlOperationInProgressException>()
-                .WithMessage($"A command is already in progress: {sourceCommandText}");
+            // Npgsql 4 threw NpgsqlOperationInProgressException "A command is already in progress: <source command text>"
+            import.Should().ThrowExactly<InvalidOperationException>().WithMessage("Connection is busy");
         }
 
         #region Bulk copy and data import
@@ -56,7 +56,7 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
             Action act = () => BulkCopyNewEmployees(kind, employeeTable);
 
             act.Should().ThrowExactly<PostgresException>()
-                .WithMessage($"23505: duplicate key value violates unique constraint \"{employeeTable}_pkey\"");
+                .WithMessage($"23505: duplicate key value violates unique constraint \"{employeeTable}_pkey\"*");
             ReadEmployees(employeeTable).Should().BeEquivalentTo(SeedData.Employees, o => o.WithStrictOrdering());
         }
 
@@ -71,8 +71,22 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
             Action act = () => ImportQueryIntoItsSourceTable(ContextKind.ConnectionString, employeeTable);
 
             act.Should().ThrowExactly<PostgresException>()
-                .WithMessage($"23505: duplicate key value violates unique constraint \"{employeeTable}_pkey\"");
+                .WithMessage($"23505: duplicate key value violates unique constraint \"{employeeTable}_pkey\"*");
             ReadEmployees(employeeTable).Should().BeEquivalentTo(SeedData.Employees, o => o.WithStrictOrdering());
+        }
+
+        // the call of TestProc fails before the busy connection matters (Npgsql 4 failed on it, Q110)
+        [Theory]
+        [InlineData(ContextKind.Connection)]
+        [InlineData(ContextKind.Transaction)]
+        [Trait("UpgradeSensitive", "Npgsql 7+ calls procedures with CALL instead of functions with SELECT")]
+        public void DataImport_ProcedureIntoTableOnScopedContext_ThrowsBecauseTestProcIsNotAProcedure(ContextKind kind)
+        {
+            var employeeTable = CreateEmployeeTable(false);
+
+            Database.CallTestProc(() => ImportProcedureIntoTable(kind, employeeTable), "CompanyID", "Age");
+
+            CountRows(employeeTable).Should().Be(0);
         }
 
         #endregion

@@ -1,9 +1,11 @@
 <Project>
 
-  <!-- Applies only to the test projects under tests/, library builds are not affected -->
+  <!-- Applies only to the test projects under tests/, library builds are not affected.
+       The root Directory.Build.props is not picked up automatically below this file, so import it -->
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)..'))" />
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
     <Nullable>disable</Nullable>
@@ -12,12 +14,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="xunit.v3" Version="4.0.2" />
-    <PackageReference Include="AwesomeAssertions" Version="9.6.0" />
-    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.12.0" />
-    <!-- Same version as Gerakul.FastSql.Common uses. The Ix alias lets AsyncEnumerableCompat name the legacy
-         IAsyncEnumerable<T>, which clashes by name with the one built into .NET -->
-    <PackageReference Include="System.Interactive.Async" Version="3.2.0" Aliases="global,Ix" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="AwesomeAssertions" />
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
   </ItemGroup>
 
   <ItemGroup>

@@ -12,7 +12,8 @@ using Xunit;
 namespace Gerakul.FastSql.IntegrationTests.Common
 {
     // I8: the seeded TestProc through CreateProcedure and CreateProcedureSimple. On SQL Server it is a stored procedure,
-    // on PostgreSQL a function that Npgsql 4 calls as "select * from TestProc("CompanyID" := ..., "Age" := ...)".
+    // on PostgreSQL a function, which CreateProcedure cannot call since Npgsql 7 (CALL), so the calls go through
+    // Database.CallTestProc: on PostgreSQL it checks the server's error, which shows the arguments that were passed.
     // Provider-only scenarios are in the concrete classes in the provider folders.
     public abstract class StoredProcedureTests<TDatabase> : IClassFixture<TDatabase> where TDatabase : DatabaseFixture
     {
@@ -48,40 +49,52 @@ namespace Gerakul.FastSql.IntegrationTests.Common
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
         public void CreateProcedure_TestProc_ReturnsMatchingEmployees(ContextKind kind)
         {
-            var employees = Database.Run(kind, x => x.CreateProcedure("TestProc", new { CompanyID = 1, Age = 20 })
-                .ExecuteQuery<Employee>().ToArray());
+            Database.CallTestProc(() =>
+            {
+                var employees = Database.Run(kind, x => x.CreateProcedure("TestProc", new { CompanyID = 1, Age = 20 })
+                    .ExecuteQuery<Employee>().ToArray());
 
-            employees.Should().BeEquivalentTo(ExpectedEmployees);
+                employees.Should().BeEquivalentTo(ExpectedEmployees);
+            }, "CompanyID", "Age");
         }
 
         [Theory]
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
         public async Task CreateProcedure_TestProc_ReturnsMatchingEmployeesAsync(ContextKind kind)
         {
-            var employees = await Database.RunAsync(kind, x => x.CreateProcedure("TestProc", new { CompanyID = 1, Age = 20 })
-                .ExecuteQueryAsync<Employee>(cancellationToken: TestContext.Current.CancellationToken)
-                .ToListCompat(TestContext.Current.CancellationToken));
+            await Database.CallTestProcAsync(async () =>
+            {
+                var employees = await Database.RunAsync(kind, x => x.CreateProcedure("TestProc", new { CompanyID = 1, Age = 20 })
+                    .ExecuteQueryAsync<Employee>(cancellationToken: TestContext.Current.CancellationToken)
+                    .ToListCompat(TestContext.Current.CancellationToken));
 
-            employees.Should().BeEquivalentTo(ExpectedEmployees);
+                employees.Should().BeEquivalentTo(ExpectedEmployees);
+            }, "CompanyID", "Age");
         }
 
         // parameters are passed by name, so the member order does not matter
         [Fact]
         public void CreateProcedure_MembersInOtherOrder_ReturnsMatchingEmployees()
         {
-            var employees = Database.Run(ContextKind.ConnectionString, x => x.CreateProcedure("TestProc", new { Age = 20, CompanyID = 1 })
-                .ExecuteQuery<Employee>().ToArray());
+            Database.CallTestProc(() =>
+            {
+                var employees = Database.Run(ContextKind.ConnectionString, x => x.CreateProcedure("TestProc", new { Age = 20, CompanyID = 1 })
+                    .ExecuteQuery<Employee>().ToArray());
 
-            employees.Should().BeEquivalentTo(ExpectedEmployees);
+                employees.Should().BeEquivalentTo(ExpectedEmployees);
+            }, "Age", "CompanyID");
         }
 
         [Fact]
         public void CreateProcedure_WithQueryOptions_ReturnsMatchingEmployees()
         {
-            var employees = Database.Run(ContextKind.ConnectionString, x => x.CreateProcedure("TestProc", new { CompanyID = 1, Age = 20 }, new QueryOptions(30))
-                .ExecuteQuery<Employee>().ToArray());
+            Database.CallTestProc(() =>
+            {
+                var employees = Database.Run(ContextKind.ConnectionString, x => x.CreateProcedure("TestProc", new { CompanyID = 1, Age = 20 }, new QueryOptions(30))
+                    .ExecuteQuery<Employee>().ToArray());
 
-            employees.Should().BeEquivalentTo(ExpectedEmployees);
+                employees.Should().BeEquivalentTo(ExpectedEmployees);
+            }, "CompanyID", "Age");
         }
 
         // every member becomes a parameter
@@ -114,11 +127,14 @@ namespace Gerakul.FastSql.IntegrationTests.Common
         [InlineData("@CompanyID", "@Age")]
         public void CreateProcedure_ParameterNames_PassesOnlyListedMembers(string companyIdName, string ageName)
         {
-            var employees = Database.Run(ContextKind.ConnectionString, x => x.CreateProcedure("TestProc", new[] { companyIdName, ageName },
-                new { CompanyID = 1, Age = 20, Extra = 5 })
-                .ExecuteQuery<Employee>().ToArray());
+            Database.CallTestProc(() =>
+            {
+                var employees = Database.Run(ContextKind.ConnectionString, x => x.CreateProcedure("TestProc", new[] { companyIdName, ageName },
+                    new { CompanyID = 1, Age = 20, Extra = 5 })
+                    .ExecuteQuery<Employee>().ToArray());
 
-            employees.Should().BeEquivalentTo(ExpectedEmployees);
+                employees.Should().BeEquivalentTo(ExpectedEmployees);
+            }, "CompanyID", "Age");
         }
 
         // settings give the parameter names, so members can be named differently
@@ -132,10 +148,13 @@ namespace Gerakul.FastSql.IntegrationTests.Common
                 new FieldSettings<Filter>("Age", typeof(int), x => x.OlderThan)
             };
 
-            var employees = Database.Run(kind, x => x.CreateProcedure("TestProc", settings, new Filter() { Company = 1, OlderThan = 20 })
-                .ExecuteQuery<Employee>().ToArray());
+            Database.CallTestProc(() =>
+            {
+                var employees = Database.Run(kind, x => x.CreateProcedure("TestProc", settings, new Filter() { Company = 1, OlderThan = 20 })
+                    .ExecuteQuery<Employee>().ToArray());
 
-            employees.Should().BeEquivalentTo(ExpectedEmployees);
+                employees.Should().BeEquivalentTo(ExpectedEmployees);
+            }, "CompanyID", "Age");
         }
 
         [Fact]
@@ -148,11 +167,14 @@ namespace Gerakul.FastSql.IntegrationTests.Common
                 new FieldSettings<Filter>("Extra", typeof(string), x => "not passed")
             };
 
-            var employees = Database.Run(ContextKind.ConnectionString, x => x.CreateProcedure("TestProc", new[] { "CompanyID", "Age" }, settings,
-                new Filter() { Company = 1, OlderThan = 20 })
-                .ExecuteQuery<Employee>().ToArray());
+            Database.CallTestProc(() =>
+            {
+                var employees = Database.Run(ContextKind.ConnectionString, x => x.CreateProcedure("TestProc", new[] { "CompanyID", "Age" }, settings,
+                    new Filter() { Company = 1, OlderThan = 20 })
+                    .ExecuteQuery<Employee>().ToArray());
 
-            employees.Should().BeEquivalentTo(ExpectedEmployees);
+                employees.Should().BeEquivalentTo(ExpectedEmployees);
+            }, "CompanyID", "Age");
         }
 
         // CreateProcedure takes members from fields and properties by default (FromTypeOption.Both)
@@ -161,12 +183,16 @@ namespace Gerakul.FastSql.IntegrationTests.Common
         {
             var filter = new FieldFilter() { CompanyID = 1, Age = 20, Extra = 5 };
 
-            var employees = Database.Run(ContextKind.ConnectionString, x => x.CreateProcedure("TestProc", filter, null, FromTypeOption.PublicField)
-                .ExecuteQuery<Employee>().ToArray());
+            Database.CallTestProc(() =>
+            {
+                var employees = Database.Run(ContextKind.ConnectionString, x => x.CreateProcedure("TestProc", filter, null, FromTypeOption.PublicField)
+                    .ExecuteQuery<Employee>().ToArray());
+
+                employees.Should().BeEquivalentTo(ExpectedEmployees);
+            }, "CompanyID", "Age");
             Action withProperties = () => Database.Run(ContextKind.ConnectionString, x => x.CreateProcedure("TestProc", filter)
                 .ExecuteQuery<Employee>().ToArray());
 
-            employees.Should().BeEquivalentTo(ExpectedEmployees);
             withProperties.Should().Throw<DbException>().WithMessage(ExtraArgumentMessage);
         }
 
@@ -174,48 +200,60 @@ namespace Gerakul.FastSql.IntegrationTests.Common
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
         public void CreateProcedureSimple_ProviderParameters_ReturnsMatchingEmployees(ContextKind kind)
         {
-            var employees = Database.Run(kind, x => x.CreateProcedureSimple("TestProc", Spec.CreateParameter("CompanyID", 1), Spec.CreateParameter("Age", 20))
-                .ExecuteQuery<Employee>().ToArray());
+            Database.CallTestProc(() =>
+            {
+                var employees = Database.Run(kind, x => x.CreateProcedureSimple("TestProc", Spec.CreateParameter("CompanyID", 1), Spec.CreateParameter("Age", 20))
+                    .ExecuteQuery<Employee>().ToArray());
 
-            employees.Should().BeEquivalentTo(ExpectedEmployees);
+                employees.Should().BeEquivalentTo(ExpectedEmployees);
+            }, "CompanyID", "Age");
         }
 
         [Theory]
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
         public async Task CreateProcedureSimple_ProviderParameters_ReturnsMatchingEmployeesAsync(ContextKind kind)
         {
-            var employees = await Database.RunAsync(kind, x => x.CreateProcedureSimple("TestProc", Spec.CreateParameter("CompanyID", 1), Spec.CreateParameter("Age", 20))
-                .ExecuteQueryAsync<Employee>(cancellationToken: TestContext.Current.CancellationToken)
-                .ToListCompat(TestContext.Current.CancellationToken));
+            await Database.CallTestProcAsync(async () =>
+            {
+                var employees = await Database.RunAsync(kind, x => x.CreateProcedureSimple("TestProc", Spec.CreateParameter("CompanyID", 1), Spec.CreateParameter("Age", 20))
+                    .ExecuteQueryAsync<Employee>(cancellationToken: TestContext.Current.CancellationToken)
+                    .ToListCompat(TestContext.Current.CancellationToken));
 
-            employees.Should().BeEquivalentTo(ExpectedEmployees);
+                employees.Should().BeEquivalentTo(ExpectedEmployees);
+            }, "CompanyID", "Age");
         }
 
         [Fact]
         public void CreateProcedureSimple_WithQueryOptions_ReturnsMatchingEmployees()
         {
-            var employees = Database.Run(ContextKind.ConnectionString, x => x.CreateProcedureSimple(new QueryOptions(30), "TestProc",
-                Spec.CreateParameter("CompanyID", 1), Spec.CreateParameter("Age", 20))
-                .ExecuteQuery<Employee>().ToArray());
+            Database.CallTestProc(() =>
+            {
+                var employees = Database.Run(ContextKind.ConnectionString, x => x.CreateProcedureSimple(new QueryOptions(30), "TestProc",
+                    Spec.CreateParameter("CompanyID", 1), Spec.CreateParameter("Age", 20))
+                    .ExecuteQuery<Employee>().ToArray());
 
-            employees.Should().BeEquivalentTo(ExpectedEmployees);
+                employees.Should().BeEquivalentTo(ExpectedEmployees);
+            }, "CompanyID", "Age");
         }
 
-        // scoped contexts build the command once and run it again
+        // scoped contexts build the command once and run it again (on PostgreSQL the first execution already fails)
         [Theory]
         [InlineData(ContextKind.Connection)]
         [InlineData(ContextKind.Transaction)]
         [Trait("Quirk", "Q92")]
         public void CreateProcedureSimple_ExecutedTwiceOnScopedContext_RunsTwice(ContextKind kind)
         {
-            var results = Database.Run(kind, x =>
+            Database.CallTestProc(() =>
             {
-                var command = x.CreateProcedureSimple("TestProc", Spec.CreateParameter("CompanyID", 1), Spec.CreateParameter("Age", 20));
-                return new[] { command.ExecuteQuery<Employee>().ToArray(), command.ExecuteQuery<Employee>().ToArray() };
-            });
+                var results = Database.Run(kind, x =>
+                {
+                    var command = x.CreateProcedureSimple("TestProc", Spec.CreateParameter("CompanyID", 1), Spec.CreateParameter("Age", 20));
+                    return new[] { command.ExecuteQuery<Employee>().ToArray(), command.ExecuteQuery<Employee>().ToArray() };
+                });
 
-            results[0].Should().BeEquivalentTo(ExpectedEmployees);
-            results[1].Should().BeEquivalentTo(ExpectedEmployees);
+                results[0].Should().BeEquivalentTo(ExpectedEmployees);
+                results[1].Should().BeEquivalentTo(ExpectedEmployees);
+            }, "CompanyID", "Age");
         }
 
         // connection string contexts build a new DbCommand for every execution and add the same DbParameter objects to it,
@@ -227,10 +265,14 @@ namespace Gerakul.FastSql.IntegrationTests.Common
             var context = Spec.DefaultProvider.CreateContext(Database.ConnectionString);
             var command = context.CreateProcedureSimple("TestProc", Spec.CreateParameter("CompanyID", 1), Spec.CreateParameter("Age", 20));
 
-            var first = command.ExecuteQuery<Employee>().ToArray();
+            Database.CallTestProc(() =>
+            {
+                var first = command.ExecuteQuery<Employee>().ToArray();
+
+                first.Should().BeEquivalentTo(ExpectedEmployees);
+            }, "CompanyID", "Age");
             Action second = () => command.ExecuteQuery<Employee>().ToArray();
 
-            first.Should().BeEquivalentTo(ExpectedEmployees);
             second.Should().Throw<Exception>().WithMessage(ParameterOfAnotherCommandMessage)
                 .Which.Should().BeOfType(ParameterOfAnotherCommandExceptionType);
         }

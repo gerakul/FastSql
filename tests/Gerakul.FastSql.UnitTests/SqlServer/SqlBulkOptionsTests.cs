@@ -1,9 +1,9 @@
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using AwesomeAssertions;
 using Gerakul.FastSql.Common;
 using Gerakul.FastSql.SqlServer;
 using Gerakul.FastSql.UnitTests.Common;
+using Microsoft.Data.SqlClient;
 using Xunit;
 using SqlColumnDefinitionOptions = Gerakul.FastSql.SqlServer.ColumnDefinitionOptions;
 

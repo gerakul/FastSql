@@ -2,13 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
-using System.Data.SqlClient;
 using System.Linq;
 using AwesomeAssertions;
 using Gerakul.FastSql.Common;
 using Gerakul.FastSql.SqlServer;
 using Gerakul.FastSql.Tests.Shared;
 using Gerakul.FastSql.UnitTests.Infrastructure;
+using Microsoft.Data.SqlClient;
 using Xunit;
 
 namespace Gerakul.FastSql.UnitTests.SqlServer

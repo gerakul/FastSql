@@ -1,16 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard1.3;netstandard2.0;net46</TargetFrameworks>
     <Version>1.1.0</Version>
-    <Authors>gerakul</Authors>
     <Description>Implementation FastSql for MS Sql Server: Light-weight, flexible and easy to use C# library to retrieve and manipulate (including bulk copy) data in SQL databases.</Description>
-    <RepositoryUrl>https://github.com/gerakul/FastSql</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Data.SqlClient" Version="4.5.1" />
+    <PackageReference Include="Microsoft.Data.SqlClient" />
+    <!-- Microsoft.Data.SqlClient 7.1.1 brings System.Security.Cryptography.Pkcs 9.0.18, which has known vulnerabilities
+         (CVE-2026-84008, CVE-2026-70162); 10.0.13 is the fixed version for .NET 10 -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
   </ItemGroup>
 
   <ItemGroup>

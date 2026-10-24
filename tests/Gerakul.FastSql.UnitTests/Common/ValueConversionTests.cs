@@ -322,6 +322,68 @@ namespace Gerakul.FastSql.UnitTests.Common
                 .WithMessage("Invalid cast from 'System.String' to 'System.TimeSpan'.");
         }
 
+        // DateOnly and TimeOnly (what Npgsql 10 returns for date and time) are converted for DateTime and TimeSpan members
+        // only, which is what Npgsql 4 returned; other members follow Q52
+
+        [Theory]
+        [MemberData(nameof(Methods))]
+        public async Task Read_DateOnlyIntoDateTime_ReturnsMidnightUnspecified(MappingReadMethod method)
+        {
+            var value = await Read<DateTime>(method, typeof(DateOnly), new DateOnly(2020, 2, 29));
+
+            value.Should().Be(new DateTime(2020, 2, 29));
+            value.Kind.Should().Be(DateTimeKind.Unspecified);
+        }
+
+        [Theory]
+        [MemberData(nameof(Methods))]
+        public async Task Read_DateOnlyIntoNullableDateTime_ReturnsMidnight(MappingReadMethod method)
+        {
+            var value = await Read<DateTime?>(method, typeof(DateOnly), new DateOnly(2020, 2, 29));
+
+            value.Should().Be(new DateTime(2020, 2, 29));
+        }
+
+        [Theory]
+        [MemberData(nameof(Methods))]
+        public async Task Read_TimeOnlyIntoTimeSpan_ReturnsTimeOfDay(MappingReadMethod method)
+        {
+            var value = await Read<TimeSpan>(method, typeof(TimeOnly), new TimeOnly(13, 14, 15, 123));
+
+            value.Should().Be(new TimeSpan(0, 13, 14, 15, 123));
+        }
+
+        [Theory]
+        [MemberData(nameof(Methods))]
+        public async Task Read_DateOnlyIntoDateOnly_KeepsValue(MappingReadMethod method)
+        {
+            var value = await Read<DateOnly>(method, typeof(DateOnly), new DateOnly(2020, 2, 29));
+
+            value.Should().Be(new DateOnly(2020, 2, 29));
+        }
+
+        [Theory]
+        [MemberData(nameof(Methods))]
+        [Trait("Quirk", "Q52")]
+        public async Task Read_DateOnlyIntoString_ThrowsInvalidCastException(MappingReadMethod method)
+        {
+            Func<Task> act = () => Read<string>(method, typeof(DateOnly), new DateOnly(2020, 2, 29));
+
+            await act.Should().ThrowExactlyAsync<InvalidCastException>()
+                .WithMessage("Object must implement IConvertible.");
+        }
+
+        [Theory]
+        [MemberData(nameof(Methods))]
+        [Trait("Quirk", "Q52")]
+        public async Task Read_TimeOnlyIntoDateTime_ThrowsInvalidCastException(MappingReadMethod method)
+        {
+            Func<Task> act = () => Read<DateTime>(method, typeof(TimeOnly), new TimeOnly(13, 14, 15));
+
+            await act.Should().ThrowExactlyAsync<InvalidCastException>()
+                .WithMessage("Object must implement IConvertible.");
+        }
+
         #endregion
 
         #region Object members

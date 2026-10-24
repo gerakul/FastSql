@@ -371,7 +371,7 @@ namespace Gerakul.FastSql.IntegrationTests.Common
 
                     Action anotherCommand = () => CountCompanies(connection);
 
-                    anotherCommand.Should().Throw<InvalidOperationException>().WithMessage(OpenReaderMessage(command.CommandText))
+                    anotherCommand.Should().Throw<Exception>().WithMessage(OpenReaderMessage(command.CommandText))
                     .Which.Should().BeOfType(OpenReaderExceptionType);
                 }
 
@@ -386,13 +386,13 @@ namespace Gerakul.FastSql.IntegrationTests.Common
             using (var connection = await Database.OpenConnectionAsync())
             using (var command = CreateCommand(connection, SelectEmployees()))
             {
-                using (var enumerator = command.ExecuteQueryAsync<Employee>(cancellationToken: Token).GetEnumeratorCompat())
+                using (var enumerator = command.ExecuteQueryAsync<Employee>(cancellationToken: Token).GetEnumeratorCompat(Token))
                 {
-                    (await enumerator.MoveNextAsync(Token)).Should().BeTrue();
+                    (await enumerator.MoveNextAsync()).Should().BeTrue();
 
                     Action anotherCommand = () => CountCompanies(connection);
 
-                    anotherCommand.Should().Throw<InvalidOperationException>().WithMessage(OpenReaderMessage(command.CommandText))
+                    anotherCommand.Should().Throw<Exception>().WithMessage(OpenReaderMessage(command.CommandText))
                     .Which.Should().BeOfType(OpenReaderExceptionType);
                 }
 
@@ -421,9 +421,9 @@ namespace Gerakul.FastSql.IntegrationTests.Common
             using (var connection = await Database.OpenConnectionAsync())
             using (var command = CreateCommand(connection, SelectCompanyIdAndName()))
             {
-                using (var enumerator = command.ExecuteQueryAsync<Company>(cancellationToken: Token).GetEnumeratorCompat())
+                using (var enumerator = command.ExecuteQueryAsync<Company>(cancellationToken: Token).GetEnumeratorCompat(Token))
                 {
-                    Func<Task> moveNext = () => enumerator.MoveNextAsync(Token);
+                    Func<Task> moveNext = () => enumerator.MoveNextAsync();
 
                     await moveNext.Should().ThrowAsync<InvalidOperationException>().WithMessage(DestinationSelectorMessage);
                 }
@@ -431,7 +431,7 @@ namespace Gerakul.FastSql.IntegrationTests.Common
                 // the reader was opened before the mapping failed and nothing disposes it, not even the enumerator
                 Action anotherCommand = () => CountCompanies(connection);
 
-                anotherCommand.Should().Throw<InvalidOperationException>().WithMessage(OpenReaderMessage(command.CommandText))
+                anotherCommand.Should().Throw<Exception>().WithMessage(OpenReaderMessage(command.CommandText))
                     .Which.Should().BeOfType(OpenReaderExceptionType);
             }
         }
@@ -450,7 +450,7 @@ namespace Gerakul.FastSql.IntegrationTests.Common
 
                 Action anotherCommand = () => CountCompanies(connection);
 
-                anotherCommand.Should().Throw<InvalidOperationException>().WithMessage(OpenReaderMessage(command.CommandText))
+                anotherCommand.Should().Throw<Exception>().WithMessage(OpenReaderMessage(command.CommandText))
                     .Which.Should().BeOfType(OpenReaderExceptionType);
             }
         }

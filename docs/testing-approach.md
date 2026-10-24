@@ -14,7 +14,7 @@ exactly where and why it changed).
 
 | Topic | Decision |
 |---|---|
-| What is tested | The `netstandard2.0` build of the three libraries. `netstandard1.3` and `net46` will be dropped during modernization and are not tested. |
+| What is tested | The `netstandard2.0` build of the three libraries. `netstandard1.3` and `net46` will be dropped during modernization and are not tested. (Since phase 1 the libraries target `net10.0` only, see [upgrade-notes.md](upgrade-notes.md).) |
 | Library code | Not changed. Tests use the public API only (plus protected members through subclassing, where the API is designed for it). No `InternalsVisibleTo`. |
 | Kind of tests | Characterization tests: they pin what the code does today, including quirks and bugs. Quirks are tagged and listed, not fixed. |
 | Unit tests | Run without Docker, using real ADO.NET objects that need no database (unopened connections, `DataTableReader`) and hand-written fakes. No mocking library. |

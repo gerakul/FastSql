@@ -1,5 +1,4 @@
 using System;
-using System.Data.SqlClient;
 using System.Linq;
 using System.Threading.Tasks;
 using AwesomeAssertions;
@@ -8,6 +7,7 @@ using Gerakul.FastSql.IntegrationTests.Common;
 using Gerakul.FastSql.IntegrationTests.Infrastructure;
 using Gerakul.FastSql.SqlServer;
 using Gerakul.FastSql.Tests.Shared;
+using Microsoft.Data.SqlClient;
 using Xunit;
 
 namespace Gerakul.FastSql.IntegrationTests.SqlServer

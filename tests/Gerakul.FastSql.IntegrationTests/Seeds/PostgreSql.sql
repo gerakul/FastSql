@@ -26,9 +26,10 @@ insert into "Employee" ("CompanyID", "Name", "Phone", "Age", "StartWorking") val
 insert into "Employee" ("CompanyID", "Name", "Phone", "Age", "StartWorking") values (2, 'Ivan Antonov', '123-456-789', 40, '2008-02-22');
 insert into "Employee" ("CompanyID", "Name", "Phone", "Age", "StartWorking") values (2, 'Kate Donahue', '111-999-888', 26, null);
 
--- The stored procedure is a function. Npgsql 4 calls it as select * from TestProc("CompanyID" => ..., "Age" => ...):
+-- The stored procedure is a function. Npgsql 4 called it as select * from TestProc("CompanyID" => ..., "Age" => ...):
 -- the function name is not quoted (folds to lower case), the parameter names are quoted. The body uses $1 and $2,
--- because the parameter names equal the column names.
+-- because the parameter names equal the column names. Npgsql 7+ runs CALL TestProc(...), which the server rejects for
+-- a function; the tests pin that error (DatabaseFixture.CallTestProc).
 create function TestProc("CompanyID" int, "Age" int) returns setof "Employee" language sql as $$
     select * from "Employee" where "CompanyID" = $1 and "Age" > $2
 $$;

@@ -1,11 +1,11 @@
 using System;
 using System.Data.Common;
-using System.Data.SqlClient;
 using System.Linq;
 using AwesomeAssertions;
 using Gerakul.FastSql.IntegrationTests.Common;
 using Gerakul.FastSql.IntegrationTests.Infrastructure;
 using Gerakul.FastSql.Tests.Shared;
+using Microsoft.Data.SqlClient;
 using Xunit;
 
 namespace Gerakul.FastSql.IntegrationTests.SqlServer
@@ -38,7 +38,7 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
         protected override void ShouldThrowConnectionBusy(Action import, string sourceCommandText)
         {
             import.Should().ThrowExactly<InvalidOperationException>()
-                .WithMessage("There is already an open DataReader associated with this Command which must be closed first.");
+                .WithMessage("There is already an open DataReader associated with this Connection which must be closed first.");
         }
 
         #region Bulk copy and data import
@@ -76,6 +76,21 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
 
             var expected = SeedData.Employees.Concat(SeedData.Employees.Select(x => WithId(x, x.ID + 5)));
             ReadEmployees(employeeTable).Should().BeEquivalentTo(expected, o => o.WithStrictOrdering());
+        }
+
+        // the source reader and the bulk copy need the same connection, which is busy while the reader is open
+        [Theory]
+        [InlineData(ContextKind.Connection)]
+        [InlineData(ContextKind.Transaction)]
+        [Trait("Quirk", "Q110")]
+        [Trait("UpgradeSensitive", "driver exception for a busy connection")]
+        public void DataImport_ProcedureIntoTableOnScopedContext_ThrowsBecauseConnectionIsBusy(ContextKind kind)
+        {
+            var employeeTable = CreateEmployeeTable(false);
+
+            ShouldThrowConnectionBusy(() => ImportProcedureIntoTable(kind, employeeTable), "TestProc");
+
+            CountRows(employeeTable).Should().Be(0);
         }
 
         #endregion

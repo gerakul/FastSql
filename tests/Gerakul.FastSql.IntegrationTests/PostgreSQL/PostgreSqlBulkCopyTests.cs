@@ -272,18 +272,21 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
             CountRows(table).Should().Be(0);
         }
 
+        // Npgsql 10 reads date as DateOnly, which binary COPY writes as date; Npgsql 4 read it as DateTime and wrote a
+        // timestamp, which the server rejected ("22P03: incorrect binary data format", Q85)
         [Fact]
-        [Trait("Quirk", "Q85")]
         [Trait("UpgradeSensitive", "Npgsql binary COPY type inference")]
-        public void WriteToServer_DateColumnFromQuery_ThrowsPostgresException()
+        public void WriteToServer_DateColumnFromQuery_CopiesValues()
         {
             var table = Database.CreateScratchTable("\"ID\" int not null, \"DateOfFoundation\" date not null");
 
-            Action act = () => Database.Run(ContextKind.Connection, x => SourceContext()
+            Database.Run(ContextKind.Connection, x => SourceContext()
                 .CreateSimple("select \"ID\", \"DateOfFoundation\" from \"Company\"").WriteToServer(x, table));
 
-            act.Should().Throw<PostgresException>().WithMessage("22P03: incorrect binary data format").Which.SqlState.Should().Be("22P03");
-            CountRows(table).Should().Be(0);
+            CountRows(table).Should().Be(2);
+            Database.Run(ContextKind.ConnectionString, x => x.CreateSimple($"select count(*) from \"Company\" c join {table} t "
+                    + "on t.\"ID\" = c.\"ID\" and t.\"DateOfFoundation\" = c.\"DateOfFoundation\"")
+                .ExecuteQueryFirstColumn<long>().Single()).Should().Be(2);
         }
 
         [Fact]

@@ -25,7 +25,7 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
 
         protected override string ExplicitIdentityValueMessage(string table)
         {
-            return "428C9: cannot insert a non-DEFAULT value into column \"ID\"";
+            return "428C9: cannot insert a non-DEFAULT value into column \"ID\"*";
         }
 
         // the generator quotes column names, so PascalCase members do not find unquoted (lower-case) columns
@@ -37,7 +37,7 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
             var table = Database.CreateScratchTable("id int not null, name varchar(50) null");
 
             ShouldThrowServerError(() => Database.Run(kind, x => x.Insert(table, new { ID = 1, Name = "Alice" })),
-                $"42703: column \"ID\" of relation \"{table}\" does not exist");
+                $"42703: column \"ID\" of relation \"{table}\" does not exist*");
         }
 
         [Theory]
@@ -63,7 +63,7 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
             Database.Execute($"create table {Q(table)} ({Q("ID")} int not null)");
 
             ShouldThrowServerError(() => Database.Run(ContextKind.ConnectionString, x => x.Insert(table, new { ID = 1 })),
-                $"42P01: relation \"{table.ToLowerInvariant()}\" does not exist");
+                $"42P01: relation \"{table.ToLowerInvariant()}\" does not exist*");
 
             Database.Run(ContextKind.ConnectionString, x => x.Insert(Q(table), new { ID = 2 }));
 

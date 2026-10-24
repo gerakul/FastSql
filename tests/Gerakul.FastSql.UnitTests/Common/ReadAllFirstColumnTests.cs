@@ -212,12 +212,12 @@ namespace Gerakul.FastSql.UnitTests.Common
         {
             var result = SingleColumn<int>(1, null).CreateReader().ReadAllFirstColumnAsync<int>();
 
-            using (var enumerator = result.GetEnumeratorCompat())
+            using (var enumerator = result.GetEnumeratorCompat(TestContext.Current.CancellationToken))
             {
-                (await enumerator.MoveNextAsync(TestContext.Current.CancellationToken)).Should().BeTrue();
+                (await enumerator.MoveNextAsync()).Should().BeTrue();
                 enumerator.Current.Should().Be(1);
 
-                Func<Task> moveNext = () => enumerator.MoveNextAsync(TestContext.Current.CancellationToken);
+                Func<Task> moveNext = () => enumerator.MoveNextAsync();
                 await moveNext.Should().ThrowExactlyAsync<InvalidCastException>().WithMessage("Object cannot be cast from DBNull to other types.");
             }
         }

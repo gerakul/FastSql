@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,6 +8,7 @@ using Gerakul.FastSql.Common;
 using Gerakul.FastSql.IntegrationTests.Infrastructure;
 using Gerakul.FastSql.SqlServer;
 using Gerakul.FastSql.Tests.Shared;
+using Microsoft.Data.SqlClient;
 using Xunit;
 
 namespace Gerakul.FastSql.IntegrationTests.SqlServer
@@ -18,7 +18,10 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
     [Trait("Provider", "SqlServer")]
     public class SqlServerBulkCopyOptionsTests : IClassFixture<SqlServerDatabase>
     {
-        private const string ColumnMappingError = "The given ColumnMapping does not match up with any column in the source or destination.";
+        private static string ColumnMappingError(string column)
+        {
+            return $"The given ColumnName '{column}' does not match up with any column in data source.";
+        }
 
         public SqlServerBulkCopyOptionsTests(SqlServerDatabase database)
         {
@@ -39,7 +42,7 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
 
             Action act = () => Database.Run(kind, x => new[] { new { ID = 1, name = "one" } }.WriteToServer(x, table));
 
-            act.Should().Throw<InvalidOperationException>().WithMessage(ColumnMappingError);
+            act.Should().Throw<InvalidOperationException>().WithMessage(ColumnMappingError("name"));
             CountRows(table).Should().Be(0);
         }
 
@@ -54,7 +57,7 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
             Func<Task> act = () => Database.RunAsync(kind, x => new[] { new { ID = 1, name = "one" } }
                 .WriteToServerAsync(x, table, TestContext.Current.CancellationToken));
 
-            await act.Should().ThrowAsync<InvalidOperationException>().WithMessage(ColumnMappingError);
+            await act.Should().ThrowAsync<InvalidOperationException>().WithMessage(ColumnMappingError("name"));
             CountRows(table).Should().Be(0);
         }
 
@@ -66,7 +69,7 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
 
             Action act = () => Database.Run(ContextKind.Connection, x => new[] { new { ID = 1, Name = "one", Extra = "extra" } }.WriteToServer(x, table));
 
-            act.Should().Throw<InvalidOperationException>().WithMessage(ColumnMappingError);
+            act.Should().Throw<InvalidOperationException>().WithMessage(ColumnMappingError("Extra"));
             CountRows(table).Should().Be(0);
         }
 
@@ -83,24 +86,21 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
             CountRows(table).Should().Be(0);
         }
 
-        // System.Data.SqlClient 4.5.1 cannot read uniqueidentifier values on .NET 9 and later: its SqlBuffer.SqlGuidCaster no longer loads.
-        // Unpooled connections, because the failed connections are left in an unusable state.
+        // System.Data.SqlClient 4.5.1 could not read uniqueidentifier values on .NET 9 and later (Q80, fixed by Microsoft.Data.SqlClient)
         [Fact]
-        [Trait("Quirk", "Q80")]
-        [Trait("UpgradeSensitive", "System.Data.SqlClient 4.5.1 on .NET 9+")]
-        public void WriteToServer_UniqueidentifierColumnFromQuery_ThrowsTypeLoadException()
+        [Trait("UpgradeSensitive", "uniqueidentifier reading in the driver")]
+        public void WriteToServer_UniqueidentifierColumnFromQuery_CopiesValues()
         {
             var source = Database.CreateScratchTable("ID int not null, Uid uniqueidentifier null");
-            Database.Execute($"insert into {source} values (1, '6f9619ff-8b86-d011-b42d-00c04fc964ff')");
+            Database.Execute($"insert into {source} values (1, '6f9619ff-8b86-d011-b42d-00c04fc964ff'), (2, null)");
             var table = Database.CreateScratchTable("ID int not null, Uid uniqueidentifier null");
-            var connectionString = Database.CreateSessionTrackedConnectionString("fastsql-" + Guid.NewGuid().ToString("N"));
             var provider = Database.Spec.DefaultProvider;
 
-            Action act = () => provider.CreateContext(connectionString).CreateSimple($"select * from {source}")
-                .WriteToServer(provider.CreateContext(connectionString), table);
+            provider.CreateContext(Database.ConnectionString).CreateSimple($"select * from {source}")
+                .WriteToServer(provider.CreateContext(Database.ConnectionString), table);
 
-            act.Should().Throw<TypeLoadException>().WithMessage("Could not load type 'SqlGuidCaster' from assembly 'System.Data.SqlClient*");
-            CountRows(table).Should().Be(0);
+            CountRows(table).Should().Be(2);
+            CountDifferentRows(source, table).Should().Be(0);
         }
 
         #endregion
@@ -506,8 +506,7 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
 
             DescribeColumns(table).Should().Equal(TypedRowColumns);
             ReadPrimaryKey(table).Should().BeEmpty();
-            ReadTypedRowsWithoutUid(table).Should().BeEquivalentTo(TypedRows, o => o.Excluding(x => x.Uid).WithStrictOrdering());
-            ReadUidsAsText(table).Should().Equal(TypedRows.Select(x => x.Uid.ToString().ToUpperInvariant()));
+            ReadAll<TypedRow>(table, "ID").Should().BeEquivalentTo(TypedRows, o => o.WithStrictOrdering());
         }
 
         [Theory]
@@ -521,8 +520,7 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
                 TestContext.Current.CancellationToken));
 
             DescribeColumns(table).Should().Equal(TypedRowColumns);
-            ReadTypedRowsWithoutUid(table).Should().BeEquivalentTo(TypedRows, o => o.Excluding(x => x.Uid).WithStrictOrdering());
-            ReadUidsAsText(table).Should().Equal(TypedRows.Select(x => x.Uid.ToString().ToUpperInvariant()));
+            ReadAll<TypedRow>(table, "ID").Should().BeEquivalentTo(TypedRows, o => o.WithStrictOrdering());
         }
 
         public static TheoryData<string, string[]> ColumnDefinitionOptionsCases => new TheoryData<string, string[]>()
@@ -782,7 +780,6 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
 
             DescribeColumns(table).Should().Equal("ID int not null", "Tiny tinyint null", "Small smallint null", "Big bigint null",
                 "Single real null", "Ratio float null", "Amount decimal(38,18) null", "Uid uniqueidentifier null");
-            // compared on the server: the driver cannot read uniqueidentifier values on this runtime (Q80)
             CountRows(table).Should().Be(2);
             Database.Run(ContextKind.ConnectionString, x => x.CreateSimple($"select count(*) from {table} where ID = 1 and Tiny = 200 and Small = -7 "
                     + "and Big = 5000000000 and Single = 1.5 and Ratio = 0.25 and Amount = 12.5 and Uid = '6f9619ff-8b86-d011-b42d-00c04fc964ff'")
@@ -869,7 +866,6 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
 
         private string CreateTypedSourceTable()
         {
-            // no uniqueidentifier column: the driver cannot read it on this runtime (Q80)
             var table = Database.CreateScratchTable("ID int not null primary key, Code char(5) not null, Name nvarchar(50) not null, "
                 + "Note varchar(20) null, Body nvarchar(max) null, Amount decimal(10, 3) null, Created datetime2(3) not null, Legacy datetime null, "
                 + "Duration time(2) null, Moment datetimeoffset(5) null, Data varbinary(100) null, Flag bit not null, Ratio float null");
@@ -988,21 +984,6 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
         {
             return Database.Run(ContextKind.ConnectionString, x => x.CreateSimple($"select * from {table} order by {orderBy}").ExecuteQuery<T>().ToArray());
         }
-
-        // every column but Uid: the driver cannot read uniqueidentifier values on this runtime (Q80)
-        private TypedRow[] ReadTypedRowsWithoutUid(string table)
-        {
-            return Database.Run(ContextKind.ConnectionString, x => x.CreateSimple("select ID, Number, Big, Small, Tiny, Flag, MaybeFlag, Amount, Ratio, Single, "
-                    + $"Created, Modified, Name, Data from {table} order by ID")
-                .ExecuteQuery<TypedRow>(new ReadOptions(FieldsSelector.Source)).ToArray());
-        }
-
-        private string[] ReadUidsAsText(string table)
-        {
-            return Database.Run(ContextKind.ConnectionString, x => x.CreateSimple($"select cast(Uid as char(36)) from {table} order by ID")
-                .ExecuteQueryFirstColumn<string>().ToArray());
-        }
-
         #endregion
 
         #region Models

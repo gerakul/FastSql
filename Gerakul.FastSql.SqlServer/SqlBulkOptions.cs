@@ -1,5 +1,5 @@
 ﻿using Gerakul.FastSql.Common;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 
 namespace Gerakul.FastSql.SqlServer
 {
@@ -35,7 +35,7 @@ namespace Gerakul.FastSql.SqlServer
             {
                 this.BatchSize = null;
                 this.BulkCopyTimeout = null;
-                this.SqlBulkCopyOptions = System.Data.SqlClient.SqlBulkCopyOptions.Default;
+                this.SqlBulkCopyOptions = Microsoft.Data.SqlClient.SqlBulkCopyOptions.Default;
                 this.EnableStreaming = null;
                 this.ColumnDefinitionOptions = ColumnDefinitionOptions.Default;
             }

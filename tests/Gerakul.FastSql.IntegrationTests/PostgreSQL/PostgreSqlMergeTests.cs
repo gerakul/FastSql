@@ -21,7 +21,7 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
 
         protected override Type ServerExceptionType => typeof(PostgresException);
 
-        protected override string EmptyUpdateClauseMessage => "42601: syntax error at end of input";
+        protected override string EmptyUpdateClauseMessage => "42601: syntax error at end of input*";
 
         // "on conflict (keys)" needs a unique constraint or index on exactly the key columns
         [Theory]
@@ -60,7 +60,7 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
             InsertPersons(table, existing);
 
             ShouldThrowServerError(() => Database.Run(kind, x => x.Merge(table, new { ID = 1, Name = "Alicia" }, "ID")),
-                $"23502: null value in column \"GroupID\" of relation \"{table}\" violates not-null constraint");
+                $"23502: null value in column \"GroupID\" of relation \"{table}\" violates not-null constraint*");
 
             ReadPersons(table).Should().BeEquivalentTo(new[] { existing });
         }
@@ -75,7 +75,7 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
             InsertPersons(table, existing);
 
             await ShouldThrowServerErrorAsync(() => Database.RunAsync(kind, x => x.MergeAsync(table, new { ID = 1, Name = "Alicia" }, "ID")),
-                $"23502: null value in column \"GroupID\" of relation \"{table}\" violates not-null constraint");
+                $"23502: null value in column \"GroupID\" of relation \"{table}\" violates not-null constraint*");
 
             ReadPersons(table).Should().BeEquivalentTo(new[] { existing });
         }

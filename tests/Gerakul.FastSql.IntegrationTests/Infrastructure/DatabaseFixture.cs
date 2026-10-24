@@ -181,6 +181,17 @@ namespace Gerakul.FastSql.IntegrationTests.Infrastructure
 
         #endregion
 
+        #region The seeded TestProc
+
+        // Runs code that calls the seeded TestProc through CreateProcedure or CreateProcedureSimple (with its own assertions
+        // on the result). The arguments are the parameter names in the order they are passed. Whether the call can reach
+        // TestProc depends on the provider, see the overrides.
+        public abstract void CallTestProc(Action call, params string[] arguments);
+
+        public abstract Task CallTestProcAsync(Func<Task> call, params string[] arguments);
+
+        #endregion
+
         #region Session counting
 
         // a connection string whose sessions can be counted: no pooling, so closing a connection ends its session

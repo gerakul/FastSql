@@ -20,7 +20,7 @@ namespace Gerakul.FastSql.UnitTests.Common
         public enum SourceKind
         {
             Enumerable,
-            LegacyAsyncEnumerable
+            AsyncEnumerable
         }
 
         private class Row
@@ -197,8 +197,8 @@ namespace Gerakul.FastSql.UnitTests.Common
         [Theory]
         [InlineData(SourceKind.Enumerable, true)]
         [InlineData(SourceKind.Enumerable, false)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable, true)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable, false)]
+        [InlineData(SourceKind.AsyncEnumerable, true)]
+        [InlineData(SourceKind.AsyncEnumerable, false)]
         public void Constructor_StoresSettingsAndCaseSensitivity(SourceKind source, bool caseSensitive)
         {
             var settings = FieldSettings.FromType<Row>();
@@ -272,7 +272,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Theory]
         [InlineData(SourceKind.Enumerable)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable)]
+        [InlineData(SourceKind.AsyncEnumerable)]
         public void Constructor_DuplicateNamesCaseInsensitive_ThrowsArgumentException(SourceKind source)
         {
             var settings = new[]
@@ -288,7 +288,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Theory]
         [InlineData(SourceKind.Enumerable)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable)]
+        [InlineData(SourceKind.AsyncEnumerable)]
         public void Constructor_DuplicateNamesCaseSensitive_ThrowsArgumentException(SourceKind source)
         {
             var settings = new[]
@@ -396,7 +396,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Theory]
         [InlineData(SourceKind.Enumerable)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable)]
+        [InlineData(SourceKind.AsyncEnumerable)]
         public void Read_ReturnsEachRowThenFalse(SourceKind source)
         {
             var reader = CreateReader(source, CreateRows());
@@ -414,7 +414,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Theory]
         [InlineData(SourceKind.Enumerable)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable)]
+        [InlineData(SourceKind.AsyncEnumerable)]
         public async Task ReadAsync_ReturnsEachRowThenFalseAsync(SourceKind source)
         {
             var reader = CreateReader(source, CreateRows());
@@ -432,7 +432,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Theory]
         [InlineData(SourceKind.Enumerable)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable)]
+        [InlineData(SourceKind.AsyncEnumerable)]
         public void Read_EmptySource_ReturnsFalse(SourceKind source)
         {
             var reader = CreateReader(source, new Row[0]);
@@ -442,7 +442,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Theory]
         [InlineData(SourceKind.Enumerable)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable)]
+        [InlineData(SourceKind.AsyncEnumerable)]
         public async Task ReadAsync_EmptySource_ReturnsFalseAsync(SourceKind source)
         {
             var reader = CreateReader(source, new Row[0]);
@@ -452,7 +452,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Theory]
         [InlineData(SourceKind.Enumerable)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable)]
+        [InlineData(SourceKind.AsyncEnumerable)]
         [Trait("Quirk", "Q41")]
         public async Task ReadAsync_CancelledToken_StillReadsAsync(SourceKind source)
         {
@@ -478,10 +478,10 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Fact]
         [Trait("Quirk", "Q42")]
-        [Trait("UpgradeSensitive", "System.Interactive.Async 3.2 reports source exceptions through the MoveNext task")]
-        public void Read_LegacyAsyncSourceThrows_ThrowsAggregateException()
+        [Trait("UpgradeSensitive", "the async source reports exceptions through the MoveNextAsync task")]
+        public void Read_AsyncSourceThrows_ThrowsAggregateException()
         {
-            var reader = CreateReader(SourceKind.LegacyAsyncEnumerable, RowThenThrow());
+            var reader = CreateReader(SourceKind.AsyncEnumerable, RowThenThrow());
             reader.Read();
 
             var exception = Record.Exception(() => reader.Read());
@@ -493,7 +493,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Theory]
         [InlineData(SourceKind.Enumerable)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable)]
+        [InlineData(SourceKind.AsyncEnumerable)]
         public async Task ReadAsync_SourceThrows_ThrowsOriginalExceptionAsync(SourceKind source)
         {
             var reader = CreateReader(source, RowThenThrow());
@@ -851,7 +851,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Theory]
         [InlineData(SourceKind.Enumerable)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable)]
+        [InlineData(SourceKind.AsyncEnumerable)]
         [Trait("Quirk", "Q44")]
         public void GetValue_AfterReadReturnedFalse_ReturnsLastRow(SourceKind source)
         {
@@ -890,7 +890,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Theory]
         [InlineData(SourceKind.Enumerable)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable)]
+        [InlineData(SourceKind.AsyncEnumerable)]
         public void Close_SetsIsClosedAndReadThrows(SourceKind source)
         {
             var reader = CreateReader(source, CreateRows());
@@ -905,7 +905,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Theory]
         [InlineData(SourceKind.Enumerable)]
-        [InlineData(SourceKind.LegacyAsyncEnumerable)]
+        [InlineData(SourceKind.AsyncEnumerable)]
         public async Task Close_ThenReadAsync_ThrowsAsync(SourceKind source)
         {
             var reader = CreateReader(source, CreateRows());
@@ -1019,8 +1019,8 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Fact]
         [Trait("Quirk", "Q40")]
-        [Trait("UpgradeSensitive", "System.Interactive.Async 3.2 ToAsyncEnumerable pulls lazily and disposes the source only when disposed itself")]
-        public void Close_PartiallyReadLegacyAsyncSource_DoesNotDisposeSourceEnumerator()
+        [Trait("UpgradeSensitive", "ToAsyncEnumerable of System.Linq.AsyncEnumerable pulls lazily and disposes the source only when disposed itself")]
+        public void Close_PartiallyReadAsyncSource_DoesNotDisposeSourceEnumerator()
         {
             var source = new TrackingEnumerable(CreateRows());
             var reader = new UniversalDataReader<Row>(source.ToAsyncEnumerableCompat(), FieldSettings.FromType<Row>(), true);
@@ -1110,9 +1110,9 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Fact]
         [Trait("Quirk", "Q03")]
-        public void GetEnumerator_LegacyAsyncSource_ReturnsNull()
+        public void GetEnumerator_AsyncSource_ReturnsNull()
         {
-            var reader = CreateReader(SourceKind.LegacyAsyncEnumerable, CreateRows());
+            var reader = CreateReader(SourceKind.AsyncEnumerable, CreateRows());
 
             reader.GetEnumerator().Should().BeNull();
         }
