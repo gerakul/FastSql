@@ -1,0 +1,26 @@
+<Project>
+
+  <!-- Central package management: the versions of all packages used in the repository -->
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup Label="Libraries">
+    <PackageVersion Include="Npgsql" Version="4.0.2" />
+    <PackageVersion Include="System.Data.Common" Version="4.3.0" />
+    <PackageVersion Include="System.Data.SqlClient" Version="4.5.1" />
+    <PackageVersion Include="System.Interactive.Async" Version="3.2.0" />
+    <PackageVersion Include="System.Reflection.TypeExtensions" Version="4.5.1" />
+  </ItemGroup>
+
+  <ItemGroup Label="Tests">
+    <PackageVersion Include="AwesomeAssertions" Version="9.6.0" />
+    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.12.0" />
+    <PackageVersion Include="PublicApiGenerator" Version="11.5.4" />
+    <PackageVersion Include="Testcontainers.MsSql" Version="4.16.0" />
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.16.0" />
+    <PackageVersion Include="xunit.v3" Version="4.0.2" />
+  </ItemGroup>
+
+</Project>

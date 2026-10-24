@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/Gerakul.FastSql.IntegrationTests/Gerakul.FastSql.IntegrationTests.csproj" />
+    <Project Path="tests/Gerakul.FastSql.UnitTests/Gerakul.FastSql.UnitTests.csproj" />
+  </Folder>
+  <Project Path="Examples/Examples.csproj" />
+  <Project Path="Gerakul.FastSql.Common/Gerakul.FastSql.Common.csproj" />
+  <Project Path="Gerakul.FastSql.PostgreSQL/Gerakul.FastSql.PostgreSQL.csproj" />
+  <Project Path="Gerakul.FastSql.SqlServer/Gerakul.FastSql.SqlServer.csproj" />
+</Solution>

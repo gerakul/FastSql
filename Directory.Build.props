@@ -1,0 +1,11 @@
+<Project>
+
+  <!-- Shared by all projects; tests/Directory.Build.props imports this file and adds the test settings -->
+
+  <PropertyGroup>
+    <Authors>gerakul</Authors>
+    <RepositoryUrl>https://github.com/gerakul/FastSql</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
+</Project>

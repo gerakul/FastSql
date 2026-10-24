@@ -3,7 +3,7 @@
   <!-- common settings, packages and project references: ../Directory.Build.props -->
 
   <ItemGroup>
-    <PackageReference Include="PublicApiGenerator" Version="11.5.4" />
+    <PackageReference Include="PublicApiGenerator" />
   </ItemGroup>
 
 </Project>
