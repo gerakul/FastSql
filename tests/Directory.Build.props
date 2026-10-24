@@ -1,0 +1,32 @@
+<Project>
+
+  <!-- Applies only to the test projects under tests/, library builds are not affected.
+       The root Directory.Build.props is not picked up automatically below this file, so import it -->
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)..'))" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="AwesomeAssertions" />
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\Gerakul.FastSql.SqlServer\Gerakul.FastSql.SqlServer.csproj" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\Gerakul.FastSql.PostgreSQL\Gerakul.FastSql.PostgreSQL.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Shared\**\*.cs" LinkBase="Shared" />
+    <None Include="$(MSBuildThisFileDirectory)xunit.runner.json" Link="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

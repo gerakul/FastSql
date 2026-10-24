@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- common settings, packages and project references: ../Directory.Build.props -->
+
+  <ItemGroup>
+    <PackageReference Include="PublicApiGenerator" />
+  </ItemGroup>
+
+</Project>

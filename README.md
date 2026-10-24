@@ -4,6 +4,11 @@ Light-weight, flexible and easy to use C# library to retrieve and manipulate (in
 
 **NOTE:** Put "using Gerakul.FastSql.Common;" in your code file to use Create<...> methods.
 
+## Requirements
+- .NET 10.
+- Sql Server: Microsoft.Data.SqlClient. It encrypts connections by default, so a server without a trusted certificate needs `TrustServerCertificate=True` in the connection string.
+- PostgreSQL: Npgsql 10. `CreateProcedure` calls procedures (with `CALL`), not functions. `date` and `time` columns can be read into `DateOnly` / `TimeOnly` members as well as into `DateTime` / `TimeSpan` members.
+
 ## Simple example
   ```csharp
   // get context
@@ -85,18 +90,18 @@ Simple retrieving data
   ```csharp
   var data1 = context.CreateSimple("select * from Employee").ExecuteQuery<Employee>().ToArray();
   // or async
-  var data2 = await context.CreateSimple("select * from Employee").ExecuteQueryAsync<Employee>().ToArray();
+  var data2 = await context.CreateSimple("select * from Employee").ExecuteQueryAsync<Employee>().ToArrayAsync();
   ```
 Using parameters
   ```csharp
   // simple
   var data3 = context.CreateSimple("select * from Employee where CompanyID = @p0 and Age > @p1", 1, 40).ExecuteQuery<Employee>().ToArray();
   // or async
-  var data4 = await context.CreateSimple("select * from Employee where CompanyID = @p0 and Age > @p1", 1, 40).ExecuteQueryAsync<Employee>().ToArray();
+  var data4 = await context.CreateSimple("select * from Employee where CompanyID = @p0 and Age > @p1", 1, 40).ExecuteQueryAsync<Employee>().ToArrayAsync();
   // parameters mapped to object
   var data5 = context.CreateMapped("select * from Employee where CompanyID = @CompanyID and Age > @Age", new { CompanyID = 1, Age = 40 }).ExecuteQuery<Employee>().ToArray();
   // or async
-  var data6 = await context.CreateMapped("select * from Employee where CompanyID = @CompanyID and Age > @Age", new { CompanyID = 1, Age = 40 }).ExecuteQueryAsync<Employee>().ToArray();
+  var data6 = await context.CreateMapped("select * from Employee where CompanyID = @CompanyID and Age > @Age", new { CompanyID = 1, Age = 40 }).ExecuteQueryAsync<Employee>().ToArrayAsync();
   ```
 
 **NOTE:** all commands can be executed asynchronously but examples below only show synchronous execution in order not to complicate them.
