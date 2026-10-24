@@ -805,7 +805,7 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
                 .ExecuteQueryFirstColumn<string>().Single();
         }
 
-        // Npgsql 4 caches the database types per connection string: a new application name gives a new pool and a fresh load
+        // Npgsql caches the database types per connection string: a new application name gives a new pool and a fresh load
         private string CreateConnectionStringWithOwnPool()
         {
             return new NpgsqlConnectionStringBuilder(Database.ConnectionString)

@@ -4,6 +4,11 @@ Light-weight, flexible and easy to use C# library to retrieve and manipulate (in
 
 **NOTE:** Put "using Gerakul.FastSql.Common;" in your code file to use Create<...> methods.
 
+## Requirements
+- .NET 10.
+- Sql Server: Microsoft.Data.SqlClient. It encrypts connections by default, so a server without a trusted certificate needs `TrustServerCertificate=True` in the connection string.
+- PostgreSQL: Npgsql 10. `CreateProcedure` calls procedures (with `CALL`), not functions. `date` and `time` columns can be read into `DateOnly` / `TimeOnly` members as well as into `DateTime` / `TimeSpan` members.
+
 ## Simple example
   ```csharp
   // get context
