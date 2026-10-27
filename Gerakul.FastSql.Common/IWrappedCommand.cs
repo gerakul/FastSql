@@ -45,7 +45,7 @@ namespace Gerakul.FastSql.Common
 
         public static Task WriteToServerAsync(this IWrappedCommand cmd, DbContext context, string destinationTable, BulkOptions bulkOptions, CancellationToken cancellationToken, params string[] fields)
         {
-            return cmd.UseReaderAsync(x => x.WriteToServerAsync(context, destinationTable, bulkOptions, cancellationToken, fields));
+            return cmd.UseReaderAsync(cancellationToken, x => x.WriteToServerAsync(context, destinationTable, bulkOptions, cancellationToken, fields));
         }
 
         public static Task WriteToServerAsync(this IWrappedCommand cmd, DbContext context, string destinationTable, BulkOptions bulkOptions, params string[] fields)
@@ -60,7 +60,7 @@ namespace Gerakul.FastSql.Common
 
         public static Task WriteToServerAsync(this IWrappedCommand cmd, DbContext context, string destinationTable, CancellationToken cancellationToken, params string[] fields)
         {
-            return cmd.UseReaderAsync(x => x.WriteToServerAsync(context, destinationTable, cancellationToken, fields));
+            return cmd.UseReaderAsync(cancellationToken, x => x.WriteToServerAsync(context, destinationTable, cancellationToken, fields));
         }
 
         public static Task WriteToServerAsync(this IWrappedCommand cmd, DbContext context, string destinationTable, params string[] fields)

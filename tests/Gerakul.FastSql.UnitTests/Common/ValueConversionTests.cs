@@ -399,13 +399,12 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Theory]
         [MemberData(nameof(Methods))]
-        [Trait("Quirk", "Q52")]
-        public async Task Read_GuidIntoObject_ThrowsInvalidCastException(MappingReadMethod method)
+        [Trait("Fixed", "Q52")]
+        public async Task Read_GuidIntoObject_ReturnsGuid(MappingReadMethod method)
         {
-            Func<Task> act = () => Read<object>(method, typeof(Guid), new Guid("0f8fad5b-d9cb-469f-a165-70867728950e"));
+            var value = await Read<object>(method, typeof(Guid), new Guid("0f8fad5b-d9cb-469f-a165-70867728950e"));
 
-            await act.Should().ThrowExactlyAsync<InvalidCastException>()
-                .WithMessage("Object must implement IConvertible.");
+            value.Should().Be(new Guid("0f8fad5b-d9cb-469f-a165-70867728950e"));
         }
 
         [Theory]

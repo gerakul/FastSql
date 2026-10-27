@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 
@@ -107,7 +108,7 @@ namespace Gerakul.FastSql.Common
 
         public MappedCommand<T> CompileInsert<T>(string tableName, IList<FieldSettings<T>> settings, params string[] ignoreFields)
         {
-            var fields = settings.Select(x => x.Name).Except(ignoreFields.Select(x => x)).ToArray();
+            var fields = settings.Select(x => x.Name).Except(ignoreFields ?? new string[0]).ToArray();
             string query = contextProvider.CommandTextGenerator.Insert(tableName, fields);
             return new MappedCommand<T>(contextProvider, query, fields, settings, true);
         }
@@ -153,7 +154,8 @@ namespace Gerakul.FastSql.Common
 
         public MappedCommand<T> CompileUpdate<T>(string tableName, IList<FieldSettings<T>> settings, IList<string> keyFields, IList<string> notKeyIgnoreFields)
         {
-            var fields = settings.Select(x => x.Name).Except(notKeyIgnoreFields.Select(x => x)).ToArray();
+            CheckKeyFields(keyFields);
+            var fields = settings.Select(x => x.Name).Except(notKeyIgnoreFields ?? new string[0]).ToArray();
             var fieldsToUpdate = fields.Except(keyFields.Select(x => x)).ToArray();
             string query = contextProvider.CommandTextGenerator.Update(tableName, keyFields, fieldsToUpdate);
             return new MappedCommand<T>(contextProvider, query, fields, settings, true);
@@ -241,7 +243,8 @@ namespace Gerakul.FastSql.Common
 
         public MappedCommand<T> CompileMerge<T>(string tableName, IList<FieldSettings<T>> settings, IList<string> keyFields, IList<string> notKeyIgnoreFields)
         {
-            var fields = settings.Select(x => x.Name).Except(notKeyIgnoreFields.Select(x => x)).ToArray();
+            CheckKeyFields(keyFields);
+            var fields = settings.Select(x => x.Name).Except(notKeyIgnoreFields ?? new string[0]).ToArray();
             var fieldsToUpdate = fields.Except(keyFields.Select(x => x)).ToArray();
             string query = contextProvider.CommandTextGenerator.Merge(tableName, keyFields, fieldsToUpdate);
             return new MappedCommand<T>(contextProvider, query, fields, settings, true);
@@ -297,5 +300,14 @@ namespace Gerakul.FastSql.Common
         #endregion
 
         #endregion
+
+        // without key fields the generated where / on clause is empty, which the server rejects
+        private static void CheckKeyFields(IList<string> keyFields)
+        {
+            if (keyFields == null || keyFields.Count == 0)
+            {
+                throw new ArgumentException("At least one key field is required", nameof(keyFields));
+            }
+        }
     }
 }

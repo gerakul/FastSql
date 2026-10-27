@@ -18,21 +18,19 @@ namespace Gerakul.FastSql.Common
 
         public void UsingTransaction(IsolationLevel isolationLevel, Action<TransactionContext> action)
         {
-            DbTransaction tran = null;
-            try
+            using (DbTransaction tran = Connection.BeginTransaction(isolationLevel))
             {
-                tran = Connection.BeginTransaction(isolationLevel);
-                action(ContextProvider.GetTransactionContext(tran, QueryOptions, BulkOptions, ReadOptions));
-                tran.Commit();
-            }
-            catch
-            {
-                if (tran != null)
+                try
                 {
-                    tran.Rollback();
+                    action(ContextProvider.GetTransactionContext(tran, QueryOptions, BulkOptions, ReadOptions));
+                }
+                catch
+                {
+                    Rollback(tran);
+                    throw;
                 }
 
-                throw;
+                tran.Commit();
             }
         }
 
@@ -43,21 +41,32 @@ namespace Gerakul.FastSql.Common
 
         public async Task UsingTransactionAsync(IsolationLevel isolationLevel, Func<TransactionContext, Task> action)
         {
-            DbTransaction tran = null;
+            using (DbTransaction tran = Connection.BeginTransaction(isolationLevel))
+            {
+                try
+                {
+                    await action(ContextProvider.GetTransactionContext(tran, QueryOptions, BulkOptions, ReadOptions)).ConfigureAwait(false);
+                }
+                catch
+                {
+                    Rollback(tran);
+                    throw;
+                }
+
+                tran.Commit();
+            }
+        }
+
+        // the action's exception is what the caller needs: a rollback that fails too (broken connection, open reader)
+        // must not replace it, and disposing the transaction rolls back whatever is still open
+        private static void Rollback(DbTransaction tran)
+        {
             try
             {
-                tran = Connection.BeginTransaction(isolationLevel);
-                await action(ContextProvider.GetTransactionContext(tran, QueryOptions, BulkOptions, ReadOptions)).ConfigureAwait(false);
-                tran.Commit();
+                tran.Rollback();
             }
             catch
             {
-                if (tran != null)
-                {
-                    tran.Rollback();
-                }
-
-                throw;
             }
         }
 
