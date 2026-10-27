@@ -14,7 +14,7 @@ using Xunit;
 namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
 {
     // The shared bulk copy scenarios on PostgreSQL, plus PostgreSQL-only behavior: no table creation (Q10),
-    // the synchronous async copy (Q05), quoted column names (Q19) and the binary COPY type inference
+    // the asynchronous copy (Q05, fixed), quoted column names (Q19) and the binary COPY type inference
     [Trait("Provider", "PostgreSQL")]
     public class PostgreSqlBulkCopyTests : BulkCopyTests<PostgreSqlDatabase>
     {
@@ -91,47 +91,24 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
 
         #endregion
 
-        #region Synchronous async copy
+        #region Asynchronous copy
 
-        // the copy runs to the end before WriteToServerAsync returns
         [Theory]
-        [InlineData(ContextKind.Connection)]
-        [InlineData(ContextKind.Transaction)]
-        [Trait("Quirk", "Q05")]
-        public async Task WriteToServerAsync_ScopedContext_ReturnsCompletedTaskAsync(ContextKind kind)
+        [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
+        [Trait("Fixed", "Q05")]
+        public async Task WriteToServerAsync_CopiesRowsAsync(ContextKind kind)
         {
             var table = CreateNamedTable();
-            Task copy = null;
 
-            await Database.RunAsync(kind, x =>
-            {
-                copy = NamedRows.WriteToServerAsync(x, table, TestContext.Current.CancellationToken);
-                copy.Status.Should().Be(TaskStatus.RanToCompletion);
-                return copy;
-            });
+            await Database.RunAsync(kind, x => NamedRows.WriteToServerAsync(x, table, TestContext.Current.CancellationToken));
 
             ReadNames(table).Should().Equal("one", "two");
         }
 
-        [Fact]
-        [Trait("Quirk", "Q05")]
-        public async Task WriteToServerAsync_ConnectionContext_CopiesRowsBeforeTaskIsAwaitedAsync()
-        {
-            var table = CreateNamedTable();
-
-            using (var connection = await Database.OpenConnectionAsync())
-            {
-                var copy = NamedRows.WriteToServerAsync(Spec.DefaultProvider.CreateContext(connection), table, TestContext.Current.CancellationToken);
-
-                ReadNames(table).Should().Equal("one", "two");
-                await copy;
-            }
-        }
-
         [Theory]
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
-        [Trait("Quirk", "Q05")]
-        public async Task WriteToServerAsync_CancelledToken_CopiesRowsAsync(ContextKind kind)
+        [Trait("Fixed", "Q05")]
+        public async Task WriteToServerAsync_CancelledToken_ThrowsAndCopiesNothingAsync(ContextKind kind)
         {
             var table = CreateNamedTable();
 
@@ -139,10 +116,39 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
             {
                 cancellation.Cancel();
 
-                await Database.RunAsync(kind, x => NamedRows.WriteToServerAsync(x, table, cancellation.Token));
+                Func<Task> act = () => Database.RunAsync(kind, x => NamedRows.WriteToServerAsync(x, table, cancellation.Token));
+
+                await act.Should().ThrowAsync<OperationCanceledException>();
             }
 
-            ReadNames(table).Should().Equal("one", "two");
+            CountRows(table).Should().Be(0);
+        }
+
+        // the token is checked for every row, and the import is not completed
+        [Fact]
+        [Trait("Fixed", "Q05")]
+        public async Task WriteToServerAsync_TokenCancelledDuringCopy_ThrowsAndCopiesNothingAsync()
+        {
+            var table = CreateNamedTable();
+
+            using (var cancellation = new CancellationTokenSource())
+            {
+                var rows = NamedRows.Select((x, i) =>
+                {
+                    if (i == 1)
+                    {
+                        cancellation.Cancel();
+                    }
+
+                    return x;
+                });
+
+                Func<Task> act = () => Database.RunAsync(ContextKind.Connection, x => rows.WriteToServerAsync(x, table, cancellation.Token));
+
+                await act.Should().ThrowAsync<OperationCanceledException>();
+            }
+
+            CountRows(table).Should().Be(0);
         }
 
         #endregion
@@ -195,13 +201,14 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
 
         // the copy asks the source reader for the ordinal of each field
         [Fact]
-        public void WriteToServer_FieldNotInSource_ThrowsKeyNotFoundException()
+        [Trait("Fixed", "Q129")]
+        public void WriteToServer_FieldNotInSource_ThrowsIndexOutOfRangeException()
         {
             var table = CreateNamedTable();
 
             Action act = () => Database.Run(ContextKind.Connection, x => NamedRows.WriteToServer(x, table, "ID", "Missing"));
 
-            act.Should().Throw<KeyNotFoundException>().WithMessage("The given key 'Missing' was not present in the dictionary.");
+            act.Should().Throw<IndexOutOfRangeException>().WithMessage("Field 'Missing' is not found");
             CountRows(table).Should().Be(0);
         }
 

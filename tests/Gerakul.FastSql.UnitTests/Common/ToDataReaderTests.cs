@@ -136,7 +136,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
             if (caseSensitive)
             {
-                lookUpOtherCase.Should().Throw<KeyNotFoundException>();
+                lookUpOtherCase.Should().Throw<IndexOutOfRangeException>();
             }
             else
             {
@@ -354,14 +354,16 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
-        [Trait("Quirk", "Q48")]
-        public void ToDataReader_MemberHiddenWithOtherType_ThrowsArgumentException()
+        [Trait("Fixed", "Q48")]
+        public void ToDataReader_MemberHiddenWithOtherType_UsesHidingMember()
         {
-            var values = new[] { new OtherTypeHiding() };
+            var values = new[] { new OtherTypeHiding() { Value = "new" } };
 
-            Action act = () => values.ToDataReader();
+            var reader = values.ToDataReader();
+            reader.Read();
 
-            act.Should().Throw<ArgumentException>().WithMessage("An item with the same key has already been added. Key: Value");
+            Describe(reader.Settings).Should().Equal("Value:String:String:True");
+            reader.GetValue(0).Should().Be("new");
         }
 
         #endregion

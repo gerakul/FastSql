@@ -24,11 +24,18 @@ namespace Gerakul.FastSql.UnitTests.SqlServer
         }
 
         // implements the interface without being a context
-        private class CustomSqlCommandCreator : ISqlCommandCreator
+        private class ForwardingSqlCommandCreator : ISqlCommandCreator
         {
+            private readonly ICommandCreator inner;
+
+            public ForwardingSqlCommandCreator(ICommandCreator inner)
+            {
+                this.inner = inner;
+            }
+
             public IWrappedCommand Set(Func<ScopedContext, DbCommand> commandGetter)
             {
-                return null;
+                return inner.Set(commandGetter);
             }
         }
 
@@ -75,6 +82,16 @@ namespace Gerakul.FastSql.UnitTests.SqlServer
         }
 
         [Fact]
+        [Trait("Fixed", "Q126")]
+        public void CreateInsertAndGetID_NullIgnoreList_InsertsAllMembers()
+        {
+            ((ISqlCommandCreator)context.Context).CreateInsertAndGetID("Person", person, (string[])null);
+
+            context.LastCommand.CommandText.Should().Be(new SqlCommandTextGenerator().InsertAndGetID("Person", "ID", "Name", "Age"));
+            ParametersOf(context.LastCommand).Should().Equal(("ID", 1), ("Name", "John"), ("Age", 30));
+        }
+
+        [Fact]
         [Trait("Quirk", "Q18")]
         public void CreateContext_ReturnsBaseTypes_ContextsImplementISqlCommandCreatorAtRuntime()
         {
@@ -111,18 +128,15 @@ namespace Gerakul.FastSql.UnitTests.SqlServer
         }
 
         [Fact]
-        [Trait("Quirk", "Q61")]
-        public void CreateInsertAndGetID_CreatorIsNotDbContext_ThrowsInvalidCastException()
+        [Trait("Fixed", "Q61")]
+        public void CreateInsertAndGetID_CreatorIsNotDbContext_BuildsCommandThroughSet()
         {
-            var creator = new CustomSqlCommandCreator();
+            var creator = new ForwardingSqlCommandCreator(context.Context);
 
-            Action act = () => creator.CreateInsertAndGetID("Person", person, "ID");
+            creator.CreateInsertAndGetID("Person", person, "ID").Should().NotBeNull();
 
-            act.Should().Throw<InvalidCastException>()
-                .WithMessage("Unable to cast object of type 'CustomSqlCommandCreator' to type 'Gerakul.FastSql.Common.DbContext'.");
-
-            // the common extensions only call Set, so they accept the same creator
-            creator.CreateInsert("Person", person, "ID").Should().BeNull();
+            context.LastCommand.CommandText.Should().Be(new SqlCommandTextGenerator().InsertAndGetID("Person", "Name", "Age"));
+            ParametersOf(context.LastCommand).Should().Equal(("Name", "John"), ("Age", 30));
         }
 
         private static Type StaticTypeOf<T>(T value)

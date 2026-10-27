@@ -43,10 +43,10 @@ namespace Gerakul.FastSql.Common
                   try
                   {
                       conn = context.CreateConnection();
-                      await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
+                      await conn.OpenAsync(ct).ConfigureAwait(false);
                       state.InternalConnection = conn;
                       var connectionContext = context.ContextProvider.GetConnectionContext(conn, context.QueryOptions, context.BulkOptions, context.ReadOptions);
-                      var reader = await commandGetter(connectionContext).ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                      var reader = await commandGetter(connectionContext).ExecuteReaderAsync(ct).ConfigureAwait(false);
                       state.ReadInfo = readInfoGetter(reader);
                   }
                   catch
@@ -58,7 +58,9 @@ namespace Gerakul.FastSql.Common
 
                       throw;
                   }
-              });
+              },
+
+              cancellationToken);
         }
 
         #region IWrappedCommand
@@ -79,8 +81,8 @@ namespace Gerakul.FastSql.Common
             int result = default(int);
             await context.UsingConnectionAsync(async x =>
             {
-                result = await commandGetter(x).ExecuteNonQueryAsync().ConfigureAwait(false);
-            }).ConfigureAwait(false);
+                result = await commandGetter(x).ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }, cancellationToken).ConfigureAwait(false);
 
             return result;
         }
@@ -102,7 +104,7 @@ namespace Gerakul.FastSql.Common
             await context.UsingConnectionAsync(async x =>
             {
                 result = await commandGetter(x).ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-            }).ConfigureAwait(false);
+            }, cancellationToken).ConfigureAwait(false);
 
             return result;
         }
@@ -217,7 +219,7 @@ namespace Gerakul.FastSql.Common
                 {
                     await action(reader).ConfigureAwait(false);
                 }
-            }).ConfigureAwait(false);
+            }, cancellationToken).ConfigureAwait(false);
         }
 
         #endregion

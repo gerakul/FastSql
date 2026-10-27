@@ -6,9 +6,15 @@ namespace Gerakul.FastSql.SqlServer
 {
     public class SqlCommandTextGenerator : CommandTextGenerator
     {
+        // a closing bracket inside a name is written twice
+        private static string Quote(string name)
+        {
+            return $"[{name.Replace("]", "]]")}]";
+        }
+
         public override string ColumnList(params string[] fields)
         {
-            return string.Join(", ", fields.Select(x => $"[{x}]"));
+            return string.Join(", ", fields.Select(x => Quote(x)));
         }
 
         public override string ParamList(params string[] fields)
@@ -18,12 +24,12 @@ namespace Gerakul.FastSql.SqlServer
 
         public override string WhereClause(params string[] fields)
         {
-            return string.Join(" and ", fields.Select(x => $"[{x}] = @{x}"));
+            return string.Join(" and ", fields.Select(x => $"{Quote(x)} = @{x}"));
         }
 
         public override string SetClause(params string[] fields)
         {
-            return string.Join(", ", fields.Select(x => $"[{x}] = @{x}"));
+            return string.Join(", ", fields.Select(x => $"{Quote(x)} = @{x}"));
         }
 
         public override string Insert(string tableName, params string[] fields)
@@ -33,7 +39,7 @@ namespace Gerakul.FastSql.SqlServer
 
         public override string InsertWithOutput(string tableName, string[] fields, params string[] outputFields)
         {
-            var outputColumnList = string.Join(", ", outputFields.Select(x => $"inserted.[{x}]"));
+            var outputColumnList = string.Join(", ", outputFields.Select(x => $"inserted.{Quote(x)}"));
             return $"insert into {tableName} ({ColumnList(fields)}) output {outputColumnList} values ({ParamList(fields)});";
         }
 
@@ -58,9 +64,9 @@ namespace Gerakul.FastSql.SqlServer
 
             var usingList = ParamList(allFields);
             var sourceList = ColumnList(allFields);
-            var onClause = string.Join(" and ", keyFields.Select(x => $"target.[{x}] = source.[{x}]"));
-            var setClause = string.Join(", ", fields.Select(x => $"[{x}] = source.[{x}]"));
-            var valuesClause = string.Join(", ", allFields.Select(x => $"source.[{x}]"));
+            var onClause = string.Join(" and ", keyFields.Select(x => $"target.{Quote(x)} = source.{Quote(x)}"));
+            var setClause = string.Join(", ", fields.Select(x => $"{Quote(x)} = source.{Quote(x)}"));
+            var valuesClause = string.Join(", ", allFields.Select(x => $"source.{Quote(x)}"));
 
             var cmd = $"merge {tableName} as target"
                 + Environment.NewLine + $"using (select {usingList})"

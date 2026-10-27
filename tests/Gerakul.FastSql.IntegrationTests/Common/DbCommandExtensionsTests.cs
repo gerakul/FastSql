@@ -414,9 +414,8 @@ namespace Gerakul.FastSql.IntegrationTests.Common
         }
 
         [Fact]
-        [Trait("Quirk", "Q70")]
-        [Trait("UpgradeSensitive", "driver message for a busy connection")]
-        public async Task ExecuteQueryAsyncOfT_MappingFails_ReaderLeftOpenAsync()
+        [Trait("Fixed", "Q70")]
+        public async Task ExecuteQueryAsyncOfT_MappingFails_ReaderDisposedAsync()
         {
             using (var connection = await Database.OpenConnectionAsync())
             using (var command = CreateCommand(connection, SelectCompanyIdAndName()))
@@ -426,20 +425,16 @@ namespace Gerakul.FastSql.IntegrationTests.Common
                     Func<Task> moveNext = () => enumerator.MoveNextAsync();
 
                     await moveNext.Should().ThrowAsync<InvalidOperationException>().WithMessage(DestinationSelectorMessage);
+
+                    // closed as soon as the mapping failed, before the enumerator is disposed
+                    CountCompanies(connection).Should().Be(2);
                 }
-
-                // the reader was opened before the mapping failed and nothing disposes it, not even the enumerator
-                Action anotherCommand = () => CountCompanies(connection);
-
-                anotherCommand.Should().Throw<Exception>().WithMessage(OpenReaderMessage(command.CommandText))
-                    .Which.Should().BeOfType(OpenReaderExceptionType);
             }
         }
 
         [Fact]
-        [Trait("Quirk", "Q70")]
-        [Trait("UpgradeSensitive", "driver message for a busy connection")]
-        public async Task ExecuteQueryAnonymousAsync_MappingFails_ReaderLeftOpenAsync()
+        [Trait("Fixed", "Q70")]
+        public async Task ExecuteQueryAnonymousAsync_MappingFails_ReaderDisposedAsync()
         {
             using (var connection = await Database.OpenConnectionAsync())
             using (var command = CreateCommand(connection, SelectCompanyIdAndName()))
@@ -448,10 +443,7 @@ namespace Gerakul.FastSql.IntegrationTests.Common
 
                 await act.Should().ThrowAsync<InvalidOperationException>().WithMessage(DestinationSelectorMessage);
 
-                Action anotherCommand = () => CountCompanies(connection);
-
-                anotherCommand.Should().Throw<Exception>().WithMessage(OpenReaderMessage(command.CommandText))
-                    .Which.Should().BeOfType(OpenReaderExceptionType);
+                CountCompanies(connection).Should().Be(2);
             }
         }
 
@@ -460,28 +452,25 @@ namespace Gerakul.FastSql.IntegrationTests.Common
         #region ReadOptions passed by the caller
 
         [Fact]
-        [Trait("Quirk", "Q31")]
-        public void ExecuteQueryOfT_PartlySetReadOptions_UnsetValuesFilledInCallersInstance()
+        [Trait("Fixed", "Q31")]
+        public void ExecuteQueryOfT_PartlySetReadOptions_CallersInstanceUnchanged()
         {
             var readOptions = new ReadOptions(FieldsSelector.Common);
 
             using (var connection = Database.OpenConnection())
             using (var command = CreateCommand(connection, SelectCompanyIdAndName()))
             {
-                var query = command.ExecuteQuery<Company>(readOptions);
-
-                readOptions.CaseSensitiveFieldsMatching.Should().BeNull();
-                query.ToArray().Should().HaveCount(2);
+                command.ExecuteQuery<Company>(readOptions).ToArray().Should().HaveCount(2);
             }
 
             readOptions.FieldsSelector.Should().Be(FieldsSelector.Common);
-            readOptions.CaseSensitiveFieldsMatching.Should().BeFalse();
-            readOptions.FromTypeOption.Should().Be(FromTypeOption.Default);
+            readOptions.CaseSensitiveFieldsMatching.Should().BeNull();
+            readOptions.FromTypeOption.Should().BeNull();
         }
 
         [Fact]
-        [Trait("Quirk", "Q31")]
-        public async Task ExecuteQueryAsyncOfT_PartlySetReadOptions_UnsetValuesFilledInCallersInstanceAsync()
+        [Trait("Fixed", "Q31")]
+        public async Task ExecuteQueryAsyncOfT_PartlySetReadOptions_CallersInstanceUnchangedAsync()
         {
             var readOptions = new ReadOptions(FieldsSelector.Common);
 
@@ -491,13 +480,13 @@ namespace Gerakul.FastSql.IntegrationTests.Common
                 (await command.ExecuteQueryAsync<Company>(readOptions, Token).ToListCompat(Token)).Should().HaveCount(2);
             }
 
-            readOptions.CaseSensitiveFieldsMatching.Should().BeFalse();
-            readOptions.FromTypeOption.Should().Be(FromTypeOption.Default);
+            readOptions.CaseSensitiveFieldsMatching.Should().BeNull();
+            readOptions.FromTypeOption.Should().BeNull();
         }
 
         [Fact]
-        [Trait("Quirk", "Q31")]
-        public void ExecuteQueryAnonymous_PartlySetReadOptions_UnsetValuesFilledInCallersInstance()
+        [Trait("Fixed", "Q31")]
+        public void ExecuteQueryAnonymous_PartlySetReadOptions_CallersInstanceUnchanged()
         {
             var readOptions = new ReadOptions(caseSensitiveFieldsMatching: true);
 
@@ -507,9 +496,9 @@ namespace Gerakul.FastSql.IntegrationTests.Common
                 command.ExecuteQueryAnonymous(new { ID = 0, Name = "" }, readOptions).ToArray().Should().HaveCount(2);
             }
 
-            readOptions.FieldsSelector.Should().Be(FieldsSelector.Destination);
+            readOptions.FieldsSelector.Should().BeNull();
             readOptions.CaseSensitiveFieldsMatching.Should().BeTrue();
-            readOptions.FromTypeOption.Should().Be(FromTypeOption.Default);
+            readOptions.FromTypeOption.Should().BeNull();
         }
 
         [Fact]

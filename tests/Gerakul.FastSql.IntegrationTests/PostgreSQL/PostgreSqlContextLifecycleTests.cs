@@ -1,4 +1,7 @@
+using System;
 using System.Data.Common;
+using System.Threading.Tasks;
+using AwesomeAssertions;
 using Gerakul.FastSql.Common;
 using Gerakul.FastSql.IntegrationTests.Common;
 using Gerakul.FastSql.IntegrationTests.Infrastructure;
@@ -26,6 +29,43 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
         protected override string ClosedConnectionMessage(string operation)
         {
             return "Connection is not open";
+        }
+
+        // PostgreSQL checks a deferred constraint at commit, and the failed commit ends the transaction, so a rollback
+        // afterwards would fail with "This NpgsqlTransaction has completed"
+        [Fact]
+        [Trait("Fixed", "Q123")]
+        public void UsingTransaction_DeferredConstraintFailsAtCommit_ThrowsPostgresException()
+        {
+            var child = CreateChildWithDeferredForeignKey();
+            var context = Spec.DefaultProvider.CreateContext(Database.ConnectionString);
+
+            Action act = () => context.UsingTransaction(x => x.CreateSimple($"insert into {child} (\"ParentID\") values (999)").ExecuteNonQuery());
+
+            act.Should().Throw<PostgresException>().Which.SqlState.Should().Be("23503");
+        }
+
+        [Fact]
+        [Trait("Fixed", "Q123")]
+        public async Task UsingTransactionAsync_DeferredConstraintFailsAtCommit_ThrowsPostgresExceptionAsync()
+        {
+            var child = CreateChildWithDeferredForeignKey();
+
+            using (var connection = await Database.OpenConnectionAsync())
+            {
+                var context = Spec.DefaultProvider.CreateContext(connection);
+
+                Func<Task> act = () => context.UsingTransactionAsync(x => x.CreateSimple($"insert into {child} (\"ParentID\") values (999)")
+                    .ExecuteNonQueryAsync(TestContext.Current.CancellationToken));
+
+                (await act.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be("23503");
+            }
+        }
+
+        private string CreateChildWithDeferredForeignKey()
+        {
+            var parent = Database.CreateScratchTable("\"ID\" int primary key");
+            return Database.CreateScratchTable($"\"ParentID\" int references {parent} (\"ID\") deferrable initially deferred");
         }
     }
 }

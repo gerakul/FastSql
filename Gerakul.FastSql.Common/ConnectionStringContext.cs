@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Gerakul.FastSql.Common
@@ -33,11 +34,16 @@ namespace Gerakul.FastSql.Common
             }
         }
 
-        public async Task UsingConnectionAsync(Func<ConnectionContext, Task> action)
+        public Task UsingConnectionAsync(Func<ConnectionContext, Task> action)
+        {
+            return UsingConnectionAsync(action, CancellationToken.None);
+        }
+
+        internal async Task UsingConnectionAsync(Func<ConnectionContext, Task> action, CancellationToken cancellationToken)
         {
             using (var conn = CreateConnection())
             {
-                await conn.OpenAsync().ConfigureAwait(false);
+                await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
                 await action(ContextProvider.GetConnectionContext(conn, QueryOptions, BulkOptions, ReadOptions)).ConfigureAwait(false);
             }
         }

@@ -93,6 +93,10 @@ namespace Gerakul.FastSql.Common
                 if (!isClosed)
                 {
                     isClosed = true;
+
+                    // the source can hold resources, for example a FastSql query keeps its reader and connection
+                    enumerator?.Dispose();
+                    asyncEnumerator?.DisposeAsync().AsTask().GetAwaiter().GetResult();
                 }
             }
         }
@@ -127,7 +131,7 @@ namespace Gerakul.FastSql.Common
 
             if (enumerator == null)
             {
-                if (asyncEnumerator.MoveNextAsync().AsTask().Result)
+                if (asyncEnumerator.MoveNextAsync().AsTask().GetAwaiter().GetResult())
                 {
                     curRow = asyncEnumerator.Current;
                     return true;
@@ -151,6 +155,8 @@ namespace Gerakul.FastSql.Common
             {
                 throw new InvalidOperationException("DataReader has been closed");
             }
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             if (enumerator == null)
             {
@@ -210,6 +216,12 @@ namespace Gerakul.FastSql.Common
         {
             byte[] bytes = (byte[])getters[i](curRow);
 
+            // without a buffer the length of the value is returned (IDataRecord contract)
+            if (buffer == null)
+            {
+                return bytes.Length;
+            }
+
             if (fieldOffset < 0 || fieldOffset >= bytes.Length || bufferOffset < 0 || bufferOffset >= buffer.Length)
             {
                 return 0;
@@ -230,7 +242,14 @@ namespace Gerakul.FastSql.Common
 
         public override long GetChars(int i, long fieldOffset, char[] buffer, int bufferOffset, int length)
         {
-            char[] chars = (char[])getters[i](curRow);
+            var value = getters[i](curRow);
+            char[] chars = value is string str ? str.ToCharArray() : (char[])value;
+
+            // without a buffer the length of the value is returned (IDataRecord contract)
+            if (buffer == null)
+            {
+                return chars.Length;
+            }
 
             if (fieldOffset < 0 || fieldOffset >= chars.Length || bufferOffset < 0 || bufferOffset >= buffer.Length)
             {
@@ -302,7 +321,13 @@ namespace Gerakul.FastSql.Common
 
         public override int GetOrdinal(string name)
         {
-            return this.ordinals[caseSensitive ? name : name.ToLowerInvariant()];
+            // IDataRecord documents IndexOutOfRangeException for an unknown name
+            if (!this.ordinals.TryGetValue(caseSensitive ? name : name.ToLowerInvariant(), out int ordinal))
+            {
+                throw new IndexOutOfRangeException($"Field '{name}' is not found");
+            }
+
+            return ordinal;
         }
 
         public override string GetString(int i)
@@ -340,7 +365,7 @@ namespace Gerakul.FastSql.Common
         {
             get
             {
-                return getters[ordinals[caseSensitive ? name : name.ToLowerInvariant()]](curRow);
+                return getters[GetOrdinal(name)](curRow);
             }
         }
 

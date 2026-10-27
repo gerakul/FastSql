@@ -47,6 +47,13 @@ namespace Gerakul.FastSql.Common
                 }
             }
 
+            // a value that fits the member as it is (an object or interface member, an array) is not converted;
+            // Convert.ChangeType accepts only IConvertible values for other types than their own
+            if (convertingType.IsInstanceOfType(value))
+            {
+                return value;
+            }
+
             // Npgsql 10 returns DateOnly and TimeOnly for date and time columns (earlier versions returned DateTime and
             // TimeSpan); Convert.ChangeType cannot convert them, so members of the old types get the old values
             if (value is DateOnly dateOnly && convertingType == typeof(DateTime))
@@ -75,7 +82,7 @@ namespace Gerakul.FastSql.Common
             }
             else
             {
-                return readOptions.SetDefaults();
+                return readOptions.Clone().SetDefaults();
             }
         }
 
@@ -90,29 +97,7 @@ namespace Gerakul.FastSql.Common
                 readerFields[i] = new ReaderField() { Ordinal = i, Name = reader.GetName(i) };
             }
 
-            Type type = typeof(T);
-
-            FieldInfo[] fiAll = new FieldInfo[0];
-            if ((readOpt.FromTypeOption.Value & FromTypeOption.PublicField) == FromTypeOption.PublicField)
-            {
-                fiAll = type.GetFields(BindingFlags.Instance | BindingFlags.Public);
-
-                if ((readOpt.FromTypeOption.Value & FromTypeOption.Collection) == 0)
-                {
-                    fiAll = fiAll.Where(x => !Helpers.IsCollection(x.FieldType)).ToArray();
-                }
-            }
-
-            PropertyInfo[] piAll = new PropertyInfo[0];
-            if ((readOpt.FromTypeOption.Value & FromTypeOption.PublicProperty) == FromTypeOption.PublicProperty)
-            {
-                piAll = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
-
-                if ((readOpt.FromTypeOption.Value & FromTypeOption.Collection) == 0)
-                {
-                    piAll = piAll.Where(x => !Helpers.IsCollection(x.PropertyType)).ToArray();
-                }
-            }
+            Helpers.GetMembers(typeof(T), readOpt.FromTypeOption.Value, true, out FieldInfo[] fiAll, out PropertyInfo[] piAll);
 
             if (readOpt.CaseSensitiveFieldsMatching.Value)
             {
@@ -218,7 +203,12 @@ namespace Gerakul.FastSql.Common
                 readerFields[i] = new ReaderField() { Ordinal = i, Name = reader.GetName(i) };
             }
 
-            ConstructorInfo constructor = typeof(T).GetConstructors().First();
+            ConstructorInfo constructor = typeof(T).GetConstructors().FirstOrDefault();
+            if (constructor == null)
+            {
+                throw new InvalidOperationException($"Type {typeof(T)} has no public constructor");
+            }
+
             ParameterInfo[] piAll = constructor.GetParameters();
 
             if (readOpt.CaseSensitiveFieldsMatching.Value)
@@ -323,7 +313,8 @@ namespace Gerakul.FastSql.Common
 
         public override T GetValue()
         {
-            T obj = new T();
+            // boxed once, so the members of a struct are set on the instance that is returned
+            object obj = new T();
 
             for (int i = 0; i < fi.Length; i++)
             {
@@ -335,7 +326,7 @@ namespace Gerakul.FastSql.Common
                 pi[i].SetValue(obj, GetValueFromReader(piInd[i], piConvertingType[i], piNullable[i], piIsEnum[i]));
             }
 
-            return obj;
+            return (T)obj;
         }
     }
 

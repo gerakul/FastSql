@@ -300,14 +300,15 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Theory]
-        [Trait("Quirk", "Q17")]
+        [Trait("Fixed", "Q17")]
         [InlineData(false)]
         [InlineData(true)]
-        public void CompileMapped_NullParameterList_ThrowsArgumentNullException(bool caseSensitive)
+        public void CompileMapped_NullParameterList_BuildsCommandWithoutParameters(bool caseSensitive)
         {
-            Action act = () => Compilator.CompileMapped<Person>(MappedText, (IList<string>)null, caseSensitiveParamsMatching: caseSensitive);
+            var compiled = Compilator.CompileMapped<Person>(MappedText, (IList<string>)null, caseSensitiveParamsMatching: caseSensitive);
 
-            act.Should().Throw<ArgumentNullException>().WithParameterName("source");
+            compiled.CommandText.Should().Be(MappedText);
+            ParametersOf(Create(compiled, person)).Should().BeEmpty();
         }
 
         [Fact]
@@ -481,11 +482,41 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
-        public void CompileInsert_NullIgnoreList_ThrowsArgumentNullException()
+        [Trait("Fixed", "Q126")]
+        public void CompileInsert_NullIgnoreList_InsertsAllMembers()
         {
-            Action act = () => Compilator.CompileInsert<Person>("Person", (string[])null);
+            var compiled = Compilator.CompileInsert<Person>("Person", (string[])null);
 
-            act.Should().Throw<ArgumentNullException>().WithParameterName("source");
+            compiled.CommandText.Should().Be(Generator.Insert("Person", "ID", "Name", "Age"));
+            ParametersOf(Create(compiled, person)).Should().Equal(("ID", 1), ("Name", "John"), ("Age", 30));
+        }
+
+        [Theory]
+        [Trait("Fixed", "Q126")]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void CompileUpdateAndMerge_NoKeyFields_ThrowArgumentException(bool nullList)
+        {
+            var keyFields = nullList ? null : new string[0];
+
+            Action update = () => Compilator.CompileUpdate<Person>("Person", keyFields);
+            Action merge = () => Compilator.CompileMerge<Person>("Person", keyFields);
+
+            update.Should().Throw<ArgumentException>().WithMessage("At least one key field is required*").WithParameterName("keyFields");
+            merge.Should().Throw<ArgumentException>().WithMessage("At least one key field is required*").WithParameterName("keyFields");
+        }
+
+        [Fact]
+        [Trait("Fixed", "Q126")]
+        public void CompileUpdateAndMerge_NullIgnoreList_UpdatesAllNonKeyMembers()
+        {
+            var settings = FieldSettings.FromType<Person>();
+
+            var update = Compilator.CompileUpdate("Person", settings, new[] { "ID" }, null);
+            var merge = Compilator.CompileMerge("Person", settings, new[] { "ID" }, null);
+
+            update.CommandText.Should().Be(Generator.Update("Person", new[] { "ID" }, "Name", "Age"));
+            merge.CommandText.Should().Be(Generator.Merge("Person", new[] { "ID" }, "Name", "Age"));
         }
 
         [Fact]

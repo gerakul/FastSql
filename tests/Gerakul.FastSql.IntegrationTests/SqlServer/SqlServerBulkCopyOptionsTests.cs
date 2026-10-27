@@ -73,16 +73,19 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
             CountRows(table).Should().Be(0);
         }
 
-        // SqlBulkCopy asks the source reader for the ordinal of the mapped name
+        // SqlBulkCopy asks the source reader for the ordinal of the mapped name, and reports an unknown one
+        // (IndexOutOfRangeException from GetOrdinal) as a mapping error
         [Fact]
+        [Trait("Fixed", "Q129")]
         [Trait("UpgradeSensitive", "SqlBulkCopy column mapping")]
-        public void WriteToServer_FieldNotInSource_ThrowsKeyNotFoundException()
+        public void WriteToServer_FieldNotInSource_ThrowsColumnMappingError()
         {
             var table = CreateNamedTable();
 
             Action act = () => Database.Run(ContextKind.Connection, x => new[] { new { ID = 1, Name = "one" } }.WriteToServer(x, table, "ID", "Missing"));
 
-            act.Should().Throw<KeyNotFoundException>().WithMessage("The given key 'Missing' was not present in the dictionary.");
+            act.Should().Throw<InvalidOperationException>().WithMessage(ColumnMappingError("Missing"))
+                .WithInnerException<IndexOutOfRangeException>();
             CountRows(table).Should().Be(0);
         }
 
@@ -451,6 +454,46 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
             ReadPrimaryKey(table).Should().Equal("ID");
         }
 
+        // a reader opened with KeyInfo reports IsKey = false instead of nothing, which must not override the option
+        [Fact]
+        [Trait("Fixed", "Q128")]
+        public void WriteToServer_CreateTableFromKeyInfoReaderWithPrimaryKeyOption_CreatesPrimaryKey()
+        {
+            var source = CreateNamedTable();
+            var table = NewTableName();
+
+            using (var connection = (SqlConnection)Database.OpenConnection())
+            using (var command = new SqlCommand($"select ID, Name from {source}", connection))
+            using (var reader = command.ExecuteReader(System.Data.CommandBehavior.KeyInfo))
+            {
+                reader.GetColumnSchema().Single(x => x.ColumnName == "ID").IsKey.Should().BeFalse();
+
+                Database.Run(ContextKind.Connection, x => reader.WriteToServer(x, table,
+                    new SqlBulkOptions(createTable: true, columnDefinitionOptions: ColumnDefinitionOptions.FromDefault("ID"))));
+            }
+
+            ReadPrimaryKey(table).Should().Equal("ID");
+        }
+
+        // object_id finds a temp table only with the tempdb prefix, so the existence check used to miss it
+        [Theory]
+        [InlineData("#bulk_temp")]
+        [InlineData("[#bulk_temp]")]
+        [Trait("Fixed", "Q124")]
+        public void WriteToServer_CreateTableIfNotExistsTwiceIntoTempTable_CopiesBothTimes(string table)
+        {
+            var options = new SqlBulkOptions(createTable: true, checkTableIfNotExistsBeforeCreation: true);
+
+            var count = Database.Run(ContextKind.Connection, x =>
+            {
+                NamedRows.WriteToServer(x, table, options);
+                NamedRows.WriteToServer(x, table, options);
+                return x.CreateSimple($"select count(*) from {table}").ExecuteQueryFirstColumn<int>().Single();
+            });
+
+            count.Should().Be(4);
+        }
+
         // the reader reports the non-nullable CLR type for a nullable column, so the column is created as not null
         [Fact]
         [Trait("Quirk", "Q104")]
@@ -467,36 +510,37 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
             CountRows(table).Should().Be(0);
         }
 
+        // an enumerable has no schema table, so its member types describe the columns as with IgnoreDataReaderSchemaTable
         [Theory]
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
-        [Trait("Quirk", "Q14")]
-        public void WriteToServer_CreateTableFromEnumerable_ThrowsNotSupportedException(ContextKind kind)
+        [Trait("Fixed", "Q14")]
+        public void WriteToServer_CreateTableFromEnumerable_CreatesColumnsFromMemberTypes(ContextKind kind)
         {
             var table = NewTableName();
 
-            Action act = () => Database.Run(kind, x => TypedRows.WriteToServer(x, table, new SqlBulkOptions(createTable: true)));
+            Database.Run(kind, x => TypedRows.WriteToServer(x, table, new SqlBulkOptions(createTable: true)));
 
-            act.Should().Throw<NotSupportedException>().WithMessage("Specified method is not supported.");
-            TableExists(table).Should().BeFalse();
+            DescribeColumns(table).Should().Equal(TypedRowColumns);
+            ReadAll<TypedRow>(table, "ID").Should().BeEquivalentTo(TypedRows, o => o.WithStrictOrdering());
         }
 
         [Theory]
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
-        [Trait("Quirk", "Q14")]
-        public async Task WriteToServerAsync_CreateTableFromEnumerable_ThrowsNotSupportedExceptionAsync(ContextKind kind)
+        [Trait("Fixed", "Q14")]
+        public async Task WriteToServerAsync_CreateTableFromEnumerable_CreatesColumnsFromMemberTypesAsync(ContextKind kind)
         {
             var table = NewTableName();
 
-            Func<Task> act = () => Database.RunAsync(kind, x => TypedRows.WriteToServerAsync(x, table, new SqlBulkOptions(createTable: true),
+            await Database.RunAsync(kind, x => TypedRows.WriteToServerAsync(x, table, new SqlBulkOptions(createTable: true),
                 TestContext.Current.CancellationToken));
 
-            await act.Should().ThrowAsync<NotSupportedException>().WithMessage("Specified method is not supported.");
-            TableExists(table).Should().BeFalse();
+            DescribeColumns(table).Should().Equal(TypedRowColumns);
+            ReadAll<TypedRow>(table, "ID").Should().BeEquivalentTo(TypedRows, o => o.WithStrictOrdering());
         }
 
         [Theory]
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
-        [Trait("Quirk", "Q14")]
+        [Trait("Fixed", "Q14")]
         public void WriteToServer_CreateTableFromEnumerableIgnoringSchemaTable_CreatesColumnsFromMemberTypes(ContextKind kind)
         {
             var table = NewTableName();
@@ -511,7 +555,7 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
 
         [Theory]
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
-        [Trait("Quirk", "Q14")]
+        [Trait("Fixed", "Q14")]
         public async Task WriteToServerAsync_CreateTableFromEnumerableIgnoringSchemaTable_CreatesColumnsFromMemberTypesAsync(ContextKind kind)
         {
             var table = NewTableName();
@@ -559,42 +603,42 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
         }
 
         [Fact]
-        [Trait("Quirk", "Q100")]
-        public void WriteToServer_CreateTableWithUnsupportedMemberType_ThrowsNullReferenceException()
+        [Trait("Fixed", "Q100")]
+        public void WriteToServer_CreateTableWithUnsupportedMemberType_ThrowsInvalidOperationException()
         {
             var table = NewTableName();
 
             Action act = () => Database.Run(ContextKind.Connection, x => UnsupportedRows.WriteToServer(x, table,
                 new SqlBulkOptions(createTable: true, ignoreDataReaderSchemaTable: true)));
 
-            act.Should().Throw<NullReferenceException>().WithMessage("Object reference not set to an instance of an object.");
+            act.Should().Throw<InvalidOperationException>().WithMessage("Can not create table with specified fields");
             TableExists(table).Should().BeFalse();
         }
 
         [Fact]
-        [Trait("Quirk", "Q100")]
-        public async Task WriteToServerAsync_CreateTableWithUnsupportedMemberType_ThrowsNullReferenceExceptionAsync()
+        [Trait("Fixed", "Q100")]
+        public async Task WriteToServerAsync_CreateTableWithUnsupportedMemberType_ThrowsInvalidOperationExceptionAsync()
         {
             var table = NewTableName();
 
             Func<Task> act = () => Database.RunAsync(ContextKind.Connection, x => UnsupportedRows.WriteToServerAsync(x, table,
                 new SqlBulkOptions(createTable: true, ignoreDataReaderSchemaTable: true), TestContext.Current.CancellationToken));
 
-            await act.Should().ThrowAsync<NullReferenceException>().WithMessage("Object reference not set to an instance of an object.");
+            await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("Can not create table with specified fields");
             TableExists(table).Should().BeFalse();
         }
 
         [Fact]
-        [Trait("Quirk", "Q100")]
-        public void WriteToServer_CreateTableWithUnsupportedMemberTypeNotInFields_ThrowsNullReferenceException()
+        [Trait("Fixed", "Q100")]
+        public void WriteToServer_CreateTableWithUnsupportedMemberTypeNotInFields_CreatesTableWithSelectedFields()
         {
             var table = NewTableName();
 
-            Action act = () => Database.Run(ContextKind.Connection, x => UnsupportedRows.WriteToServer(x, table,
+            Database.Run(ContextKind.Connection, x => UnsupportedRows.WriteToServer(x, table,
                 new SqlBulkOptions(createTable: true, ignoreDataReaderSchemaTable: true), "ID"));
 
-            act.Should().Throw<NullReferenceException>();
-            TableExists(table).Should().BeFalse();
+            DescribeColumns(table).Should().Equal("ID int not null");
+            CountRows(table).Should().Be(1);
         }
 
         [Fact]
