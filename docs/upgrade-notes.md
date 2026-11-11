@@ -18,7 +18,7 @@ listed below.
 | Solution | `FastSql.sln` | `FastSql.slnx` |
 | Package versions | in each project file | `Directory.Packages.props` (central package management) |
 | Shared project settings | repeated in each project file | `Directory.Build.props` (target framework, authors, repository) |
-| SDK | any | .NET 10 SDK, pinned in `global.json` (latest feature band) |
+| SDK | any | .NET 10 SDK, pinned in `global.json` (latest feature band); later the .NET 11 SDK, see [.NET 11](#net-11) |
 | NuGet sources | nuget.org and the unused `gerakul-dotnet` MyGet feed | nuget.org only |
 
 Microsoft.Data.SqlClient 7.1.1 depends on System.Security.Cryptography.Pkcs 9.0.18, which has two
@@ -105,6 +105,20 @@ The tests tagged `UpgradeSensitive` pinned these; each change is reflected in th
   on a busy connection throws `InvalidOperationException` "Connection is busy" (Q110 changed).
 - `PostgresException` messages get POSITION / DETAIL lines: the tests pin the first line.
 
+## .NET 11
+
+When .NET 11 came out (after phase 2), the build moved to the .NET 11 SDK and the targets stayed:
+
+- `global.json` pins the .NET 11 SDK (11.0.100, latest feature band). The libraries, the tests and
+  Examples still target `net10.0`; CI installs the .NET 11 SDK and the .NET 10 runtime for the tests.
+- The libraries stay on `net10.0` because .NET 10 (long-term support) and .NET 11 (standard-term
+  support) both end support on 2028-11-14, and a `net10.0` package also works in .NET 11 apps, while
+  a `net11.0` package cannot be used by .NET 10 apps. Both test suites passed on the .NET 11 runtime
+  with the `net10.0` build. Neither driver has a .NET 11 build yet (Microsoft.Data.SqlClient 7.1.1
+  ships `net8.0` / `net9.0`, Npgsql 10.0.3 up to `net10.0`), so no package changed.
+- Retargeting stays a one-line change in `Directory.Build.props`, for when FastSql needs a .NET 11 API
+  or with the next long-term support release (.NET 12).
+
 ## Open questions for later phases
 
 - **`DateOnly` / `TimeOnly` handling (to research).** The conversion in `ReadInfo` keeps `DateTime` and
@@ -116,7 +130,5 @@ The tests tagged `UpgradeSensitive` pinned these; each change is reflected in th
   (integration), tagged `UpgradeSensitive`.
 - **Functions through `CreateProcedure` on PostgreSQL.** They need a `select` that FastSql does not
   generate; a helper could, but that is a new feature.
-- **.NET 11** is due in November 2026; retargeting is a one-line change in `Directory.Build.props`
-  (and the SDK in `global.json`).
 - **The bulk load problem** noted at the end of the quirks register was not checked again with
   Microsoft.Data.SqlClient.

@@ -48,7 +48,7 @@ Contents:
 FastSql.slnx                                 the solution (FastSql.sln before phase 1)
 Directory.Build.props                        settings of all projects (target framework, authors)
 Directory.Packages.props                     every package version (central package management)
-global.json                                  .NET 10 SDK; test runner = Microsoft Testing Platform
+global.json                                  .NET 11 SDK; test runner = Microsoft Testing Platform
 .github/workflows/tests.yml                  CI
 tests/
   Directory.Build.props                      shared settings and packages for test projects only
@@ -594,7 +594,7 @@ Workflow `.github/workflows/tests.yml`:
 
 - Triggers: pull requests into `modernization` and `master`, pushes to them, manual run.
 - Concurrency group per branch, cancelling superseded runs.
-- Jobs on `ubuntu-latest` with .NET 10 (`actions/setup-dotnet`) and a NuGet cache:
+- Jobs on `ubuntu-latest` with a NuGet cache and, through `actions/setup-dotnet`, the .NET 11 SDK of `global.json` plus the .NET 10 runtime for the `net10.0` tests:
   - **build**: builds the whole solution (`FastSql.slnx`, so build breaks in Examples are caught too).
   - **unit**: `dotnet test` on the unit project with coverage.
   - **integration**: `dotnet test` on the integration project with coverage (Docker is preinstalled; images are pulled on first use, about one minute).
