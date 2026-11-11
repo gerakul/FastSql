@@ -1,51 +1,50 @@
-﻿namespace Gerakul.FastSql.Common
+﻿namespace Gerakul.FastSql.Common;
+
+public class QueryOptions
 {
-    public class QueryOptions
+    private static readonly QueryOptions defaultOptions = new QueryOptions(true);
+
+    public int? CommandTimeoutSeconds { get; set; }
+    public bool? CaseSensitiveParamsMatching { get; set; }
+
+    protected virtual QueryOptions Default => defaultOptions;
+
+    public QueryOptions(int? commandTimeoutSeconds = null, bool? caseSensitiveParamsMatching = null)
     {
-        private static readonly QueryOptions defaultOptions = new QueryOptions(true);
+        this.CommandTimeoutSeconds = commandTimeoutSeconds;
+        this.CaseSensitiveParamsMatching = caseSensitiveParamsMatching;
+    }
 
-        public int? CommandTimeoutSeconds { get; set; }
-        public bool? CaseSensitiveParamsMatching { get; set; }
-
-        protected virtual QueryOptions Default => defaultOptions;
-
-        public QueryOptions(int? commandTimeoutSeconds = null, bool? caseSensitiveParamsMatching = null)
+    protected QueryOptions(bool defaultOptions)
+    {
+        if (defaultOptions)
         {
-            this.CommandTimeoutSeconds = commandTimeoutSeconds;
-            this.CaseSensitiveParamsMatching = caseSensitiveParamsMatching;
+            this.CommandTimeoutSeconds = null;
+            this.CaseSensitiveParamsMatching = false;
         }
+    }
 
-        protected QueryOptions(bool defaultOptions)
-        {
-            if (defaultOptions)
-            {
-                this.CommandTimeoutSeconds = null;
-                this.CaseSensitiveParamsMatching = false;
-            }
-        }
+    protected QueryOptions(QueryOptions queryOptions)
+    {
+        this.CommandTimeoutSeconds = queryOptions.CommandTimeoutSeconds;
+        this.CaseSensitiveParamsMatching = queryOptions.CaseSensitiveParamsMatching;
+    }
 
-        protected QueryOptions(QueryOptions queryOptions)
-        {
-            this.CommandTimeoutSeconds = queryOptions.CommandTimeoutSeconds;
-            this.CaseSensitiveParamsMatching = queryOptions.CaseSensitiveParamsMatching;
-        }
+    protected internal virtual QueryOptions SetDefaults(QueryOptions defaultOptions)
+    {
+        CommandTimeoutSeconds ??= defaultOptions.CommandTimeoutSeconds;
+        CaseSensitiveParamsMatching ??= defaultOptions.CaseSensitiveParamsMatching;
 
-        protected internal virtual QueryOptions SetDefaults(QueryOptions defaultOptions)
-        {
-            CommandTimeoutSeconds ??= defaultOptions.CommandTimeoutSeconds;
-            CaseSensitiveParamsMatching ??= defaultOptions.CaseSensitiveParamsMatching;
+        return this;
+    }
 
-            return this;
-        }
+    protected internal virtual QueryOptions SetDefaults()
+    {
+        return SetDefaults(Default);
+    }
 
-        protected internal virtual QueryOptions SetDefaults()
-        {
-            return SetDefaults(Default);
-        }
-
-        public virtual QueryOptions Clone()
-        {
-            return new QueryOptions(this);
-        }
+    public virtual QueryOptions Clone()
+    {
+        return new QueryOptions(this);
     }
 }

@@ -1,13 +1,9 @@
-﻿
-namespace Gerakul.FastSql.Common
+﻿namespace Gerakul.FastSql.Common;
+
+public enum FieldsSelector
 {
-    public enum FieldsSelector
-    {
-        Source = 1,
-        Destination = 2,
-        Common = 3,
-        Both = 4
-    }
+    Source = 1,
+    Destination = 2,
+    Common = 3,
+    Both = 4
 }
-
-

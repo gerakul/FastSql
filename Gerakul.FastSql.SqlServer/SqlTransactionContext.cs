@@ -2,25 +2,24 @@
 using Microsoft.Data.SqlClient;
 using System.Data.Common;
 
-namespace Gerakul.FastSql.SqlServer
+namespace Gerakul.FastSql.SqlServer;
+
+public class SqlTransactionContext : TransactionContext, ISqlCommandCreator
 {
-    public class SqlTransactionContext : TransactionContext, ISqlCommandCreator
+    public SqlTransactionContext(SqlContextProvider contextProvider, SqlTransaction transaction)
+        : this(contextProvider, transaction,
+              contextProvider.QueryOptions, contextProvider.BulkOptions, contextProvider.ReadOptions)
     {
-        public SqlTransactionContext(SqlContextProvider contextProvider, SqlTransaction transaction)
-            : this(contextProvider, transaction,
-                  contextProvider.QueryOptions, contextProvider.BulkOptions, contextProvider.ReadOptions)
-        {
-        }
+    }
 
-        protected internal SqlTransactionContext(ContextProvider contextProvider, SqlTransaction transaction,
-            QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
-            : base(contextProvider, transaction, queryOptions, bulkOptions, readOptions)
-        {
-        }
+    protected internal SqlTransactionContext(ContextProvider contextProvider, SqlTransaction transaction,
+        QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
+        : base(contextProvider, transaction, queryOptions, bulkOptions, readOptions)
+    {
+    }
 
-        public override DbCommand CreateCommand(string commandText)
-        {
-            return new SqlCommand(commandText, (SqlConnection?)Transaction.Connection, (SqlTransaction)Transaction);
-        }
+    public override DbCommand CreateCommand(string commandText)
+    {
+        return new SqlCommand(commandText, (SqlConnection?)Transaction.Connection, (SqlTransaction)Transaction);
     }
 }

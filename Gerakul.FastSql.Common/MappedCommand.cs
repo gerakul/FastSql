@@ -1,94 +1,90 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
+﻿using System.Data;
 using System.Data.Common;
-using System.Linq;
 
-namespace Gerakul.FastSql.Common
+namespace Gerakul.FastSql.Common;
+
+public class MappedCommand<T>
 {
-    public class MappedCommand<T>
+    private readonly record struct ParMap(string ParameterName, FieldSettings<T> Settings);
+
+    private readonly ContextProvider contextProvider;
+    private readonly ParMap[] map;
+
+    public string CommandText { get; }
+    public CommandType CommandType { get; }
+
+    internal MappedCommand(ContextProvider contextProvider, string commandText, IList<string>? parameters,
+        IList<FieldSettings<T>> settings, bool caseSensitiveParamsMatching, CommandType commandType = CommandType.Text)
     {
-        private readonly record struct ParMap(string ParameterName, FieldSettings<T> Settings);
+        this.contextProvider = contextProvider;
+        this.CommandText = commandText;
+        this.CommandType = commandType;
 
-        private readonly ContextProvider contextProvider;
-        private readonly ParMap[] map;
+        // the checks below treat a missing list as an empty one
+        parameters ??= Array.Empty<string>();
 
-        public string CommandText { get; }
-        public CommandType CommandType { get; }
+        var comparer = caseSensitiveParamsMatching ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
 
-        internal MappedCommand(ContextProvider contextProvider, string commandText, IList<string>? parameters,
-            IList<FieldSettings<T>> settings, bool caseSensitiveParamsMatching, CommandType commandType = CommandType.Text)
+        if (parameters.GroupBy(x => contextProvider.GetSqlParameterName(x), comparer).Any(x => x.Count() > 1))
         {
-            this.contextProvider = contextProvider;
-            this.CommandText = commandText;
-            this.CommandType = commandType;
+            throw new ArgumentException("Parameter names has been duplicated");
+        }
 
-            // the checks below treat a missing list as an empty one
-            parameters ??= Array.Empty<string>();
+        if (settings.GroupBy(x => x.Name, comparer).Any(x => x.Count() > 1))
+        {
+            throw new ArgumentException("Setting names has been duplicated");
+        }
 
-            var comparer = caseSensitiveParamsMatching ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
+        map = parameters
+          .Join(settings,
+            x => contextProvider.GetSqlParameterName(x),
+            x => x.Name,
+            (x, y) => new ParMap(x, y),
+            comparer).ToArray();
 
-            if (parameters.GroupBy(x => contextProvider.GetSqlParameterName(x), comparer).Any(x => x.Count() > 1))
+        if (map.Length < parameters.Count)
+        {
+            throw new ArgumentException("Not all parameters has been mapped on settings", nameof(parameters));
+        }
+    }
+
+    internal DbCommand Create(ScopedContext scopedContext, T value, QueryOptions? queryOptions)
+    {
+        if (scopedContext.ContextProvider != contextProvider)
+        {
+            throw new ArgumentException($"{nameof(scopedContext.ContextProvider)} presented in received {nameof(ScopedContext)} does not match "
+                + $"stored in given {nameof(MappedCommand<T>)}",
+                nameof(scopedContext));
+        }
+
+        var cmd = scopedContext.CreateCommand(CommandText);
+        cmd.CommandType = CommandType;
+
+        foreach (var m in map)
+        {
+            object? paramValue;
+            if (m.Settings.DetermineNullByValue)
             {
-                throw new ArgumentException("Parameter names has been duplicated");
+                var val = m.Settings.Getter(value);
+                paramValue = val == null ? contextProvider.GetDbNull(m.Settings.FieldType) : val;
+            }
+            else
+            {
+                paramValue = m.Settings.IsNullGetter(value) ? contextProvider.GetDbNull(m.Settings.FieldType) : m.Settings.Getter(value);
             }
 
-            if (settings.GroupBy(x => x.Name, comparer).Any(x => x.Count() > 1))
+            if (paramValue is DbParameter parameter)
             {
-                throw new ArgumentException("Setting names has been duplicated");
+                cmd.Parameters.Add(parameter);
             }
-
-            map = parameters
-              .Join(settings,
-                x => contextProvider.GetSqlParameterName(x),
-                x => x.Name,
-                (x, y) => new ParMap(x, y),
-                comparer).ToArray();
-
-            if (map.Length < parameters.Count)
+            else
             {
-                throw new ArgumentException("Not all parameters has been mapped on settings", nameof(parameters));
+                contextProvider.AddParamWithValue(cmd, m.ParameterName, paramValue);
             }
         }
 
-        internal DbCommand Create(ScopedContext scopedContext, T value, QueryOptions? queryOptions)
-        {
-            if (scopedContext.ContextProvider != contextProvider)
-            {
-                throw new ArgumentException($"{nameof(scopedContext.ContextProvider)} presented in received {nameof(ScopedContext)} does not match "
-                    + $"stored in given {nameof(MappedCommand<T>)}",
-                    nameof(scopedContext));
-            }
+        contextProvider.ApplyQueryOptions(cmd, scopedContext.PrepareQueryOptions(queryOptions));
 
-            var cmd = scopedContext.CreateCommand(CommandText);
-            cmd.CommandType = CommandType;
-
-            foreach (var m in map)
-            {
-                object? paramValue;
-                if (m.Settings.DetermineNullByValue)
-                {
-                    var val = m.Settings.Getter(value);
-                    paramValue = val == null ? contextProvider.GetDbNull(m.Settings.FieldType) : val;
-                }
-                else
-                {
-                    paramValue = m.Settings.IsNullGetter(value) ? contextProvider.GetDbNull(m.Settings.FieldType) : m.Settings.Getter(value);
-                }
-
-                if (paramValue is DbParameter parameter)
-                {
-                    cmd.Parameters.Add(parameter);
-                }
-                else
-                {
-                    contextProvider.AddParamWithValue(cmd, m.ParameterName, paramValue);
-                }
-            }
-
-            contextProvider.ApplyQueryOptions(cmd, scopedContext.PrepareQueryOptions(queryOptions));
-
-            return cmd;
-        }
+        return cmd;
     }
 }

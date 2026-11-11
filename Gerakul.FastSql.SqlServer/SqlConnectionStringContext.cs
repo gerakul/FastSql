@@ -2,25 +2,24 @@
 using Microsoft.Data.SqlClient;
 using System.Data.Common;
 
-namespace Gerakul.FastSql.SqlServer
+namespace Gerakul.FastSql.SqlServer;
+
+public class SqlConnectionStringContext : ConnectionStringContext, ISqlCommandCreator
 {
-    public class SqlConnectionStringContext : ConnectionStringContext, ISqlCommandCreator
+    public SqlConnectionStringContext(SqlContextProvider contextProvider, string connectionString)
+        : this(contextProvider, connectionString,
+              contextProvider.QueryOptions, contextProvider.BulkOptions, contextProvider.ReadOptions)
     {
-        public SqlConnectionStringContext(SqlContextProvider contextProvider, string connectionString)
-            : this(contextProvider, connectionString,
-                  contextProvider.QueryOptions, contextProvider.BulkOptions, contextProvider.ReadOptions)
-        {
-        }
+    }
 
-        protected internal SqlConnectionStringContext(ContextProvider contextProvider, string connectionString,
-            QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
-            : base(contextProvider, connectionString, queryOptions, bulkOptions, readOptions)
-        {
-        }
+    protected internal SqlConnectionStringContext(ContextProvider contextProvider, string connectionString,
+        QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
+        : base(contextProvider, connectionString, queryOptions, bulkOptions, readOptions)
+    {
+    }
 
-        protected override DbConnection CreateConnection()
-        {
-            return new SqlConnection(ConnectionString);
-        }
+    protected override DbConnection CreateConnection()
+    {
+        return new SqlConnection(ConnectionString);
     }
 }

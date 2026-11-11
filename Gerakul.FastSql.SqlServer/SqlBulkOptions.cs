@@ -1,87 +1,86 @@
 ﻿using Gerakul.FastSql.Common;
 using Microsoft.Data.SqlClient;
 
-namespace Gerakul.FastSql.SqlServer
+namespace Gerakul.FastSql.SqlServer;
+
+public class SqlBulkOptions : BulkOptions
 {
-    public class SqlBulkOptions : BulkOptions
+    private static readonly SqlBulkOptions defaultOptions = new SqlBulkOptions(true);
+
+    public int? BatchSize { get; set; }
+    public int? BulkCopyTimeout { get; set; }
+    public SqlBulkCopyOptions? SqlBulkCopyOptions { get; set; }
+    public bool? EnableStreaming { get; set; }
+    public ColumnDefinitionOptions? ColumnDefinitionOptions { get; set; }
+
+    protected override BulkOptions Default => defaultOptions;
+
+    public SqlBulkOptions(int? batchSize = null, int? bulkCopyTimeout = null, SqlBulkCopyOptions? sqlBulkCopyOptions = null,
+      FieldsSelector? fieldsSelector = null, bool? caseSensitiveFieldsMatching = null, bool? enableStreaming = null,
+      bool? createTable = null, ColumnDefinitionOptions? columnDefinitionOptions = null, bool? ignoreDataReaderSchemaTable = null,
+      bool? checkTableIfNotExistsBeforeCreation = null)
+        : base(fieldsSelector, caseSensitiveFieldsMatching, createTable, ignoreDataReaderSchemaTable, checkTableIfNotExistsBeforeCreation)
     {
-        private static readonly SqlBulkOptions defaultOptions = new SqlBulkOptions(true);
+        this.BatchSize = batchSize;
+        this.BulkCopyTimeout = bulkCopyTimeout;
+        this.SqlBulkCopyOptions = sqlBulkCopyOptions;
+        this.EnableStreaming = enableStreaming;
+        this.ColumnDefinitionOptions = columnDefinitionOptions;
+    }
 
-        public int? BatchSize { get; set; }
-        public int? BulkCopyTimeout { get; set; }
-        public SqlBulkCopyOptions? SqlBulkCopyOptions { get; set; }
-        public bool? EnableStreaming { get; set; }
-        public ColumnDefinitionOptions? ColumnDefinitionOptions { get; set; }
-
-        protected override BulkOptions Default => defaultOptions;
-
-        public SqlBulkOptions(int? batchSize = null, int? bulkCopyTimeout = null, SqlBulkCopyOptions? sqlBulkCopyOptions = null,
-          FieldsSelector? fieldsSelector = null, bool? caseSensitiveFieldsMatching = null, bool? enableStreaming = null,
-          bool? createTable = null, ColumnDefinitionOptions? columnDefinitionOptions = null, bool? ignoreDataReaderSchemaTable = null,
-          bool? checkTableIfNotExistsBeforeCreation = null)
-            : base(fieldsSelector, caseSensitiveFieldsMatching, createTable, ignoreDataReaderSchemaTable, checkTableIfNotExistsBeforeCreation)
+    protected SqlBulkOptions(bool defaultOptions)
+        : base(defaultOptions)
+    {
+        if (defaultOptions)
         {
-            this.BatchSize = batchSize;
-            this.BulkCopyTimeout = bulkCopyTimeout;
-            this.SqlBulkCopyOptions = sqlBulkCopyOptions;
-            this.EnableStreaming = enableStreaming;
-            this.ColumnDefinitionOptions = columnDefinitionOptions;
+            this.BatchSize = null;
+            this.BulkCopyTimeout = null;
+            this.SqlBulkCopyOptions = Microsoft.Data.SqlClient.SqlBulkCopyOptions.Default;
+            this.EnableStreaming = null;
+            this.ColumnDefinitionOptions = ColumnDefinitionOptions.Default;
         }
+    }
 
-        protected SqlBulkOptions(bool defaultOptions)
-            : base(defaultOptions)
+    protected internal SqlBulkOptions(BulkOptions bulkOptions)
+        : base(bulkOptions)
+    {
+        if (bulkOptions is SqlBulkOptions opt)
         {
-            if (defaultOptions)
-            {
-                this.BatchSize = null;
-                this.BulkCopyTimeout = null;
-                this.SqlBulkCopyOptions = Microsoft.Data.SqlClient.SqlBulkCopyOptions.Default;
-                this.EnableStreaming = null;
-                this.ColumnDefinitionOptions = ColumnDefinitionOptions.Default;
-            }
+            this.BatchSize = opt.BatchSize;
+            this.BulkCopyTimeout = opt.BulkCopyTimeout;
+            this.SqlBulkCopyOptions = opt.SqlBulkCopyOptions;
+            this.EnableStreaming = opt.EnableStreaming;
+            this.ColumnDefinitionOptions = opt.ColumnDefinitionOptions;
         }
-
-        protected internal SqlBulkOptions(BulkOptions bulkOptions)
-            : base(bulkOptions)
+        else
         {
-            if (bulkOptions is SqlBulkOptions opt)
-            {
-                this.BatchSize = opt.BatchSize;
-                this.BulkCopyTimeout = opt.BulkCopyTimeout;
-                this.SqlBulkCopyOptions = opt.SqlBulkCopyOptions;
-                this.EnableStreaming = opt.EnableStreaming;
-                this.ColumnDefinitionOptions = opt.ColumnDefinitionOptions;
-            }
-            else
-            {
-                this.BatchSize = null;
-                this.BulkCopyTimeout = null;
-                this.SqlBulkCopyOptions = null;
-                this.EnableStreaming = null;
-                this.ColumnDefinitionOptions = null;
-            }
+            this.BatchSize = null;
+            this.BulkCopyTimeout = null;
+            this.SqlBulkCopyOptions = null;
+            this.EnableStreaming = null;
+            this.ColumnDefinitionOptions = null;
         }
+    }
 
-        protected override BulkOptions SetDefaults(BulkOptions defaultOptions)
+    protected override BulkOptions SetDefaults(BulkOptions defaultOptions)
+    {
+        base.SetDefaults(defaultOptions);
+        if (defaultOptions is not SqlBulkOptions opt)
         {
-            base.SetDefaults(defaultOptions);
-            if (defaultOptions is not SqlBulkOptions opt)
-            {
-                return this;
-            }
-
-            BatchSize ??= opt.BatchSize;
-            BulkCopyTimeout ??= opt.BulkCopyTimeout;
-            SqlBulkCopyOptions ??= opt.SqlBulkCopyOptions;
-            EnableStreaming ??= opt.EnableStreaming;
-            ColumnDefinitionOptions ??= opt.ColumnDefinitionOptions?.Clone();
-
             return this;
         }
 
-        public override BulkOptions Clone()
-        {
-            return new SqlBulkOptions(this);
-        }
+        BatchSize ??= opt.BatchSize;
+        BulkCopyTimeout ??= opt.BulkCopyTimeout;
+        SqlBulkCopyOptions ??= opt.SqlBulkCopyOptions;
+        EnableStreaming ??= opt.EnableStreaming;
+        ColumnDefinitionOptions ??= opt.ColumnDefinitionOptions?.Clone();
+
+        return this;
+    }
+
+    public override BulkOptions Clone()
+    {
+        return new SqlBulkOptions(this);
     }
 }

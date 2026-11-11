@@ -1,8 +1,7 @@
 ﻿using Gerakul.FastSql.Common;
 
-namespace Gerakul.FastSql.SqlServer
+namespace Gerakul.FastSql.SqlServer;
+
+public interface ISqlCommandCreator : ICommandCreator
 {
-    public interface ISqlCommandCreator : ICommandCreator
-    {
-    }
 }
