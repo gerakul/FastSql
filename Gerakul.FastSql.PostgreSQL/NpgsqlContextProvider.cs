@@ -9,7 +9,7 @@ using System.Text.RegularExpressions;
 
 namespace Gerakul.FastSql.PostgreSQL
 {
-    public class NpgsqlContextProvider : ContextProvider
+    public partial class NpgsqlContextProvider : ContextProvider
     {
         public static NpgsqlContextProvider DefaultInstance { get; } = new NpgsqlContextProvider();
 
@@ -61,11 +61,14 @@ namespace Gerakul.FastSql.PostgreSQL
             return name[0] == '@' ? name.Substring(1) : name;
         }
 
-        private static Regex regName = new Regex("(([^@]@)|(^@))(?<Name>([a-z]|[A-Z]|[0-9]|[$#_])+)", RegexOptions.Multiline);
+        // generated at compile time
+        [GeneratedRegex("(([^@]@)|(^@))(?<Name>([a-z]|[A-Z]|[0-9]|[$#_])+)", RegexOptions.Multiline)]
+        private static partial Regex ParameterNameRegex();
+
         protected override string[] ParamsFromCommandText(string commandText)
         {
-            return regName.Matches(RemoveLiteralsAndComments(commandText)).Cast<Match>()
-              .Select(x => "@" + x.Groups["Name"].ToString())
+            return ParameterNameRegex().Matches(RemoveLiteralsAndComments(commandText))
+              .Select(x => "@" + x.Groups["Name"].Value)
               .Distinct().ToArray();
         }
 

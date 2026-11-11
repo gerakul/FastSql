@@ -16,7 +16,7 @@ namespace Gerakul.FastSql.PostgreSQL
             {
                 var sqlReader = (DbDataReader)reader;
                 var schema = sqlReader.GetColumnSchema();
-                var optionKeys = options?.PrimaryKey?.ToArray() ?? new string[0];
+                var optionKeys = options?.PrimaryKey?.ToArray() ?? [];
 
                 foreach (var row in schema)
                 {

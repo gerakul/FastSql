@@ -21,7 +21,7 @@ namespace Gerakul.FastSql.SqlServer
             var names = settings.Select(x => x.Name).ToArray();
 
             // ignored names match members case-insensitively and an exact match wins, as in CommandCompilator
-            var ignored = (ignoreFields ?? new string[0])
+            var ignored = (ignoreFields ?? [])
                 .Select(x => names.Contains(x) ? x : names.FirstOrDefault(y => string.Equals(y, x, StringComparison.OrdinalIgnoreCase)) ?? x);
             var fields = names.Except(ignored).ToArray();
             string query = ((SqlCommandTextGenerator)provider.CommandTextGenerator).InsertAndGetID(tableName, fields);

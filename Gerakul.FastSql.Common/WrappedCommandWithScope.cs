@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Gerakul.FastSql.Common
 {
-    internal class WrappedCommandWithScope : ICommandCreator, IWrappedCommand
+    internal sealed class WrappedCommandWithScope : ICommandCreator, IWrappedCommand
     {
         private ScopedContext scopedContext;
         private DbCommand command;

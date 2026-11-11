@@ -136,7 +136,7 @@ namespace Gerakul.FastSql.Common
         public MappedCommand<T> CompileInsertWithOutput<T>(string tableName, IList<FieldSettings<T>> settings,
             IList<string> ignoreFields, params string[] outputFields)
         {
-            var ignFields = ignoreFields?.ToArray() ?? new string[0];
+            var ignFields = ignoreFields?.ToArray() ?? [];
 
             if (outputFields.Length == 0)
             {
@@ -169,7 +169,7 @@ namespace Gerakul.FastSql.Common
 
         public MappedCommand<T> CompileUpdate<T>(string tableName, IList<FieldSettings<T>> settings, params string[] keyFields)
         {
-            return CompileUpdate(tableName, settings, keyFields, new List<string>());
+            return CompileUpdate(tableName, settings, keyFields, Array.Empty<string>());
         }
 
         public MappedCommand<T> CompileUpdate<T>(string tableName, FromTypeOption fromTypeOption, IList<string> keyFields, IList<string> notKeyIgnoreFields)
@@ -179,7 +179,7 @@ namespace Gerakul.FastSql.Common
 
         public MappedCommand<T> CompileUpdate<T>(string tableName, FromTypeOption fromTypeOption, params string[] keyFields)
         {
-            return CompileUpdate(tableName, FieldSettings.FromType<T>(fromTypeOption), keyFields, new List<string>());
+            return CompileUpdate(tableName, FieldSettings.FromType<T>(fromTypeOption), keyFields, Array.Empty<string>());
         }
 
         public MappedCommand<T> CompileUpdate<T>(string tableName, IList<string> keyFields, IList<string> notKeyIgnoreFields)
@@ -189,7 +189,7 @@ namespace Gerakul.FastSql.Common
 
         public MappedCommand<T> CompileUpdate<T>(string tableName, params string[] keyFields)
         {
-            return CompileUpdate(tableName, FieldSettings.FromType<T>(), keyFields, new List<string>());
+            return CompileUpdate(tableName, FieldSettings.FromType<T>(), keyFields, Array.Empty<string>());
         }
 
         public MappedCommand<T> CompileUpdate<T>(T proto, string tableName, FromTypeOption fromTypeOption, IList<string> keyFields, IList<string> notKeyIgnoreFields)
@@ -199,7 +199,7 @@ namespace Gerakul.FastSql.Common
 
         public MappedCommand<T> CompileUpdate<T>(T proto, string tableName, FromTypeOption fromTypeOption, params string[] keyFields)
         {
-            return CompileUpdate(tableName, FieldSettings.FromType(proto, fromTypeOption), keyFields, new List<string>());
+            return CompileUpdate(tableName, FieldSettings.FromType(proto, fromTypeOption), keyFields, Array.Empty<string>());
         }
 
         public MappedCommand<T> CompileUpdate<T>(T proto, string tableName, IList<string> keyFields, IList<string> notKeyIgnoreFields)
@@ -209,7 +209,7 @@ namespace Gerakul.FastSql.Common
 
         public MappedCommand<T> CompileUpdate<T>(T proto, string tableName, params string[] keyFields)
         {
-            return CompileUpdate(tableName, FieldSettings.FromType(proto), keyFields, new List<string>());
+            return CompileUpdate(tableName, FieldSettings.FromType(proto), keyFields, Array.Empty<string>());
         }
 
         #endregion
@@ -259,7 +259,7 @@ namespace Gerakul.FastSql.Common
 
         public MappedCommand<T> CompileMerge<T>(string tableName, IList<FieldSettings<T>> settings, params string[] keyFields)
         {
-            return CompileMerge(tableName, settings, keyFields, new List<string>());
+            return CompileMerge(tableName, settings, keyFields, Array.Empty<string>());
         }
 
         public MappedCommand<T> CompileMerge<T>(string tableName, FromTypeOption fromTypeOption, IList<string> keyFields, IList<string> notKeyIgnoreFields)
@@ -269,7 +269,7 @@ namespace Gerakul.FastSql.Common
 
         public MappedCommand<T> CompileMerge<T>(string tableName, FromTypeOption fromTypeOption, params string[] keyFields)
         {
-            return CompileMerge(tableName, FieldSettings.FromType<T>(fromTypeOption), keyFields, new List<string>());
+            return CompileMerge(tableName, FieldSettings.FromType<T>(fromTypeOption), keyFields, Array.Empty<string>());
         }
 
         public MappedCommand<T> CompileMerge<T>(string tableName, IList<string> keyFields, IList<string> notKeyIgnoreFields)
@@ -279,7 +279,7 @@ namespace Gerakul.FastSql.Common
 
         public MappedCommand<T> CompileMerge<T>(string tableName, params string[] keyFields)
         {
-            return CompileMerge(tableName, FieldSettings.FromType<T>(), keyFields, new List<string>());
+            return CompileMerge(tableName, FieldSettings.FromType<T>(), keyFields, Array.Empty<string>());
         }
 
         public MappedCommand<T> CompileMerge<T>(T proto, string tableName, FromTypeOption fromTypeOption, IList<string> keyFields, IList<string> notKeyIgnoreFields)
@@ -289,7 +289,7 @@ namespace Gerakul.FastSql.Common
 
         public MappedCommand<T> CompileMerge<T>(T proto, string tableName, FromTypeOption fromTypeOption, params string[] keyFields)
         {
-            return CompileMerge(tableName, FieldSettings.FromType(proto, fromTypeOption), keyFields, new List<string>());
+            return CompileMerge(tableName, FieldSettings.FromType(proto, fromTypeOption), keyFields, Array.Empty<string>());
         }
 
         public MappedCommand<T> CompileMerge<T>(T proto, string tableName, IList<string> keyFields, IList<string> notKeyIgnoreFields)
@@ -299,7 +299,7 @@ namespace Gerakul.FastSql.Common
 
         public MappedCommand<T> CompileMerge<T>(T proto, string tableName, params string[] keyFields)
         {
-            return CompileMerge(tableName, FieldSettings.FromType(proto), keyFields, new List<string>());
+            return CompileMerge(tableName, FieldSettings.FromType(proto), keyFields, Array.Empty<string>());
         }
 
         #endregion
@@ -312,7 +312,7 @@ namespace Gerakul.FastSql.Common
         // an exact match wins, and the generated text gets the member's spelling; unknown names are kept as given
         private static string[] ToMemberNames<T>(IEnumerable<string> names, IList<FieldSettings<T>> settings)
         {
-            return (names ?? new string[0])
+            return (names ?? [])
                 .Select(x => settings.Any(y => y.Name == x)
                     ? x
                     : settings.FirstOrDefault(y => string.Equals(y.Name, x, StringComparison.OrdinalIgnoreCase))?.Name ?? x)

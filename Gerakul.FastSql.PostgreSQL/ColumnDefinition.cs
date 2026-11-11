@@ -6,7 +6,7 @@ using System.Linq;
 namespace Gerakul.FastSql.PostgreSQL
 {
     // ::: temporary internal
-    internal class ColumnDefinition
+    internal sealed class ColumnDefinition
     {
         public string Name { get; set; }
         public string TypeName { get; set; }

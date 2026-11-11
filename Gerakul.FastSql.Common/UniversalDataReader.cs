@@ -63,7 +63,7 @@ namespace Gerakul.FastSql.Common
             this.dataTypeNames = new string[this.fieldCount];
             this.types = new Type[this.fieldCount];
             this.names = new string[this.fieldCount];
-            this.ordinals = new Dictionary<string, int>();
+            this.ordinals = new Dictionary<string, int>(caseSensitive ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase);
 
             for (int i = 0; i < settings.Length; i++)
             {
@@ -72,7 +72,7 @@ namespace Gerakul.FastSql.Common
                 this.dataTypeNames[i] = settings[i].DataTypeName;
                 this.types[i] = settings[i].FieldType;
                 this.names[i] = settings[i].Name;
-                this.ordinals.Add(caseSensitive ? settings[i].Name : settings[i].Name.ToLowerInvariant(), i);
+                this.ordinals.Add(settings[i].Name, i);
             }
         }
 
@@ -99,6 +99,23 @@ namespace Gerakul.FastSql.Common
                     asyncEnumerator?.DisposeAsync().AsTask().GetAwaiter().GetResult();
                 }
             }
+        }
+
+        // disposes an async source without blocking on it, unlike Dispose
+        public override async ValueTask DisposeAsync()
+        {
+            if (!isClosed)
+            {
+                isClosed = true;
+                enumerator?.Dispose();
+
+                if (asyncEnumerator != null)
+                {
+                    await asyncEnumerator.DisposeAsync().ConfigureAwait(false);
+                }
+            }
+
+            await base.DisposeAsync().ConfigureAwait(false);
         }
 
         public override int Depth
@@ -132,7 +149,9 @@ namespace Gerakul.FastSql.Common
 
             if (enumerator == null)
             {
-                if (asyncEnumerator.MoveNextAsync().AsTask().GetAwaiter().GetResult())
+                // a move that has already completed (buffered rows, in-memory sources) is read without a task
+                var move = asyncEnumerator.MoveNextAsync();
+                if (move.IsCompletedSuccessfully ? move.Result : move.AsTask().GetAwaiter().GetResult())
                 {
                     curRow = asyncEnumerator.Current;
                     return true;
@@ -245,7 +264,9 @@ namespace Gerakul.FastSql.Common
         public override long GetChars(int i, long fieldOffset, char[] buffer, int bufferOffset, int length)
         {
             var value = getters[i](curRow);
-            char[] chars = value is string str ? str.ToCharArray() : (char[])value;
+
+            // a string is read in place, not copied as a whole on every call
+            ReadOnlySpan<char> chars = value is string str ? str.AsSpan() : (char[])value;
 
             // without a buffer the length of the value is returned (IDataRecord contract)
             if (buffer == null)
@@ -261,7 +282,7 @@ namespace Gerakul.FastSql.Common
             int fo = checked((int)fieldOffset);
 
             int len = Math.Min(Math.Min(chars.Length - fo, buffer.Length - bufferOffset), length);
-            Array.Copy(chars, fo, buffer, bufferOffset, len);
+            chars.Slice(fo, len).CopyTo(buffer.AsSpan(bufferOffset));
 
             return len;
         }
@@ -324,7 +345,7 @@ namespace Gerakul.FastSql.Common
         public override int GetOrdinal(string name)
         {
             // IDataRecord documents IndexOutOfRangeException for an unknown name
-            if (!this.ordinals.TryGetValue(caseSensitive ? name : name.ToLowerInvariant(), out int ordinal))
+            if (!this.ordinals.TryGetValue(name, out int ordinal))
             {
                 throw new IndexOutOfRangeException($"Field '{name}' is not found");
             }

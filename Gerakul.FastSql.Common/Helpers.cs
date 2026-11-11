@@ -65,7 +65,7 @@ namespace Gerakul.FastSql.Common
                 .Select(x => x.OrderByDescending(y => GetDepth(y.DeclaringType)).First())
                 .ToArray();
 
-            fields = new FieldInfo[0];
+            fields = [];
             if ((fromTypeOption & FromTypeOption.PublicField) == FromTypeOption.PublicField)
             {
                 fields = allFields.Where(x => visible.Contains(x)).ToArray();
@@ -76,7 +76,7 @@ namespace Gerakul.FastSql.Common
                 }
             }
 
-            properties = new PropertyInfo[0];
+            properties = [];
             if ((fromTypeOption & FromTypeOption.PublicProperty) == FromTypeOption.PublicProperty)
             {
                 // reading sets the values, writing gets them

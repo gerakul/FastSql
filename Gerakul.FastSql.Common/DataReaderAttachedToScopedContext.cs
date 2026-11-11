@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace Gerakul.FastSql.Common
 {
-    internal class DataReaderAttachedToScopedContext : IBulkWriter
+    internal sealed class DataReaderAttachedToScopedContext : IBulkWriter
     {
         private DbDataReader reader;
         private ScopedContext scopedContext;

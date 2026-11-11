@@ -27,48 +27,27 @@ namespace Gerakul.FastSql.Common
             this.CommandText = commandText;
             this.CommandType = commandType;
 
-            if (parameters == null || parameters.Count == 0)
+            // the checks below treat a missing list as an empty one
+            parameters ??= Array.Empty<string>();
+
+            var comparer = caseSensitiveParamsMatching ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
+
+            if (parameters.GroupBy(x => contextProvider.GetSqlParameterName(x), comparer).Any(x => x.Count() > 1))
             {
-                map = new ParMap<T>[0];
-                parameters = new string[0]; // the checks below treat a missing list as an empty one
+                throw new ArgumentException("Parameter names has been duplicated");
             }
 
-            if (caseSensitiveParamsMatching)
+            if (settings.GroupBy(x => x.Name, comparer).Any(x => x.Count() > 1))
             {
-                if (parameters.GroupBy(x => contextProvider.GetSqlParameterName(x)).Any(x => x.Count() > 1))
-                {
-                    throw new ArgumentException("Parameter names has been duplicated");
-                }
-
-                if (settings.GroupBy(x => x.Name).Any(x => x.Count() > 1))
-                {
-                    throw new ArgumentException("Setting names has been duplicated");
-                }
-
-                map = parameters
-                  .Join(settings,
-                    x => contextProvider.GetSqlParameterName(x),
-                    x => x.Name,
-                    (x, y) => new ParMap<T>() { ParameterName = x, Settings = y }).ToArray();
+                throw new ArgumentException("Setting names has been duplicated");
             }
-            else
-            {
-                if (parameters.GroupBy(x => contextProvider.GetSqlParameterName(x).ToLowerInvariant()).Any(x => x.Count() > 1))
-                {
-                    throw new ArgumentException("Parameter names has been duplicated");
-                }
 
-                if (settings.GroupBy(x => x.Name.ToLowerInvariant()).Any(x => x.Count() > 1))
-                {
-                    throw new ArgumentException("Setting names has been duplicated");
-                }
-
-                map = parameters
-                  .Join(settings,
-                    x => contextProvider.GetSqlParameterName(x).ToLowerInvariant(),
-                    x => x.Name.ToLowerInvariant(),
-                    (x, y) => new ParMap<T>() { ParameterName = x, Settings = y }).ToArray();
-            }
+            map = parameters
+              .Join(settings,
+                x => contextProvider.GetSqlParameterName(x),
+                x => x.Name,
+                (x, y) => new ParMap<T>() { ParameterName = x, Settings = y },
+                comparer).ToArray();
 
             if (map.Length < parameters.Count)
             {

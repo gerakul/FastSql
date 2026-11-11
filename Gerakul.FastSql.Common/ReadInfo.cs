@@ -83,6 +83,11 @@ namespace Gerakul.FastSql.Common
             }
         }
 
+        private static StringComparer GetComparer(ReadOptions readOptions)
+        {
+            return readOptions.CaseSensitiveFieldsMatching.Value ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
+        }
+
         public static ReadInfoByType<T> CreateByType<T>(IDataReader reader, ReadOptions readOptions) where T : new()
         {
             ReadOptions readOpt = GetReadOptions(readOptions);
@@ -96,39 +101,20 @@ namespace Gerakul.FastSql.Common
 
             Helpers.GetMembers(typeof(T), readOpt.FromTypeOption.Value, true, out FieldInfo[] fiAll, out PropertyInfo[] piAll);
 
-            if (readOpt.CaseSensitiveFieldsMatching.Value)
-            {
-                if (readerFields.GroupBy(x => x.Name).Any(x => x.Count() > 1))
-                {
-                    throw new ArgumentException("Reader field names has been duplicated");
-                }
+            var comparer = GetComparer(readOpt);
 
-                if (piAll.Select(x => x.Name).Concat(fiAll.Select(x => x.Name)).GroupBy(x => x).Any(x => x.Count() > 1))
-                {
-                    throw new ArgumentException("Destination object field names has been duplicated");
-                }
-            }
-            else
+            if (readerFields.GroupBy(x => x.Name, comparer).Any(x => x.Count() > 1))
             {
-                if (readerFields.GroupBy(x => x.Name.ToLowerInvariant()).Any(x => x.Count() > 1))
-                {
-                    throw new ArgumentException("Reader field names has been duplicated");
-                }
-
-                if (piAll.Select(x => x.Name.ToLowerInvariant()).Concat(fiAll.Select(x => x.Name.ToLowerInvariant()))
-                    .GroupBy(x => x).Any(x => x.Count() > 1))
-                {
-                    throw new ArgumentException("Destination object field names has been duplicated");
-                }
+                throw new ArgumentException("Reader field names has been duplicated");
             }
 
-            var fiCommon = readOpt.CaseSensitiveFieldsMatching.Value ?
-              fiAll.Join(readerFields, x => x.Name, x => x.Name, (x, y) => new { FieldInfo = x, ReaderField = y }).ToArray() :
-              fiAll.Join(readerFields, x => x.Name.ToLowerInvariant(), x => x.Name.ToLowerInvariant(), (x, y) => new { FieldInfo = x, ReaderField = y }).ToArray();
+            if (piAll.Select(x => x.Name).Concat(fiAll.Select(x => x.Name)).GroupBy(x => x, comparer).Any(x => x.Count() > 1))
+            {
+                throw new ArgumentException("Destination object field names has been duplicated");
+            }
 
-            var piCommon = readOpt.CaseSensitiveFieldsMatching.Value ?
-              piAll.Join(readerFields, x => x.Name, x => x.Name, (x, y) => new { PropertyInfo = x, ReaderField = y }).ToArray() :
-              piAll.Join(readerFields, x => x.Name.ToLowerInvariant(), x => x.Name.ToLowerInvariant(), (x, y) => new { PropertyInfo = x, ReaderField = y }).ToArray();
+            var fiCommon = fiAll.Join(readerFields, x => x.Name, x => x.Name, (x, y) => new { FieldInfo = x, ReaderField = y }, comparer).ToArray();
+            var piCommon = piAll.Join(readerFields, x => x.Name, x => x.Name, (x, y) => new { PropertyInfo = x, ReaderField = y }, comparer).ToArray();
 
             Helpers.CheckFieldSelection(readOpt.FieldsSelector.Value, readerFields.Length, fiAll.Length + piAll.Length, fiCommon.Length + piCommon.Length);
 
@@ -208,34 +194,19 @@ namespace Gerakul.FastSql.Common
 
             ParameterInfo[] piAll = constructor.GetParameters();
 
-            if (readOpt.CaseSensitiveFieldsMatching.Value)
-            {
-                if (readerFields.GroupBy(x => x.Name).Any(x => x.Count() > 1))
-                {
-                    throw new ArgumentException("Reader field names has been duplicated");
-                }
+            var comparer = GetComparer(readOpt);
 
-                if (piAll.GroupBy(x => x.Name).Any(x => x.Count() > 1))
-                {
-                    throw new ArgumentException("Destination object field names has been duplicated");
-                }
-            }
-            else
+            if (readerFields.GroupBy(x => x.Name, comparer).Any(x => x.Count() > 1))
             {
-                if (readerFields.GroupBy(x => x.Name.ToLowerInvariant()).Any(x => x.Count() > 1))
-                {
-                    throw new ArgumentException("Reader field names has been duplicated");
-                }
-
-                if (piAll.GroupBy(x => x.Name.ToLowerInvariant()).Any(x => x.Count() > 1))
-                {
-                    throw new ArgumentException("Destination object field names has been duplicated");
-                }
+                throw new ArgumentException("Reader field names has been duplicated");
             }
 
-            var piCommon = readOpt.CaseSensitiveFieldsMatching.Value ?
-              piAll.Join(readerFields, x => x.Name, x => x.Name, (x, y) => new { ParameterInfo = x, ReaderField = y }).ToArray() :
-              piAll.Join(readerFields, x => x.Name.ToLowerInvariant(), x => x.Name.ToLowerInvariant(), (x, y) => new { ParameterInfo = x, ReaderField = y }).ToArray();
+            if (piAll.GroupBy(x => x.Name, comparer).Any(x => x.Count() > 1))
+            {
+                throw new ArgumentException("Destination object field names has been duplicated");
+            }
+
+            var piCommon = piAll.Join(readerFields, x => x.Name, x => x.Name, (x, y) => new { ParameterInfo = x, ReaderField = y }, comparer).ToArray();
 
             Helpers.CheckFieldSelection(readOpt.FieldsSelector.Value, readerFields.Length, piAll.Length, piCommon.Length);
 
@@ -294,7 +265,7 @@ namespace Gerakul.FastSql.Common
         }
     }
 
-    internal class ReadInfoByType<T> : ReadInfo<T> where T : new()
+    internal sealed class ReadInfoByType<T> : ReadInfo<T> where T : new()
     {
         public FieldInfo[] fi;
         public int[] fiInd;
@@ -327,7 +298,7 @@ namespace Gerakul.FastSql.Common
         }
     }
 
-    internal class ReadInfoObjects : ReadInfo<object[]>
+    internal sealed class ReadInfoObjects : ReadInfo<object[]>
     {
         public int Len;
 
@@ -339,7 +310,7 @@ namespace Gerakul.FastSql.Common
         }
     }
 
-    internal class ReadInfoAnonymous<T> : ReadInfo<T>
+    internal sealed class ReadInfoAnonymous<T> : ReadInfo<T>
     {
         public ConstructorInfo constructor;
         public ParameterInfo[] piAll;
@@ -362,7 +333,7 @@ namespace Gerakul.FastSql.Common
         }
     }
 
-    internal class ReadInfoFirstColumn : ReadInfo<object>
+    internal sealed class ReadInfoFirstColumn : ReadInfo<object>
     {
         public override object GetValue()
         {
@@ -370,7 +341,7 @@ namespace Gerakul.FastSql.Common
         }
     }
 
-    internal class ReadInfoFirstColumn<T> : ReadInfo<T>
+    internal sealed class ReadInfoFirstColumn<T> : ReadInfo<T>
     {
         public bool isNullable;
         public Type convertingType;
