@@ -1,5 +1,8 @@
 # Modernization plan (phase 3)
 
+Status: implemented; what changed, the behavior changes and the benchmark results are in
+[modernization-notes.md](modernization-notes.md).
+
 FastSql was written for `netstandard1.3` / `net46` and C# 7. Phase 1 moved it to `net10.0` and phase 2
 fixed its bugs, but the code still looks like it did in 2018. This phase brings in the C# and .NET features
 that did not exist then, where they make the code simpler, safer or faster.
