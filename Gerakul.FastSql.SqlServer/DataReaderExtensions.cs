@@ -13,9 +13,8 @@ namespace Gerakul.FastSql.SqlServer
     {
         public static IEnumerable<ColumnDefinition> GetColumnDefinitions(this IDataReader reader, ColumnDefinitionOptions options = null, bool ignoreSchemaTable = false)
         {
-            if (reader is DbDataReader && !ignoreSchemaTable && HasSchemaTable(reader))
+            if (reader is DbDataReader sqlReader && !ignoreSchemaTable && HasSchemaTable(reader))
             {
-                var sqlReader = (DbDataReader)reader;
                 var schema = sqlReader.GetColumnSchema();
                 var optionKeys = options?.PrimaryKey?.ToArray() ?? [];
 

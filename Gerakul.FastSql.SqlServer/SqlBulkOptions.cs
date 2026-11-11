@@ -65,35 +65,16 @@ namespace Gerakul.FastSql.SqlServer
         protected override BulkOptions SetDefaults(BulkOptions defaultOptions)
         {
             base.SetDefaults(defaultOptions);
-            if (!(defaultOptions is SqlBulkOptions opt))
+            if (defaultOptions is not SqlBulkOptions opt)
             {
                 return this;
             }
 
-            if (!BatchSize.HasValue)
-            {
-                BatchSize = opt.BatchSize;
-            }
-
-            if (!BulkCopyTimeout.HasValue)
-            {
-                BulkCopyTimeout = opt.BulkCopyTimeout;
-            }
-
-            if (!SqlBulkCopyOptions.HasValue)
-            {
-                SqlBulkCopyOptions = opt.SqlBulkCopyOptions;
-            }
-
-            if (!EnableStreaming.HasValue)
-            {
-                EnableStreaming = opt.EnableStreaming;
-            }
-
-            if (ColumnDefinitionOptions == null)
-            {
-                ColumnDefinitionOptions = opt.ColumnDefinitionOptions?.Clone();
-            }
+            BatchSize ??= opt.BatchSize;
+            BulkCopyTimeout ??= opt.BulkCopyTimeout;
+            SqlBulkCopyOptions ??= opt.SqlBulkCopyOptions;
+            EnableStreaming ??= opt.EnableStreaming;
+            ColumnDefinitionOptions ??= opt.ColumnDefinitionOptions?.Clone();
 
             return this;
         }

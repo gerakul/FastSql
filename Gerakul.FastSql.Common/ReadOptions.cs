@@ -34,20 +34,9 @@
 
         internal ReadOptions SetDefaults(ReadOptions defaultOptions)
         {
-            if (!FieldsSelector.HasValue)
-            {
-                FieldsSelector = defaultOptions.FieldsSelector;
-            }
-
-            if (!FromTypeOption.HasValue)
-            {
-                FromTypeOption = defaultOptions.FromTypeOption;
-            }
-
-            if (!CaseSensitiveFieldsMatching.HasValue)
-            {
-                CaseSensitiveFieldsMatching = defaultOptions.CaseSensitiveFieldsMatching;
-            }
+            FieldsSelector ??= defaultOptions.FieldsSelector;
+            FromTypeOption ??= defaultOptions.FromTypeOption;
+            CaseSensitiveFieldsMatching ??= defaultOptions.CaseSensitiveFieldsMatching;
 
             return this;
         }

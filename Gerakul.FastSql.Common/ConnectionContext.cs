@@ -18,20 +18,19 @@ namespace Gerakul.FastSql.Common
 
         public void UsingTransaction(IsolationLevel isolationLevel, Action<TransactionContext> action)
         {
-            using (DbTransaction tran = Connection.BeginTransaction(isolationLevel))
-            {
-                try
-                {
-                    action(ContextProvider.GetTransactionContext(tran, QueryOptions, BulkOptions, ReadOptions));
-                }
-                catch
-                {
-                    Rollback(tran);
-                    throw;
-                }
+            using DbTransaction tran = Connection.BeginTransaction(isolationLevel);
 
-                tran.Commit();
+            try
+            {
+                action(ContextProvider.GetTransactionContext(tran, QueryOptions, BulkOptions, ReadOptions));
             }
+            catch
+            {
+                Rollback(tran);
+                throw;
+            }
+
+            tran.Commit();
         }
 
         public void UsingTransaction(Action<TransactionContext> action)

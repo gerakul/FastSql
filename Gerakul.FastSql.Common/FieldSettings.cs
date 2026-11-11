@@ -7,12 +7,12 @@ namespace Gerakul.FastSql.Common
 {
     public class FieldSettings<T>
     {
-        public string Name { get; private set; }
-        public string DataTypeName { get; private set; }
-        public Type FieldType { get; private set; }
-        public Func<T, object> Getter { get; private set; }
-        public Func<T, bool> IsNullGetter { get; private set; }
-        public bool DetermineNullByValue { get; private set; }
+        public string Name { get; }
+        public string DataTypeName { get; }
+        public Type FieldType { get; }
+        public Func<T, object> Getter { get; }
+        public Func<T, bool> IsNullGetter { get; }
+        public bool DetermineNullByValue { get; }
 
         private FieldSettings(string name, string dataTypeName, Type fieldType, Func<T, object> getter, Func<T, bool> isNullGetter, bool determineNullByValue)
         {

@@ -11,35 +11,44 @@ namespace Gerakul.FastSql.Common
 {
     public class UniversalDataReader<T> : DbDataReader
     {
-        private IEnumerator<T> enumerator;
-        private IAsyncEnumerator<T> asyncEnumerator;
+        private readonly IEnumerator<T> enumerator;
+        private readonly IAsyncEnumerator<T> asyncEnumerator;
         private bool isClosed;
         private T curRow;
-        private int fieldCount;
-        private Func<T, object>[] getters;
-        private Func<T, bool>[] isNullGetters;
-        private string[] dataTypeNames;
-        private Type[] types;
-        private string[] names;
-        private Dictionary<string, int> ordinals;
+        private readonly int fieldCount;
+        private readonly Func<T, object>[] getters;
+        private readonly Func<T, bool>[] isNullGetters;
+        private readonly string[] dataTypeNames;
+        private readonly Type[] types;
+        private readonly string[] names;
+        private readonly Dictionary<string, int> ordinals;
 
-        private FieldSettings<T>[] settings;
-        private bool caseSensitive;
+        private readonly FieldSettings<T>[] settings;
 
-        public ReadOnlyCollection<FieldSettings<T>> Settings
-        {
-            get
-            {
-                return new ReadOnlyCollection<FieldSettings<T>>(settings);
-            }
-        }
+        public ReadOnlyCollection<FieldSettings<T>> Settings => new ReadOnlyCollection<FieldSettings<T>>(settings);
 
         private UniversalDataReader(IEnumerable<FieldSettings<T>> settings, bool caseSensitive)
         {
-            this.isClosed = false;
             this.settings = settings.ToArray();
-            this.caseSensitive = caseSensitive;
-            this.ApplySettings();
+            this.fieldCount = this.settings.Length;
+
+            this.getters = new Func<T, object>[this.fieldCount];
+            this.isNullGetters = new Func<T, bool>[this.fieldCount];
+            this.dataTypeNames = new string[this.fieldCount];
+            this.types = new Type[this.fieldCount];
+            this.names = new string[this.fieldCount];
+            this.ordinals = new Dictionary<string, int>(caseSensitive ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase);
+
+            for (int i = 0; i < this.fieldCount; i++)
+            {
+                var item = this.settings[i];
+                this.getters[i] = item.Getter;
+                this.isNullGetters[i] = item.IsNullGetter;
+                this.dataTypeNames[i] = item.DataTypeName;
+                this.types[i] = item.FieldType;
+                this.names[i] = item.Name;
+                this.ordinals.Add(item.Name, i);
+            }
         }
 
         public UniversalDataReader(IEnumerable<T> values, IEnumerable<FieldSettings<T>> settings, bool caseSensitive)
@@ -54,31 +63,10 @@ namespace Gerakul.FastSql.Common
             this.asyncEnumerator = values.GetAsyncEnumerator();
         }
 
-        private void ApplySettings()
-        {
-            this.fieldCount = settings.Length;
-
-            this.getters = new Func<T, object>[this.fieldCount];
-            this.isNullGetters = new Func<T, bool>[this.fieldCount];
-            this.dataTypeNames = new string[this.fieldCount];
-            this.types = new Type[this.fieldCount];
-            this.names = new string[this.fieldCount];
-            this.ordinals = new Dictionary<string, int>(caseSensitive ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase);
-
-            for (int i = 0; i < settings.Length; i++)
-            {
-                this.getters[i] = settings[i].Getter;
-                this.isNullGetters[i] = settings[i].IsNullGetter;
-                this.dataTypeNames[i] = settings[i].DataTypeName;
-                this.types[i] = settings[i].FieldType;
-                this.names[i] = settings[i].Name;
-                this.ordinals.Add(settings[i].Name, i);
-            }
-        }
-
         #region DbDataReader
 
-        public void Close()
+        // hides DbDataReader.Close instead of overriding it (Q01): closing through a DbDataReader reference does nothing
+        public new void Close()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
@@ -118,21 +106,9 @@ namespace Gerakul.FastSql.Common
             await base.DisposeAsync().ConfigureAwait(false);
         }
 
-        public override int Depth
-        {
-            get
-            {
-                return 0;
-            }
-        }
+        public override int Depth => 0;
 
-        public override bool IsClosed
-        {
-            get
-            {
-                return isClosed;
-            }
-        }
+        public override bool IsClosed => isClosed;
 
         // there is only one result set
         public override bool NextResult()
@@ -199,29 +175,11 @@ namespace Gerakul.FastSql.Common
         }
 
         // -1, as for a select statement
-        public override int RecordsAffected
-        {
-            get
-            {
-                return -1;
-            }
-        }
+        public override int RecordsAffected => -1;
 
-        public override int FieldCount
-        {
-            get
-            {
-                return fieldCount;
-            }
-        }
+        public override int FieldCount => fieldCount;
 
-        public override bool HasRows
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-        }
+        public override bool HasRows => throw new NotImplementedException();
 
         public override bool GetBoolean(int i)
         {
@@ -384,21 +342,9 @@ namespace Gerakul.FastSql.Common
             return enumerator;
         }
 
-        public override object this[string name]
-        {
-            get
-            {
-                return getters[GetOrdinal(name)](curRow);
-            }
-        }
+        public override object this[string name] => getters[GetOrdinal(name)](curRow);
 
-        public override object this[int i]
-        {
-            get
-            {
-                return getters[i](curRow);
-            }
-        }
+        public override object this[int i] => getters[i](curRow);
 
         #endregion
     }

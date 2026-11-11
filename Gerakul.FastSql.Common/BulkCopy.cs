@@ -24,7 +24,7 @@ namespace Gerakul.FastSql.Common
 
         protected internal abstract void WriteToServer();
 
-        protected internal abstract Task WriteToServerAsync(CancellationToken cancellationToken = default(CancellationToken));
+        protected internal abstract Task WriteToServerAsync(CancellationToken cancellationToken = default);
 
         protected void CheckFieldSelection(FieldsSelector fieldSelector, int sourceNum, int destinationNum, int commonNum)
         {

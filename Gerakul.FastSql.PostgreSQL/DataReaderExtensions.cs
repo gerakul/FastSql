@@ -12,9 +12,8 @@ namespace Gerakul.FastSql.PostgreSQL
     {
         public static IEnumerable<ColumnDefinition> GetColumnDefinitions(this IDataReader reader, ColumnDefinitionOptions options = null, bool ignoreSchemaTable = false)
         {
-            if (reader is DbDataReader && !ignoreSchemaTable)
+            if (reader is DbDataReader sqlReader && !ignoreSchemaTable)
             {
-                var sqlReader = (DbDataReader)reader;
                 var schema = sqlReader.GetColumnSchema();
                 var optionKeys = options?.PrimaryKey?.ToArray() ?? [];
 

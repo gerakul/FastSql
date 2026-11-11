@@ -11,45 +11,16 @@ namespace Gerakul.FastSql.SqlServer
 {
     internal sealed class MsSqlBulkCopy : BulkCopy
     {
-        private class Mapping
-        {
-            public string Source;
-            public string Destination;
-        }
+        private readonly record struct Mapping(string Source, string Destination);
 
-        private SqlConnection Connection
+        private SqlConnection Connection => context switch
         {
-            get
-            {
-                if (context is TransactionContext)
-                {
-                    return (SqlConnection)((TransactionContext)context).Transaction.Connection;
-                }
-                else if (context is ConnectionContext)
-                {
-                    return (SqlConnection)((ConnectionContext)context).Connection;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-        }
+            TransactionContext transactionContext => (SqlConnection)transactionContext.Transaction.Connection,
+            ConnectionContext connectionContext => (SqlConnection)connectionContext.Connection,
+            _ => null
+        };
 
-        private SqlTransaction Transaction
-        {
-            get
-            {
-                if (context is TransactionContext)
-                {
-                    return (SqlTransaction)((TransactionContext)context).Transaction;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-        }
+        private SqlTransaction Transaction => context is TransactionContext transactionContext ? (SqlTransaction)transactionContext.Transaction : null;
 
         private SqlBulkOptions SqlBulkOptions => (SqlBulkOptions)bulkOptions;
 
@@ -71,45 +42,44 @@ namespace Gerakul.FastSql.SqlServer
 
             if (bulkOptions.FieldsSelector.Value == FieldsSelector.Source && !bulkOptions.CaseSensitiveFieldsMatching.HasValue)
             {
-                map = sourceFields.Select(x => new Mapping() { Source = x, Destination = x }).ToArray();
+                map = sourceFields.Select(x => new Mapping(x, x)).ToArray();
             }
             else
             {
                 string[] destFields = GetTableColumns().ToArray();
 
                 var comparer = bulkOptions.CaseSensitiveFieldsMatching == true ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
-                map = sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping() { Source = x, Destination = y }, comparer).ToArray();
+                map = sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping(x, y), comparer).ToArray();
 
                 CheckFieldSelection(bulkOptions.FieldsSelector.Value, sourceFields.Length, destFields.Length, map.Length);
             }
 
             if (map.Length > 0)
             {
-                using (SqlBulkCopy bcp = new SqlBulkCopy(Connection, SqlBulkOptions.SqlBulkCopyOptions.Value, Transaction))
+                using var bcp = new SqlBulkCopy(Connection, SqlBulkOptions.SqlBulkCopyOptions.Value, Transaction);
+
+                bcp.DestinationTableName = destinationTable;
+                if (SqlBulkOptions.BatchSize.HasValue)
                 {
-                    bcp.DestinationTableName = destinationTable;
-                    if (SqlBulkOptions.BatchSize.HasValue)
-                    {
-                        bcp.BatchSize = SqlBulkOptions.BatchSize.Value;
-                    }
-
-                    if (SqlBulkOptions.BulkCopyTimeout.HasValue)
-                    {
-                        bcp.BulkCopyTimeout = SqlBulkOptions.BulkCopyTimeout.Value;
-                    }
-
-                    if (SqlBulkOptions.EnableStreaming.HasValue)
-                    {
-                        bcp.EnableStreaming = SqlBulkOptions.EnableStreaming.Value;
-                    }
-
-                    foreach (var item in map)
-                    {
-                        bcp.ColumnMappings.Add(item.Source, item.Destination);
-                    }
-
-                    bcp.WriteToServer(reader);
+                    bcp.BatchSize = SqlBulkOptions.BatchSize.Value;
                 }
+
+                if (SqlBulkOptions.BulkCopyTimeout.HasValue)
+                {
+                    bcp.BulkCopyTimeout = SqlBulkOptions.BulkCopyTimeout.Value;
+                }
+
+                if (SqlBulkOptions.EnableStreaming.HasValue)
+                {
+                    bcp.EnableStreaming = SqlBulkOptions.EnableStreaming.Value;
+                }
+
+                foreach (var item in map)
+                {
+                    bcp.ColumnMappings.Add(item.Source, item.Destination);
+                }
+
+                bcp.WriteToServer(reader);
             }
         }
 
@@ -126,45 +96,44 @@ namespace Gerakul.FastSql.SqlServer
 
             if (bulkOptions.FieldsSelector.Value == FieldsSelector.Source && !bulkOptions.CaseSensitiveFieldsMatching.HasValue)
             {
-                map = sourceFields.Select(x => new Mapping() { Source = x, Destination = x }).ToArray();
+                map = sourceFields.Select(x => new Mapping(x, x)).ToArray();
             }
             else
             {
                 string[] destFields = (await GetTableColumnsAsync(cancellationToken).ConfigureAwait(false)).ToArray();
 
                 var comparer = bulkOptions.CaseSensitiveFieldsMatching == true ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
-                map = sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping() { Source = x, Destination = y }, comparer).ToArray();
+                map = sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping(x, y), comparer).ToArray();
 
                 CheckFieldSelection(bulkOptions.FieldsSelector.Value, sourceFields.Length, destFields.Length, map.Length);
             }
 
             if (map.Length > 0)
             {
-                using (SqlBulkCopy bcp = new SqlBulkCopy(Connection, SqlBulkOptions.SqlBulkCopyOptions.Value, Transaction))
+                using var bcp = new SqlBulkCopy(Connection, SqlBulkOptions.SqlBulkCopyOptions.Value, Transaction);
+
+                bcp.DestinationTableName = destinationTable;
+                if (SqlBulkOptions.BatchSize.HasValue)
                 {
-                    bcp.DestinationTableName = destinationTable;
-                    if (SqlBulkOptions.BatchSize.HasValue)
-                    {
-                        bcp.BatchSize = SqlBulkOptions.BatchSize.Value;
-                    }
-
-                    if (SqlBulkOptions.BulkCopyTimeout.HasValue)
-                    {
-                        bcp.BulkCopyTimeout = SqlBulkOptions.BulkCopyTimeout.Value;
-                    }
-
-                    if (SqlBulkOptions.EnableStreaming.HasValue)
-                    {
-                        bcp.EnableStreaming = SqlBulkOptions.EnableStreaming.Value;
-                    }
-
-                    foreach (var item in map)
-                    {
-                        bcp.ColumnMappings.Add(item.Source, item.Destination);
-                    }
-
-                    await bcp.WriteToServerAsync(reader, cancellationToken).ConfigureAwait(false);
+                    bcp.BatchSize = SqlBulkOptions.BatchSize.Value;
                 }
+
+                if (SqlBulkOptions.BulkCopyTimeout.HasValue)
+                {
+                    bcp.BulkCopyTimeout = SqlBulkOptions.BulkCopyTimeout.Value;
+                }
+
+                if (SqlBulkOptions.EnableStreaming.HasValue)
+                {
+                    bcp.EnableStreaming = SqlBulkOptions.EnableStreaming.Value;
+                }
+
+                foreach (var item in map)
+                {
+                    bcp.ColumnMappings.Add(item.Source, item.Destination);
+                }
+
+                await bcp.WriteToServerAsync(reader, cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -195,30 +164,20 @@ namespace Gerakul.FastSql.SqlServer
 
         private IList<string> GetTableColumns()
         {
-            List<string> result = new List<string>();
-            context.CreateSimple(string.Format("select top 0 * from {0} with(nolock)", destinationTable))
-                .UseReader(r =>
-                {
-                    foreach (var item in r.GetColumnNames())
-                    {
-                        result.Add(item);
-                    }
-                });
+            var result = new List<string>();
+            context.CreateSimple($"select top 0 * from {destinationTable} with(nolock)")
+                .UseReader(r => result.AddRange(r.GetColumnNames()));
 
             return result;
         }
 
         private async Task<IList<string>> GetTableColumnsAsync(CancellationToken cancellationToken)
         {
-            List<string> result = new List<string>();
-            await context.CreateSimple(string.Format("select top 0 * from {0} with(nolock)", destinationTable))
+            var result = new List<string>();
+            await context.CreateSimple($"select top 0 * from {destinationTable} with(nolock)")
                 .UseReaderAsync(cancellationToken, r =>
                 {
-                    foreach (var item in r.GetColumnNames())
-                    {
-                        result.Add(item);
-                    }
-
+                    result.AddRange(r.GetColumnNames());
                     return Task.CompletedTask;
                 }).ConfigureAwait(false);
 

@@ -58,7 +58,7 @@ namespace Gerakul.FastSql.PostgreSQL
                 throw new ArgumentException("Parameter name is empty", nameof(name));
             }
 
-            return name[0] == '@' ? name.Substring(1) : name;
+            return name[0] == '@' ? name[1..] : name;
         }
 
         // generated at compile time

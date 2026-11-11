@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,7 +11,7 @@ namespace Gerakul.FastSql.Common
 {
     internal sealed class WrappedCommandWithContext : ICommandCreator, IWrappedCommand
     {
-        private ConnectionStringContext context;
+        private readonly ConnectionStringContext context;
         private Func<ScopedContext, DbCommand> commandGetter;
 
         internal WrappedCommandWithContext(ConnectionStringContext context)
@@ -27,6 +28,19 @@ namespace Gerakul.FastSql.Common
         }
 
         #endregion
+
+        // the connection lives as long as the enumeration
+        private IEnumerable<R> Query<R>(Func<DbCommand, IEnumerable<R>> query)
+        {
+            using var conn = context.CreateConnection();
+            conn.Open();
+            var connectionContext = context.ContextProvider.GetConnectionContext(conn, context.QueryOptions, context.BulkOptions, context.ReadOptions);
+
+            foreach (var item in query(commandGetter(connectionContext)))
+            {
+                yield return item;
+            }
+        }
 
         // the connection lives as long as the enumeration; a cancelled enumeration throws, so partial results can't pass
         // for complete ones. The enumeration's token is checked first, so a cancelled one opens no connection
@@ -62,135 +76,70 @@ namespace Gerakul.FastSql.Common
 
         public int ExecuteNonQuery()
         {
-            int result = default(int);
-            context.UsingConnection(x =>
-            {
-                result = commandGetter(x).ExecuteNonQuery();
-            });
-
-            return result;
+            return context.UsingConnection(x => commandGetter(x).ExecuteNonQuery());
         }
 
-        public async Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken = default(CancellationToken))
+        public Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken = default)
         {
-            int result = default(int);
-            await context.UsingConnectionAsync(async x =>
-            {
-                result = await commandGetter(x).ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-            }, cancellationToken).ConfigureAwait(false);
-
-            return result;
+            return context.UsingConnectionAsync(x => commandGetter(x).ExecuteNonQueryAsync(cancellationToken), cancellationToken);
         }
 
         public object ExecuteScalar()
         {
-            object result = default(object);
-            context.UsingConnection(x =>
-            {
-                result = commandGetter(x).ExecuteScalar();
-            });
-
-            return result;
+            return context.UsingConnection(x => commandGetter(x).ExecuteScalar());
         }
 
-        public async Task<object> ExecuteScalarAsync(CancellationToken cancellationToken = default(CancellationToken))
+        public Task<object> ExecuteScalarAsync(CancellationToken cancellationToken = default)
         {
-            object result = default(object);
-            await context.UsingConnectionAsync(async x =>
-            {
-                result = await commandGetter(x).ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-            }, cancellationToken).ConfigureAwait(false);
-
-            return result;
+            return context.UsingConnectionAsync(x => commandGetter(x).ExecuteScalarAsync(cancellationToken), cancellationToken);
         }
 
         public IEnumerable<object[]> ExecuteQuery()
         {
-            using (var conn = context.CreateConnection())
-            {
-                conn.Open();
-                var connectionContext = context.ContextProvider.GetConnectionContext(conn, context.QueryOptions, context.BulkOptions, context.ReadOptions);
-                foreach (var item in commandGetter(connectionContext).ExecuteQuery())
-                {
-                    yield return item;
-                }
-            }
+            return Query(x => x.ExecuteQuery());
         }
 
-        public IAsyncEnumerable<object[]> ExecuteQueryAsync(CancellationToken cancellationToken = default(CancellationToken))
+        public IAsyncEnumerable<object[]> ExecuteQueryAsync(CancellationToken cancellationToken = default)
         {
             return QueryAsync(r => ReadInfoFactory.CreateObjects(r), cancellationToken);
         }
 
         public IEnumerable<T> ExecuteQuery<T>(ReadOptions readOptions = null) where T : new()
         {
-            using (var conn = context.CreateConnection())
-            {
-                conn.Open();
-                var connectionContext = context.ContextProvider.GetConnectionContext(conn, context.QueryOptions, context.BulkOptions, context.ReadOptions);
-                foreach (var item in commandGetter(connectionContext).ExecuteQuery<T>(context.PrepareReadOptions(readOptions)))
-                {
-                    yield return item;
-                }
-            }
+            return Query(x => x.ExecuteQuery<T>(context.PrepareReadOptions(readOptions)));
         }
 
-        public IAsyncEnumerable<T> ExecuteQueryAsync<T>(ReadOptions readOptions = null, CancellationToken cancellationToken = default(CancellationToken)) where T : new()
+        public IAsyncEnumerable<T> ExecuteQueryAsync<T>(ReadOptions readOptions = null, CancellationToken cancellationToken = default) where T : new()
         {
             return QueryAsync(r => ReadInfoFactory.CreateByType<T>(r, context.PrepareReadOptions(readOptions)), cancellationToken);
         }
 
         public IEnumerable<T> ExecuteQueryAnonymous<T>(T proto, ReadOptions readOptions = null)
         {
-            using (var conn = context.CreateConnection())
-            {
-                conn.Open();
-                var connectionContext = context.ContextProvider.GetConnectionContext(conn, context.QueryOptions, context.BulkOptions, context.ReadOptions);
-                foreach (var item in commandGetter(connectionContext)
-                    .ExecuteQueryAnonymous<T>(proto, context.PrepareReadOptions(readOptions)))
-                {
-                    yield return item;
-                }
-            }
+            return Query(x => x.ExecuteQueryAnonymous(proto, context.PrepareReadOptions(readOptions)));
         }
 
-        public IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(T proto, ReadOptions readOptions = null, CancellationToken cancellationToken = default(CancellationToken))
+        public IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(T proto, ReadOptions readOptions = null, CancellationToken cancellationToken = default)
         {
             return QueryAsync(r => ReadInfoFactory.CreateAnonymous(r, proto, context.PrepareReadOptions(readOptions)), cancellationToken);
         }
 
         public IEnumerable ExecuteQueryFirstColumn()
         {
-            using (var conn = context.CreateConnection())
-            {
-                conn.Open();
-                var connectionContext = context.ContextProvider.GetConnectionContext(conn, context.QueryOptions, context.BulkOptions, context.ReadOptions);
-                foreach (var item in commandGetter(connectionContext).ExecuteQueryFirstColumn())
-                {
-                    yield return item;
-                }
-            }
+            return Query(x => x.ExecuteQueryFirstColumn().Cast<object>());
         }
 
-        public IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(CancellationToken cancellationToken = default(CancellationToken))
+        public IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(CancellationToken cancellationToken = default)
         {
             return QueryAsync(r => ReadInfoFactory.CreateFirstColumn(r), cancellationToken);
         }
 
         public IEnumerable<T> ExecuteQueryFirstColumn<T>()
         {
-            using (var conn = context.CreateConnection())
-            {
-                conn.Open();
-                var connectionContext = context.ContextProvider.GetConnectionContext(conn, context.QueryOptions, context.BulkOptions, context.ReadOptions);
-                foreach (var item in commandGetter(connectionContext).ExecuteQueryFirstColumn<T>())
-                {
-                    yield return item;
-                }
-            }
+            return Query(x => x.ExecuteQueryFirstColumn<T>());
         }
 
-        public IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(CancellationToken cancellationToken = default(CancellationToken))
+        public IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(CancellationToken cancellationToken = default)
         {
             return QueryAsync(r => ReadInfoFactory.CreateFirstColumn<T>(r), cancellationToken);
         }
@@ -199,10 +148,8 @@ namespace Gerakul.FastSql.Common
         {
             context.UsingConnection(x =>
             {
-                using (var reader = commandGetter(x).ExecuteReader())
-                {
-                    action(reader);
-                }
+                using var reader = commandGetter(x).ExecuteReader();
+                action(reader);
             });
         }
 

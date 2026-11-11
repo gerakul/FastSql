@@ -47,9 +47,9 @@ namespace Gerakul.FastSql.Common
 
         internal static Task<bool> ReadAsyncInternal(this IDataReader reader, CancellationToken cancellationToken)
         {
-            if (reader is DbDataReader)
+            if (reader is DbDataReader dbReader)
             {
-                return ((DbDataReader)reader).ReadAsync(cancellationToken);
+                return dbReader.ReadAsync(cancellationToken);
             }
 
             return Task.Run(() => reader.Read(), cancellationToken);
@@ -131,18 +131,12 @@ namespace Gerakul.FastSql.Common
 
         internal static IBulkWriter GetBulkWriter(this DbDataReader reader, DbContext context)
         {
-            if (context is ScopedContext)
+            return context switch
             {
-                return new DataReaderAttachedToScopedContext(reader, (ScopedContext)context);
-            }
-            else if (context is ConnectionStringContext)
-            {
-                return new DataReaderAttachedToConnectionStringContext(reader, (ConnectionStringContext)context);
-            }
-            else
-            {
-                throw new ArgumentException(@"Unknown type of context", nameof(context));
-            }
+                ScopedContext scopedContext => new DataReaderAttachedToScopedContext(reader, scopedContext),
+                ConnectionStringContext connectionStringContext => new DataReaderAttachedToConnectionStringContext(reader, connectionStringContext),
+                _ => throw new ArgumentException("Unknown type of context", nameof(context))
+            };
         }
 
         public static void WriteToServer(this DbDataReader reader, DbContext context, string destinationTable, BulkOptions bulkOptions, params string[] fields)

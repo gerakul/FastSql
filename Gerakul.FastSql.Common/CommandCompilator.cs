@@ -7,7 +7,7 @@ namespace Gerakul.FastSql.Common
 {
     public class CommandCompilator
     {
-        private ContextProvider contextProvider;
+        private readonly ContextProvider contextProvider;
 
         public CommandCompilator(ContextProvider contextProvider)
         {

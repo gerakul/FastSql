@@ -6,10 +6,10 @@ namespace Gerakul.FastSql.Common
 {
     public class SimpleCommand
     {
-        private ContextProvider contextProvider;
+        private readonly ContextProvider contextProvider;
 
-        public string CommandText { get; private set; }
-        public CommandType CommandType { get; private set; }
+        public string CommandText { get; }
+        public CommandType CommandType { get; }
 
         internal SimpleCommand(ContextProvider contextProvider, string commandText, 
             CommandType commandType = CommandType.Text)
@@ -39,7 +39,7 @@ namespace Gerakul.FastSql.Common
                 }
                 else
                 {
-                    contextProvider.AddParamWithValue(cmd, "@p" + i.ToString(), (object)parameters[i] ?? DBNull.Value);
+                    contextProvider.AddParamWithValue(cmd, $"@p{i}", parameters[i] ?? DBNull.Value);
                 }
             }
 

@@ -46,30 +46,11 @@
 
         protected internal virtual BulkOptions SetDefaults(BulkOptions defaultOptions)
         {
-            if (!FieldsSelector.HasValue)
-            {
-                FieldsSelector = defaultOptions.FieldsSelector;
-            }
-
-            if (!CaseSensitiveFieldsMatching.HasValue)
-            {
-                CaseSensitiveFieldsMatching = defaultOptions.CaseSensitiveFieldsMatching;
-            }
-
-            if (!CreateTable.HasValue)
-            {
-                CreateTable = defaultOptions.CreateTable;
-            }
-
-            if (!IgnoreDataReaderSchemaTable.HasValue)
-            {
-                IgnoreDataReaderSchemaTable = defaultOptions.IgnoreDataReaderSchemaTable;
-            }
-
-            if (!CheckTableIfNotExistsBeforeCreation.HasValue)
-            {
-                CheckTableIfNotExistsBeforeCreation = defaultOptions.CheckTableIfNotExistsBeforeCreation;
-            }
+            FieldsSelector ??= defaultOptions.FieldsSelector;
+            CaseSensitiveFieldsMatching ??= defaultOptions.CaseSensitiveFieldsMatching;
+            CreateTable ??= defaultOptions.CreateTable;
+            IgnoreDataReaderSchemaTable ??= defaultOptions.IgnoreDataReaderSchemaTable;
+            CheckTableIfNotExistsBeforeCreation ??= defaultOptions.CheckTableIfNotExistsBeforeCreation;
 
             return this;
         }

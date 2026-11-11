@@ -32,15 +32,8 @@
 
         protected internal virtual QueryOptions SetDefaults(QueryOptions defaultOptions)
         {
-            if (!CommandTimeoutSeconds.HasValue)
-            {
-                CommandTimeoutSeconds = defaultOptions.CommandTimeoutSeconds;
-            }
-
-            if (!CaseSensitiveParamsMatching.HasValue)
-            {
-                CaseSensitiveParamsMatching = defaultOptions.CaseSensitiveParamsMatching;
-            }
+            CommandTimeoutSeconds ??= defaultOptions.CommandTimeoutSeconds;
+            CaseSensitiveParamsMatching ??= defaultOptions.CaseSensitiveParamsMatching;
 
             return this;
         }

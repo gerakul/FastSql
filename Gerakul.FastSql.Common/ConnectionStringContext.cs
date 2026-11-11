@@ -27,11 +27,17 @@ namespace Gerakul.FastSql.Common
 
         public void UsingConnection(Action<ConnectionContext> action)
         {
-            using (var conn = CreateConnection())
-            {
-                conn.Open();
-                action(ContextProvider.GetConnectionContext(conn, QueryOptions, BulkOptions, ReadOptions));
-            }
+            using var conn = CreateConnection();
+            conn.Open();
+            action(ContextProvider.GetConnectionContext(conn, QueryOptions, BulkOptions, ReadOptions));
+        }
+
+        // for commands that return what they get from the server
+        internal TResult UsingConnection<TResult>(Func<ConnectionContext, TResult> func)
+        {
+            using var conn = CreateConnection();
+            conn.Open();
+            return func(ContextProvider.GetConnectionContext(conn, QueryOptions, BulkOptions, ReadOptions));
         }
 
         public Task UsingConnectionAsync(Func<ConnectionContext, Task> action)
@@ -45,6 +51,14 @@ namespace Gerakul.FastSql.Common
             await using var connectionScope = conn.ConfigureAwait(false);
             await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
             await action(ContextProvider.GetConnectionContext(conn, QueryOptions, BulkOptions, ReadOptions)).ConfigureAwait(false);
+        }
+
+        internal async Task<TResult> UsingConnectionAsync<TResult>(Func<ConnectionContext, Task<TResult>> func, CancellationToken cancellationToken)
+        {
+            var conn = CreateConnection();
+            await using var connectionScope = conn.ConfigureAwait(false);
+            await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
+            return await func(ContextProvider.GetConnectionContext(conn, QueryOptions, BulkOptions, ReadOptions)).ConfigureAwait(false);
         }
 
         public void UsingTransaction(IsolationLevel isolationLevel, Action<TransactionContext> action)

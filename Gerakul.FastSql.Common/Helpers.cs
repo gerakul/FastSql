@@ -33,7 +33,7 @@ namespace Gerakul.FastSql.Common
                     }
                     break;
                 default:
-                    throw new ArgumentException(string.Format("Unknown FieldsSelector. Value: {0}", fieldSelector));
+                    throw new ArgumentException($"Unknown FieldsSelector. Value: {fieldSelector}");
             }
         }
 
@@ -112,7 +112,7 @@ namespace Gerakul.FastSql.Common
             }
 
             return interfaces.Contains(typeof(System.Collections.IEnumerable)) &&
-                !interfaces.Contains(typeof(IEnumerable<byte>)) && !type.Equals(typeof(string));
+                !interfaces.Contains(typeof(IEnumerable<byte>)) && type != typeof(string);
         }
     }
 }

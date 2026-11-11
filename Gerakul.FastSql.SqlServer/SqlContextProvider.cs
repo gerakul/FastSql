@@ -48,7 +48,7 @@ namespace Gerakul.FastSql.SqlServer
 
         protected override object GetDbNull(Type type)
         {
-            if (type.Equals(typeof(byte[])))
+            if (type == typeof(byte[]))
             {
                 return System.Data.SqlTypes.SqlBytes.Null;
             }
@@ -63,7 +63,7 @@ namespace Gerakul.FastSql.SqlServer
                 throw new ArgumentException("Parameter name is empty", nameof(name));
             }
 
-            return name[0] == '@' ? name.Substring(1) : name;
+            return name[0] == '@' ? name[1..] : name;
         }
 
         // generated at compile time

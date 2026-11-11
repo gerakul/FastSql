@@ -8,17 +8,13 @@ namespace Gerakul.FastSql.Common
 {
     public class MappedCommand<T>
     {
-        private class ParMap<M>
-        {
-            public string ParameterName;
-            public FieldSettings<M> Settings;
-        }
+        private readonly record struct ParMap(string ParameterName, FieldSettings<T> Settings);
 
-        private ContextProvider contextProvider;
-        private ParMap<T>[] map;
+        private readonly ContextProvider contextProvider;
+        private readonly ParMap[] map;
 
-        public string CommandText { get; private set; }
-        public CommandType CommandType { get; private set; }
+        public string CommandText { get; }
+        public CommandType CommandType { get; }
 
         internal MappedCommand(ContextProvider contextProvider, string commandText, IList<string> parameters,
             IList<FieldSettings<T>> settings, bool caseSensitiveParamsMatching, CommandType commandType = CommandType.Text)
@@ -46,7 +42,7 @@ namespace Gerakul.FastSql.Common
               .Join(settings,
                 x => contextProvider.GetSqlParameterName(x),
                 x => x.Name,
-                (x, y) => new ParMap<T>() { ParameterName = x, Settings = y },
+                (x, y) => new ParMap(x, y),
                 comparer).ToArray();
 
             if (map.Length < parameters.Count)
@@ -67,9 +63,8 @@ namespace Gerakul.FastSql.Common
             var cmd = scopedContext.CreateCommand(CommandText);
             cmd.CommandType = CommandType;
 
-            for (int i = 0; i < map.Length; i++)
+            foreach (var m in map)
             {
-                var m = map[i];
                 object paramValue;
                 if (m.Settings.DetermineNullByValue)
                 {

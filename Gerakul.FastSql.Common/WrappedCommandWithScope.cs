@@ -9,7 +9,7 @@ namespace Gerakul.FastSql.Common
 {
     internal sealed class WrappedCommandWithScope : ICommandCreator, IWrappedCommand
     {
-        private ScopedContext scopedContext;
+        private readonly ScopedContext scopedContext;
         private DbCommand command;
 
         internal WrappedCommandWithScope(ScopedContext scopedContext)
@@ -34,7 +34,7 @@ namespace Gerakul.FastSql.Common
             return command.ExecuteNonQuery();
         }
 
-        public Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken = default(CancellationToken))
+        public Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken = default)
         {
             return command.ExecuteNonQueryAsync(cancellationToken);
         }
@@ -44,7 +44,7 @@ namespace Gerakul.FastSql.Common
             return command.ExecuteScalar();
         }
 
-        public Task<object> ExecuteScalarAsync(CancellationToken cancellationToken = default(CancellationToken))
+        public Task<object> ExecuteScalarAsync(CancellationToken cancellationToken = default)
         {
             return command.ExecuteScalarAsync(cancellationToken);
         }
@@ -55,7 +55,7 @@ namespace Gerakul.FastSql.Common
             return command.ExecuteQuery();
         }
 
-        public IAsyncEnumerable<object[]> ExecuteQueryAsync(CancellationToken cancellationToken = default(CancellationToken))
+        public IAsyncEnumerable<object[]> ExecuteQueryAsync(CancellationToken cancellationToken = default)
         {
             return command.ExecuteQueryAsync(cancellationToken);
         }
@@ -65,7 +65,7 @@ namespace Gerakul.FastSql.Common
             return command.ExecuteQuery<T>(scopedContext.PrepareReadOptions(readOptions));
         }
 
-        public IAsyncEnumerable<T> ExecuteQueryAsync<T>(ReadOptions readOptions = null, CancellationToken cancellationToken = default(CancellationToken)) where T : new()
+        public IAsyncEnumerable<T> ExecuteQueryAsync<T>(ReadOptions readOptions = null, CancellationToken cancellationToken = default) where T : new()
         {
             return command.ExecuteQueryAsync<T>(scopedContext.PrepareReadOptions(readOptions), cancellationToken);
         }
@@ -75,7 +75,7 @@ namespace Gerakul.FastSql.Common
             return command.ExecuteQueryAnonymous(proto, scopedContext.PrepareReadOptions(readOptions));
         }
 
-        public IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(T proto, ReadOptions readOptions = null, CancellationToken cancellationToken = default(CancellationToken))
+        public IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(T proto, ReadOptions readOptions = null, CancellationToken cancellationToken = default)
         {
             return command.ExecuteQueryAnonymousAsync(proto, scopedContext.PrepareReadOptions(readOptions), cancellationToken);
         }
@@ -85,7 +85,7 @@ namespace Gerakul.FastSql.Common
             return command.ExecuteQueryFirstColumn();
         }
 
-        public IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(CancellationToken cancellationToken = default(CancellationToken))
+        public IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(CancellationToken cancellationToken = default)
         {
             return command.ExecuteQueryFirstColumnAsync(cancellationToken);
         }
@@ -95,17 +95,15 @@ namespace Gerakul.FastSql.Common
             return command.ExecuteQueryFirstColumn<T>();
         }
 
-        public IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(CancellationToken cancellationToken = default(CancellationToken))
+        public IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(CancellationToken cancellationToken = default)
         {
             return command.ExecuteQueryFirstColumnAsync<T>(cancellationToken);
         }
 
         public void UseReader(Action<DbDataReader> action)
         {
-            using (var reader = command.ExecuteReader())
-            {
-                action(reader);
-            }
+            using var reader = command.ExecuteReader();
+            action(reader);
         }
 
         public async Task UseReaderAsync(CancellationToken cancellationToken, Func<DbDataReader, Task> action)

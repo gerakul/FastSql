@@ -11,46 +11,16 @@ namespace Gerakul.FastSql.PostgreSQL
 {
     internal sealed class NpgsqlBulkCopy : BulkCopy
     {
-        private class Mapping
-        {
-            public int Ordinal;
-            public string Source;
-            public string Destination;
-        }
+        private readonly record struct Mapping(string Source, string Destination);
 
-        private NpgsqlConnection Connection
+        private NpgsqlConnection Connection => context switch
         {
-            get
-            {
-                if (context is TransactionContext)
-                {
-                    return (NpgsqlConnection)((TransactionContext)context).Transaction.Connection;
-                }
-                else if (context is ConnectionContext)
-                {
-                    return (NpgsqlConnection)((ConnectionContext)context).Connection;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-        }
+            TransactionContext transactionContext => (NpgsqlConnection)transactionContext.Transaction.Connection,
+            ConnectionContext connectionContext => (NpgsqlConnection)connectionContext.Connection,
+            _ => null
+        };
 
-        private NpgsqlTransaction Transaction
-        {
-            get
-            {
-                if (context is TransactionContext)
-                {
-                    return (NpgsqlTransaction)((TransactionContext)context).Transaction;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-        }
+        private NpgsqlTransaction Transaction => context is TransactionContext transactionContext ? (NpgsqlTransaction)transactionContext.Transaction : null;
 
         private NpgsqlBulkOptions NpgsqlBulkOptions => (NpgsqlBulkOptions)bulkOptions;
 
@@ -73,40 +43,35 @@ namespace Gerakul.FastSql.PostgreSQL
 
             if (bulkOptions.FieldsSelector.Value == FieldsSelector.Source && !bulkOptions.CaseSensitiveFieldsMatching.HasValue)
             {
-                map = sourceFields.Select(x => new Mapping() { Source = x, Destination = x }).ToArray();
+                map = sourceFields.Select(x => new Mapping(x, x)).ToArray();
             }
             else
             {
                 string[] destFields = GetTableColumns().ToArray();
 
                 var comparer = bulkOptions.CaseSensitiveFieldsMatching == true ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
-                map = sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping() { Source = x, Destination = y }, comparer).ToArray();
+                map = sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping(x, y), comparer).ToArray();
 
                 CheckFieldSelection(bulkOptions.FieldsSelector.Value, sourceFields.Length, destFields.Length, map.Length);
             }
 
             if (map.Length > 0)
             {
-                foreach (var item in map)
-                {
-                    item.Ordinal = reader.GetOrdinal(item.Source);
-                }
-
+                var ordinals = map.Select(x => reader.GetOrdinal(x.Source)).ToArray();
                 var columns = context.ContextProvider.CommandTextGenerator.ColumnList(map.Select(x => x.Destination).ToArray());
-                using (var writer = Connection.BeginBinaryImport($"COPY {destinationTable} ({columns}) FROM STDIN (FORMAT BINARY)"))
+                using var writer = Connection.BeginBinaryImport($"COPY {destinationTable} ({columns}) FROM STDIN (FORMAT BINARY)");
+
+                while (reader.Read())
                 {
-                    while (reader.Read())
+                    writer.StartRow();
+
+                    foreach (var ordinal in ordinals)
                     {
-                        writer.StartRow();
-
-                        foreach (var item in map)
-                        {
-                            writer.Write(reader.GetValue(item.Ordinal));
-                        }
+                        writer.Write(reader.GetValue(ordinal));
                     }
-
-                    writer.Complete();
                 }
+
+                writer.Complete();
             }
         }
 
@@ -124,25 +89,21 @@ namespace Gerakul.FastSql.PostgreSQL
 
             if (bulkOptions.FieldsSelector.Value == FieldsSelector.Source && !bulkOptions.CaseSensitiveFieldsMatching.HasValue)
             {
-                map = sourceFields.Select(x => new Mapping() { Source = x, Destination = x }).ToArray();
+                map = sourceFields.Select(x => new Mapping(x, x)).ToArray();
             }
             else
             {
                 string[] destFields = (await GetTableColumnsAsync(cancellationToken).ConfigureAwait(false)).ToArray();
 
                 var comparer = bulkOptions.CaseSensitiveFieldsMatching == true ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
-                map = sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping() { Source = x, Destination = y }, comparer).ToArray();
+                map = sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping(x, y), comparer).ToArray();
 
                 CheckFieldSelection(bulkOptions.FieldsSelector.Value, sourceFields.Length, destFields.Length, map.Length);
             }
 
             if (map.Length > 0)
             {
-                foreach (var item in map)
-                {
-                    item.Ordinal = reader.GetOrdinal(item.Source);
-                }
-
+                var ordinals = map.Select(x => reader.GetOrdinal(x.Source)).ToArray();
                 var columns = context.ContextProvider.CommandTextGenerator.ColumnList(map.Select(x => x.Destination).ToArray());
                 var writer = await Connection.BeginBinaryImportAsync($"COPY {destinationTable} ({columns}) FROM STDIN (FORMAT BINARY)", cancellationToken).ConfigureAwait(false);
                 await using var writerScope = writer.ConfigureAwait(false);
@@ -151,9 +112,9 @@ namespace Gerakul.FastSql.PostgreSQL
                 {
                     await writer.StartRowAsync(cancellationToken).ConfigureAwait(false);
 
-                    foreach (var item in map)
+                    foreach (var ordinal in ordinals)
                     {
-                        await writer.WriteAsync(reader.GetValue(item.Ordinal), cancellationToken).ConfigureAwait(false);
+                        await writer.WriteAsync(reader.GetValue(ordinal), cancellationToken).ConfigureAwait(false);
                     }
                 }
 
@@ -163,30 +124,20 @@ namespace Gerakul.FastSql.PostgreSQL
 
         private IList<string> GetTableColumns()
         {
-            List<string> result = new List<string>();
-            context.CreateSimple(string.Format("select * from {0} limit 0", destinationTable))
-                .UseReader(r =>
-                {
-                    foreach (var item in r.GetColumnNames())
-                    {
-                        result.Add(item);
-                    }
-                });
+            var result = new List<string>();
+            context.CreateSimple($"select * from {destinationTable} limit 0")
+                .UseReader(r => result.AddRange(r.GetColumnNames()));
 
             return result;
         }
 
         private async Task<IList<string>> GetTableColumnsAsync(CancellationToken cancellationToken)
         {
-            List<string> result = new List<string>();
-            await context.CreateSimple(string.Format("select * from {0} limit 0", destinationTable))
+            var result = new List<string>();
+            await context.CreateSimple($"select * from {destinationTable} limit 0")
                 .UseReaderAsync(cancellationToken, r =>
                 {
-                    foreach (var item in r.GetColumnNames())
-                    {
-                        result.Add(item);
-                    }
-
+                    result.AddRange(r.GetColumnNames());
                     return Task.CompletedTask;
                 }).ConfigureAwait(false);
 

@@ -6,8 +6,8 @@ namespace Gerakul.FastSql.Common
 {
     internal sealed class DataReaderAttachedToScopedContext : IBulkWriter
     {
-        private DbDataReader reader;
-        private ScopedContext scopedContext;
+        private readonly DbDataReader reader;
+        private readonly ScopedContext scopedContext;
 
         public DbContext Context => scopedContext;
 

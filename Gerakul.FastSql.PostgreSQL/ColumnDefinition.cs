@@ -33,137 +33,69 @@ namespace Gerakul.FastSql.PostgreSQL
 
         public string GetTypeDeclaration()
         {
-            switch (TypeName.ToLowerInvariant())
+            return TypeName.ToLowerInvariant() switch
             {
-                case "time":
-                case "datetime2":
-                case "datetimeoffset":
-                    return $"[{TypeName}]({Scale})";
-                case "decimal":
-                case "numeric":
-                    return $"[{TypeName}]({Precision}, {Scale})";
-                case "binary":
-                case "char":
-                case "nchar":
-                    return $"[{TypeName}]({MaxLength})";
-                case "nvarchar":
-                    return MaxLength == -1 ? $"[{TypeName}](max)" : $"[{TypeName}]({MaxLength})";
-                case "varbinary":
-                case "varchar":
-                    return MaxLength == -1 ? $"[{TypeName}](max)" : $"[{TypeName}]({MaxLength})";
-                case "xml":
-                    throw new NotSupportedException("Type xml is not supported");
-                default:
-                    return $"[{TypeName}]";
-            }
+                "time" or "datetime2" or "datetimeoffset" => $"[{TypeName}]({Scale})",
+                "decimal" or "numeric" => $"[{TypeName}]({Precision}, {Scale})",
+                "binary" or "char" or "nchar" => $"[{TypeName}]({MaxLength})",
+                "nvarchar" or "varbinary" or "varchar" => MaxLength == -1 ? $"[{TypeName}](max)" : $"[{TypeName}]({MaxLength})",
+                "xml" => throw new NotSupportedException("Type xml is not supported"),
+                _ => $"[{TypeName}]"
+            };
         }
+
 
         public string GetColumnDeclaration()
         {
             return $"[{Name}] {GetTypeDeclaration()} {(IsPrimaryKey ? "primary key not null" : (IsNullable ? "null" : "not null"))}";
         }
 
+        // the column types of the supported member types; a Nullable<T> member gets the column type of T
+        private static readonly Dictionary<Type, string> columnTypes = new Dictionary<Type, string>()
+        {
+            [typeof(bool)] = "bit",
+            [typeof(byte)] = "tinyint",
+            [typeof(short)] = "smallint",
+            [typeof(int)] = "int",
+            [typeof(long)] = "bigint",
+            [typeof(float)] = "real",
+            [typeof(double)] = "float",
+            [typeof(decimal)] = "decimal",
+            [typeof(Guid)] = "uniqueidentifier",
+            [typeof(DateTime)] = "datetime2",
+            [typeof(string)] = "nvarchar",
+            [typeof(byte[])] = "varbinary"
+        };
+
         public static ColumnDefinition FromFieldType(Type type, string name, ColumnDefinitionOptions options = null)
         {
             var opt = options ?? ColumnDefinitionOptions.Default;
             bool isPrimaryKey = opt.PrimaryKey?.Contains(name) ?? false;
 
-            if (type.Equals(typeof(bool)))
+            var underlyingType = Nullable.GetUnderlyingType(type);
+            if (!columnTypes.TryGetValue(underlyingType ?? type, out var typeName))
             {
-                return new ColumnDefinition(name, "bit", isPrimaryKey, 0, 0, 0, false);
-            }
-            else if (type.Equals(typeof(bool?)))
-            {
-                return new ColumnDefinition(name, "bit", isPrimaryKey, 0, 0, 0, true);
-            }
-            if (type.Equals(typeof(byte)))
-            {
-                return new ColumnDefinition(name, "tinyint", isPrimaryKey, 0, 0, 0, false);
-            }
-            else if (type.Equals(typeof(byte?)))
-            {
-                return new ColumnDefinition(name, "tinyint", isPrimaryKey, 0, 0, 0, true);
-            }
-            if (type.Equals(typeof(short)))
-            {
-                return new ColumnDefinition(name, "smallint", isPrimaryKey, 0, 0, 0, false);
-            }
-            else if (type.Equals(typeof(short?)))
-            {
-                return new ColumnDefinition(name, "smallint", isPrimaryKey, 0, 0, 0, true);
-            }
-            if (type.Equals(typeof(int)))
-            {
-                return new ColumnDefinition(name, "int", isPrimaryKey, 0, 0, 0, false);
-            }
-            else if (type.Equals(typeof(int?)))
-            {
-                return new ColumnDefinition(name, "int", isPrimaryKey, 0, 0, 0, true);
-            }
-            if (type.Equals(typeof(long)))
-            {
-                return new ColumnDefinition(name, "bigint", isPrimaryKey, 0, 0, 0, false);
-            }
-            else if (type.Equals(typeof(long?)))
-            {
-                return new ColumnDefinition(name, "bigint", isPrimaryKey, 0, 0, 0, true);
-            }
-            if (type.Equals(typeof(float)))
-            {
-                return new ColumnDefinition(name, "real", isPrimaryKey, 0, 0, 0, false);
-            }
-            else if (type.Equals(typeof(float?)))
-            {
-                return new ColumnDefinition(name, "real", isPrimaryKey, 0, 0, 0, true);
-            }
-            if (type.Equals(typeof(double)))
-            {
-                return new ColumnDefinition(name, "float", isPrimaryKey, 0, 0, 0, false);
-            }
-            else if (type.Equals(typeof(double?)))
-            {
-                return new ColumnDefinition(name, "float", isPrimaryKey, 0, 0, 0, true);
-            }
-            if (type.Equals(typeof(decimal)))
-            {
-                return new ColumnDefinition(name, "decimal", isPrimaryKey, 0, opt.Precision, opt.Scale, false);
-            }
-            else if (type.Equals(typeof(decimal?)))
-            {
-                return new ColumnDefinition(name, "decimal", isPrimaryKey, 0, opt.Precision, opt.Scale, true);
-            }
-            if (type.Equals(typeof(Guid)))
-            {
-                return new ColumnDefinition(name, "uniqueidentifier", isPrimaryKey, 0, 0, 0, false);
-            }
-            else if (type.Equals(typeof(Guid?)))
-            {
-                return new ColumnDefinition(name, "uniqueidentifier", isPrimaryKey, 0, 0, 0, true);
-            }
-            if (type.Equals(typeof(DateTime)))
-            {
-                return new ColumnDefinition(name, "datetime2", isPrimaryKey, 0, 0, opt.DateTimeScale, false);
-            }
-            else if (type.Equals(typeof(DateTime?)))
-            {
-                return new ColumnDefinition(name, "datetime2", isPrimaryKey, 0, 0, opt.DateTimeScale, true);
-            }
-            if (type.Equals(typeof(string)))
-            {
-                return new ColumnDefinition(name, "nvarchar", isPrimaryKey, opt.StringMaxLength, 0, 0, true);
-            }
-            if (type.Equals(typeof(byte[])))
-            {
-                return new ColumnDefinition(name, "varbinary", isPrimaryKey, opt.BytesMaxLength, 0, 0, true);
+                if (opt.ThrowIfUnsupportedType)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(type), type, "Unsupported type");
+                }
+
+                return null;
             }
 
-            if (opt.ThrowIfUnsupportedType)
-            {
-                throw new ArgumentOutOfRangeException(nameof(type), type, "Unsupported type");
-            }
+            // reference types (string, byte[]) are nullable, value types only as Nullable<T>
+            bool isNullable = !type.IsValueType || underlyingType != null;
 
-            return null;
+            return typeName switch
+            {
+                "decimal" => new ColumnDefinition(name, typeName, isPrimaryKey, 0, opt.Precision, opt.Scale, isNullable),
+                "datetime2" => new ColumnDefinition(name, typeName, isPrimaryKey, 0, 0, opt.DateTimeScale, isNullable),
+                "nvarchar" => new ColumnDefinition(name, typeName, isPrimaryKey, opt.StringMaxLength, 0, 0, isNullable),
+                "varbinary" => new ColumnDefinition(name, typeName, isPrimaryKey, opt.BytesMaxLength, 0, 0, isNullable),
+                _ => new ColumnDefinition(name, typeName, isPrimaryKey, 0, 0, 0, isNullable)
+            };
         }
+
     }
 
     public class ColumnDefinitionOptions
