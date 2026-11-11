@@ -20,8 +20,6 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
 
         protected override Type ServerExceptionType => typeof(SqlException);
 
-        protected override string EmptyUpdateClauseMessage => "Incorrect syntax near the keyword 'when'.";
-
         // MERGE matches rows by the on clause and needs no unique constraint (unlike PostgreSQL on conflict)
         [Theory]
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]

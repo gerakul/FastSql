@@ -21,8 +21,6 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
 
         protected override Type ServerExceptionType => typeof(PostgresException);
 
-        protected override string EmptyUpdateClauseMessage => "42601: syntax error at end of input*";
-
         // "on conflict (keys)" needs a unique constraint or index on exactly the key columns
         [Theory]
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]

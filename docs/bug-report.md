@@ -5,24 +5,56 @@ lists the bugs found; it was reviewed before any library code changed.
 
 ## Status
 
-**Fixed (the 23 safe fixes, approved first):** Q120, Q123, Q70, Q122, Q06, Q05, Q52, Q13/Q53, Q21/Q46, Q40,
-Q14, Q124, Q126, Q17, Q31, Q48, Q20, Q100, Q127, Q128, Q61, Q54, Q41/Q42/Q43/Q129. Each fix has tests tagged
-`[Trait("Fixed", "Qnn")]`; the tests that pinned the old behavior now assert the fixed one, and the
-[quirks register](testing-plan.md#7-quirks-register) marks the items "fixed in phase 2". The public API
-snapshot is unchanged.
+**Fixed, first round (the 23 safe fixes):** Q120, Q123, Q70, Q122, Q06, Q05, Q52, Q13/Q53, Q21/Q46, Q40,
+Q14, Q124, Q126, Q17, Q31, Q48, Q20, Q100, Q127, Q128, Q61, Q54, Q41/Q42/Q43/Q129.
+
+**Fixed, second round (the decisions, answered with the recommendations):** Q121, Q04, Q90/Q125, Q02, Q32,
+Q09 (both halves), Q11. **Documented in the README instead of changed:** Q16, Q08.
+
+**Not changed for now:** Q01, Q03/Q47/Q112, Q33, Q45, Q60, Q92 (low value, and each would change behavior someone
+may rely on); the items under [Not proposed for fixing](#not-proposed-for-fixing).
+
+Each fix has tests tagged `[Trait("Fixed", "Qnn")]`; the tests that pinned the old behavior now assert the fixed
+one, and the [quirks register](testing-plan.md#7-quirks-register) marks the items "fixed in phase 2". The public
+API snapshot is unchanged.
 
 How the fixes differ from the descriptions below:
 
-- **Q122:** the method's token cancels the reads with `OperationCanceledException`; the enumeration's own
-  token (`WithCancellation`) still ends it silently, because that is Q04, which is waiting for a decision.
-  FastSql now checks the token before each read, because Npgsql skips it when the next row is already buffered.
+- **Q122, Q04:** both the method's token and the enumeration's own token (`WithCancellation`) end an async query
+  with `OperationCanceledException`. A token that is already cancelled when it is passed to the method still
+  fails in the driver call (open or execute), with the driver's exception type, as before. FastSql checks the
+  token before each read, because Npgsql skips it when the next row is already buffered.
 - **Q123:** the optional switch to `BeginTransactionAsync` / `CommitAsync` / `RollbackAsync` was not made.
 - **Q126:** as described, plus a null ignore list for `Update` / `Merge` (`notKeyIgnoreFields`) means "ignore nothing".
 - **Q129:** with `IndexOutOfRangeException`, `SqlBulkCopy` now reports an unknown source field as its own mapping
   error ("The given ColumnName 'x' does not match up with any column in data source.").
+- **Q90, Q125:** the key list of `Delete` is matched the same way (`Delete(t, value, "id")` threw
+  "Not all parameters has been mapped" for a member `ID`). When two members differ only by case, an exact match wins.
+- **Q09:** `CompileUpdate` throws; `CommandTextGenerator.Update` called directly still returns the text.
+- **Q11:** SQL Server skips `'...'`, `"..."`, `[...]`, `--` and nested `/* */` comments; PostgreSQL skips
+  `'...'`, `E'...'` (backslash escapes), `$tag$...$tag$`, `"..."`, `--` and nested `/* */` comments, but not brackets
+  (array subscripts).
 
-**Open, waiting for decisions:** Q121, Q04, Q90/Q125, Q02, Q32, Q09 (both halves), Q11, Q01, Q03/Q47/Q112,
-Q33, Q45, Q60, Q92, Q16, Q08. See [Decisions needed](#decisions-needed).
+### Behavior changes for users of the library
+
+Calls that failed before and work now are not listed. These calls worked before and behave differently now:
+
+- **Value conversion** (string to number or date, and back) uses the invariant culture, not the current one (Q121).
+- **Cancelling an async query** throws `OperationCanceledException` instead of ending it quietly, and the token
+  passed to `ExecuteQuery*Async` also cancels the reading of rows (Q04, Q122).
+- **Ignore and key lists match member names case-insensitively**: `Insert(t, value, "id")` now leaves out `ID` (Q90, Q125).
+- **Parameter discovery** no longer takes `@` inside string literals, quoted identifiers or comments for a parameter (Q11).
+- **Merge with only key members** inserts the row if it is missing instead of failing on the server; **Update with
+  nothing to set** throws `ArgumentException` before reaching the server (Q09).
+- **`FieldSettings.FromType` / `GetFields`** no longer list indexers, write-only properties or members hidden with
+  `new` (Q21, Q46, Q48), and reading no longer counts get-only properties and indexers as destinations (Q13, Q53).
+- **`UniversalDataReader`**: `NextResult` returns `false` and `RecordsAffected` returns `-1` (Q02); `ReadAsync` throws
+  for a cancelled token (Q41); `Read` over an async source throws the source's exception, not an `AggregateException`
+  (Q42); an unknown name throws `IndexOutOfRangeException`, not `KeyNotFoundException` (Q129); disposing it disposes
+  the source (Q40).
+- **Exception types** of failing calls: an empty parameter name throws `ArgumentException` (Q32), no key fields for
+  `Update` / `Merge` throws `ArgumentException` (Q126), a `ReadAllAnonymous` type without a public constructor names
+  the type in its `InvalidOperationException` (Q54).
 
 How the list was made:
 
@@ -485,6 +517,9 @@ The register describes each behavior in full; this section gives the location, t
 
 ## Decisions needed
 
+Answered on 2026-11-10 with the recommendations: yes to 1 to 6 (for 5: a clear exception), not now for 7 and 8,
+yes for 9.
+
 1. **Q121:** switch value conversion to the invariant culture?
 2. **Q04:** throw `OperationCanceledException` when an async query is cancelled?
 3. **Q90, Q125:** compare ignore and key lists case-insensitively (changes `Insert(t, value, "id")`)?
@@ -496,10 +531,10 @@ The register describes each behavior in full; this section gives the location, t
 8. **Q33, Q45, Q60, Q92:** fix or leave?
 9. **Q16, Q08:** leave and document, as recommended?
 
-## How the fixes would be done
+## How the fixes were done
 
 - On the `fix/bugs` branch: first the 23 safe fixes, in one commit because several of them touch the same files
-  (`UniversalDataReader`, the async enumerators, the bulk copies); then the items you decide on.
+  (`UniversalDataReader`, the async enumerators, the bulk copies); then the decided items, in a second commit.
 - Each fixed quirk's tests flip from pinning the old behavior to asserting the fixed one, and the register marks
-  the item "fixed in phase 2". Each new finding gets a regression test.
-- The public API snapshot stays unchanged, except Q01 if you choose to fix it.
+  the item "fixed in phase 2". Each new finding has a regression test.
+- The public API snapshot is unchanged (Q01, the only fix that would have changed it, was not made).

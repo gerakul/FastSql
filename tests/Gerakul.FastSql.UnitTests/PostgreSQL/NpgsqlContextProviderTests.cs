@@ -19,6 +19,27 @@ namespace Gerakul.FastSql.UnitTests.PostgreSQL
             public object Blob { get; set; }
         }
 
+        // dollar-quoted strings and escape strings (backslash escapes) are literals too; $1 is a positional parameter
+        [Theory]
+        [Trait("Fixed", "Q11")]
+        [InlineData("select $$@x$$, @a")]
+        [InlineData("select $tag$ @x $$ @x $tag$, @a")]
+        [InlineData("select E'it\\'s @x', @a")]
+        [InlineData("select e'\\\\', @a")]
+        [InlineData("select $1, @a")]
+        public void CreateMapped_AtSignInDollarQuoteOrEscapeString_IsNotAParameter(string commandText)
+        {
+            DiscoveredNames(commandText, new { a = 1, x = 2 }).Should().Equal("@a");
+        }
+
+        // brackets are array subscripts in PostgreSQL, not quotes
+        [Fact]
+        [Trait("Fixed", "Q11")]
+        public void CreateMapped_ParameterInArraySubscript_IsFound()
+        {
+            DiscoveredNames("select tags[@a] from T", new { a = 1 }).Should().Equal("@a");
+        }
+
         [Fact]
         public void CreateMapped_Parameters_AreNpgsqlParameters()
         {

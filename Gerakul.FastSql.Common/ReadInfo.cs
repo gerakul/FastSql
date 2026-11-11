@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 
@@ -66,7 +67,8 @@ namespace Gerakul.FastSql.Common
                 return timeOnly.ToTimeSpan();
             }
 
-            return Convert.ChangeType(value, convertingType);
+            // the invariant culture: data must not depend on the machine's settings ("1.5" is 15 under de-DE)
+            return Convert.ChangeType(value, convertingType, CultureInfo.InvariantCulture);
         }
 
         public abstract T GetValue();

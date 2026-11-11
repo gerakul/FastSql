@@ -130,6 +130,7 @@ namespace Gerakul.FastSql.UnitTests.PostgreSQL
                 .Be("update Employee set \"Name\" = @Name where \"CompanyID\" = @CompanyID and \"ID\" = @ID;");
         }
 
+        // the generator still returns the text; CompileUpdate (and so Update / CreateUpdate) throws ArgumentException first
         [Fact]
         [Trait("Quirk", "Q09")]
         public void Update_NoFields_ProducesEmptySetClause()
@@ -180,15 +181,16 @@ namespace Gerakul.FastSql.UnitTests.PostgreSQL
             generator.Merge("Employee", new[] { "ID" }, "ID", "Name").Should().Be(expected);
         }
 
+        // nothing to update: insert if missing
         [Fact]
-        [Trait("Quirk", "Q09")]
-        public void Merge_NoNonKeyFields_ProducesEmptySetClause()
+        [Trait("Fixed", "Q09")]
+        public void Merge_NoNonKeyFields_DoesNothingOnConflict()
         {
             var expected = Lines(
                 "insert into Employee (\"ID\") ",
                 "values (@ID) ",
                 "on conflict (\"ID\") ",
-                "do update set ;");
+                "do nothing;");
 
             generator.Merge("Employee", new[] { "ID" }).Should().Be(expected);
         }

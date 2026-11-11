@@ -92,10 +92,13 @@ namespace Gerakul.FastSql.Common
 
         public async ValueTask<bool> MoveNextAsync()
         {
-            if (disposed || cancellationToken.IsCancellationRequested)
+            if (disposed)
             {
                 return false;
             }
+
+            // a cancelled enumeration throws, so partial results can't pass for complete ones
+            cancellationToken.ThrowIfCancellationRequested();
 
             if (!started)
             {

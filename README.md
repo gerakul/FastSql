@@ -143,6 +143,8 @@ Merge
   var company = new { ID = 3, Name = "New name", DateOfFoundation = DateTime.Now };
   context.Merge("Company", company, "ID");
   ```  
+**NOTE:** when every member is a key field, Merge inserts the row if it is missing and leaves an existing row as it is.
+
 Delete
   ```csharp
   var emp = new { ID = 2, CompanyID = 2, Name = "Updated", Phone = "111" };
@@ -150,6 +152,8 @@ Delete
   // or even simplier
   context.Delete("Employee", new { ID = 2 });
   ```
+**NOTE:** key values are compared with `=`, so a null key value matches no rows. Without key fields every member is a key field, so an object with a null member deletes nothing.
+
 Bulk copy
   ```csharp
   Employee[] newEmployees = new Employee[] {
@@ -160,6 +164,8 @@ Bulk copy
   
   newEmployees.WriteToServer(context, "Employee");
   ```  
+**NOTE:** on Sql Server the default bulk options pass the field names to SqlBulkCopy as they are, and SqlBulkCopy matches them with the column names case-sensitively. To match names regardless of case, set `CaseSensitiveFieldsMatching = false` in the bulk options, for example `new SqlBulkOptions(caseSensitiveFieldsMatching: false)`; FastSql then reads the table's column names first.
+
 Stored procedures
   ```csharp
   var data10 = context.CreateProcedure("TestProc", new { CompanyID = 1, Age = 40 }).ExecuteQuery<Employee>().ToArray();

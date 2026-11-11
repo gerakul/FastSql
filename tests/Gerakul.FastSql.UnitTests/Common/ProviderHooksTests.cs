@@ -180,27 +180,30 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Theory]
-        [Trait("Quirk", "Q11")]
+        [Trait("Fixed", "Q11")]
         [InlineData("select '@x', @a")]
         [InlineData("select 'john@x.com', @a")]
+        [InlineData("select 'it''s @x', @a")]
+        [InlineData("select \"@x\", @a")]
         [InlineData("-- uses @x\nselect @a")]
+        [InlineData("select @a -- uses @x")]
+        [InlineData("select -- uses @x\n@a")]
         [InlineData("/* @x */ select @a")]
-        public void CreateMapped_AtSignInLiteralOrComment_IsTreatedAsParameter(string commandText)
+        [InlineData("/* outer /* @x */ still a comment @x */ select @a")]
+        [InlineData("select '@x")]
+        public void CreateMapped_AtSignInLiteralOrComment_IsNotAParameter(string commandText)
         {
-            DiscoveredNames(commandText, new { a = 1, x = 2 }).Should().Equal("@x", "@a");
+            var expected = commandText.Contains("@a") ? new[] { "@a" } : new string[0];
+
+            DiscoveredNames(commandText, new { a = 1, x = 2 }).Should().Equal(expected);
         }
 
         [Fact]
-        [Trait("Quirk", "Q11")]
-        public void CreateMapped_EmailAddressWithoutMatchingMember_ThrowsArgumentException()
+        [Trait("Fixed", "Q11")]
+        public void CreateMapped_EmailAddressInLiteral_OnlyRealParameterIsAdded()
         {
-            var context = Spec.CreateCapturingContext();
-
-            Action act = () => context.CreateMapped("select * from Employee where Email = 'john@example.com' and ID = @ID", new { ID = 1 });
-
-            act.Should().Throw<ArgumentException>()
-                .WithMessage("Not all parameters has been mapped on settings (Parameter 'parameters')")
-                .And.ParamName.Should().Be("parameters");
+            DiscoveredNames("select * from Employee where Email = 'john@example.com' and ID = @ID", new { ID = 1 })
+                .Should().Equal("@ID");
         }
 
         [Fact]
@@ -270,14 +273,14 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
-        [Trait("Quirk", "Q32")]
-        public void CreateMapped_EmptyExplicitName_ThrowsIndexOutOfRangeException()
+        [Trait("Fixed", "Q32")]
+        public void CreateMapped_EmptyExplicitName_ThrowsArgumentException()
         {
             var context = Spec.CreateCapturingContext();
 
             Action act = () => context.CreateMapped("select 1", new[] { "" }, new { a = 1 });
 
-            act.Should().Throw<IndexOutOfRangeException>().WithMessage("Index was outside the bounds of the array.");
+            act.Should().Throw<ArgumentException>().WithMessage("Parameter name is empty*").WithParameterName("name");
         }
 
         #endregion

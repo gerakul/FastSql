@@ -1,5 +1,6 @@
 using System;
 using System.Data;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using AwesomeAssertions;
@@ -32,6 +33,21 @@ namespace Gerakul.FastSql.UnitTests.Common
         private static Task<T> Read<T>(MappingReadMethod method, Type columnType, object value)
         {
             return Read<T>(method, new ReaderTable().Column("Value", columnType).Row(value));
+        }
+
+        // the tests run with the invariant culture (xunit.runner.json); this reads with another current culture
+        private static async Task<T> ReadUnderCulture<T>(string culture, MappingReadMethod method, Type columnType, object value)
+        {
+            var saved = CultureInfo.CurrentCulture;
+            CultureInfo.CurrentCulture = new CultureInfo(culture);
+            try
+            {
+                return await Read<T>(method, columnType, value);
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = saved;
+            }
         }
 
         private static async Task<T> Read<T>(MappingReadMethod method, ReaderTable table)
@@ -155,6 +171,27 @@ namespace Gerakul.FastSql.UnitTests.Common
             value.Should().Be("42");
         }
 
+        // under de-DE "1.5" would be 15 ("." is the group separator) and 1.5 would be "1,5"
+        [Theory]
+        [MemberData(nameof(Methods))]
+        [Trait("Fixed", "Q121")]
+        public async Task Read_DecimalStringUnderOtherCulture_ParsesWithInvariantCulture(MappingReadMethod method)
+        {
+            var value = await ReadUnderCulture<decimal>("de-DE", method, typeof(string), "1.5");
+
+            value.Should().Be(1.5m);
+        }
+
+        [Theory]
+        [MemberData(nameof(Methods))]
+        [Trait("Fixed", "Q121")]
+        public async Task Read_DecimalIntoStringUnderOtherCulture_FormatsWithInvariantCulture(MappingReadMethod method)
+        {
+            var value = await ReadUnderCulture<string>("de-DE", method, typeof(decimal), 1.5m);
+
+            value.Should().Be("1.5");
+        }
+
         #endregion
 
         #region Bool, Guid, byte[]
@@ -263,9 +300,10 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Theory]
         [MemberData(nameof(Methods))]
-        public async Task Read_DateTimeIntoString_FormatsWithCurrentCulture(MappingReadMethod method)
+        [Trait("Fixed", "Q121")]
+        public async Task Read_DateTimeIntoString_FormatsWithInvariantCulture(MappingReadMethod method)
         {
-            var value = await Read<string>(method, typeof(DateTime), new DateTime(2020, 1, 2, 3, 4, 5));
+            var value = await ReadUnderCulture<string>("de-DE", method, typeof(DateTime), new DateTime(2020, 1, 2, 3, 4, 5));
 
             value.Should().Be("01/02/2020 03:04:05");
         }

@@ -108,7 +108,7 @@ namespace Gerakul.FastSql.Common
 
         public MappedCommand<T> CompileInsert<T>(string tableName, IList<FieldSettings<T>> settings, params string[] ignoreFields)
         {
-            var fields = settings.Select(x => x.Name).Except(ignoreFields ?? new string[0]).ToArray();
+            var fields = settings.Select(x => x.Name).Except(ToMemberNames(ignoreFields, settings)).ToArray();
             string query = contextProvider.CommandTextGenerator.Insert(tableName, fields);
             return new MappedCommand<T>(contextProvider, query, fields, settings, true);
         }
@@ -143,7 +143,7 @@ namespace Gerakul.FastSql.Common
                 return CompileInsert(tableName, settings, ignFields);
             }
 
-            var fields = settings.Select(x => x.Name).Except(ignFields.Select(x => x)).ToArray();
+            var fields = settings.Select(x => x.Name).Except(ToMemberNames(ignFields, settings)).ToArray();
             string query = contextProvider.CommandTextGenerator.InsertWithOutput(tableName, fields, outputFields);
             return new MappedCommand<T>(contextProvider, query, fields, settings, true);
         }
@@ -155,9 +155,15 @@ namespace Gerakul.FastSql.Common
         public MappedCommand<T> CompileUpdate<T>(string tableName, IList<FieldSettings<T>> settings, IList<string> keyFields, IList<string> notKeyIgnoreFields)
         {
             CheckKeyFields(keyFields);
-            var fields = settings.Select(x => x.Name).Except(notKeyIgnoreFields ?? new string[0]).ToArray();
-            var fieldsToUpdate = fields.Except(keyFields.Select(x => x)).ToArray();
-            string query = contextProvider.CommandTextGenerator.Update(tableName, keyFields, fieldsToUpdate);
+            var keys = ToMemberNames(keyFields, settings);
+            var fields = settings.Select(x => x.Name).Except(ToMemberNames(notKeyIgnoreFields, settings)).ToArray();
+            var fieldsToUpdate = fields.Except(keys).ToArray();
+            if (fieldsToUpdate.Length == 0)
+            {
+                throw new ArgumentException("Update has no fields to set: all fields are key fields or ignored", nameof(keyFields));
+            }
+
+            string query = contextProvider.CommandTextGenerator.Update(tableName, keys, fieldsToUpdate);
             return new MappedCommand<T>(contextProvider, query, fields, settings, true);
         }
 
@@ -212,7 +218,7 @@ namespace Gerakul.FastSql.Common
 
         public MappedCommand<T> CompileDelete<T>(string tableName, IList<FieldSettings<T>> settings, params string[] keyFields)
         {
-            var keys = keyFields == null || keyFields.Length == 0 ? settings.GetNames() : keyFields;
+            var keys = keyFields == null || keyFields.Length == 0 ? settings.GetNames() : ToMemberNames(keyFields, settings);
             string query = contextProvider.CommandTextGenerator.Delete(tableName, keys);
             return new MappedCommand<T>(contextProvider, query, keys, settings, true);
         }
@@ -244,9 +250,10 @@ namespace Gerakul.FastSql.Common
         public MappedCommand<T> CompileMerge<T>(string tableName, IList<FieldSettings<T>> settings, IList<string> keyFields, IList<string> notKeyIgnoreFields)
         {
             CheckKeyFields(keyFields);
-            var fields = settings.Select(x => x.Name).Except(notKeyIgnoreFields ?? new string[0]).ToArray();
-            var fieldsToUpdate = fields.Except(keyFields.Select(x => x)).ToArray();
-            string query = contextProvider.CommandTextGenerator.Merge(tableName, keyFields, fieldsToUpdate);
+            var keys = ToMemberNames(keyFields, settings);
+            var fields = settings.Select(x => x.Name).Except(ToMemberNames(notKeyIgnoreFields, settings)).ToArray();
+            var fieldsToUpdate = fields.Except(keys).ToArray(); // none: the text generator makes an insert if missing
+            string query = contextProvider.CommandTextGenerator.Merge(tableName, keys, fieldsToUpdate);
             return new MappedCommand<T>(contextProvider, query, fields, settings, true);
         }
 
@@ -300,6 +307,17 @@ namespace Gerakul.FastSql.Common
         #endregion
 
         #endregion
+
+        // names the caller gives (keys, ignored fields) match members case-insensitively, as parameters do by default;
+        // an exact match wins, and the generated text gets the member's spelling; unknown names are kept as given
+        private static string[] ToMemberNames<T>(IEnumerable<string> names, IList<FieldSettings<T>> settings)
+        {
+            return (names ?? new string[0])
+                .Select(x => settings.Any(y => y.Name == x)
+                    ? x
+                    : settings.FirstOrDefault(y => string.Equals(y.Name, x, StringComparison.OrdinalIgnoreCase))?.Name ?? x)
+                .ToArray();
+        }
 
         // without key fields the generated where / on clause is empty, which the server rejects
         private static void CheckKeyFields(IList<string> keyFields)

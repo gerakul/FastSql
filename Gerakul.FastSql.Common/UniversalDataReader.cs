@@ -117,9 +117,10 @@ namespace Gerakul.FastSql.Common
             }
         }
 
+        // there is only one result set
         public override bool NextResult()
         {
-            throw new NotImplementedException();
+            return false;
         }
 
         public override bool Read()
@@ -178,11 +179,12 @@ namespace Gerakul.FastSql.Common
             return false;
         }
 
+        // -1, as for a select statement
         public override int RecordsAffected
         {
             get
             {
-                throw new NotImplementedException();
+                return -1;
             }
         }
 
