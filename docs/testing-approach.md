@@ -39,6 +39,7 @@ Container images:
 - `postgres:18.6-alpine`
 
 Test runner: .NET 10 SDK `dotnet test` on Microsoft Testing Platform, enabled by `global.json`.
+(The .NET 11 SDK since .NET 11 came out, see [upgrade-notes.md](upgrade-notes.md#net-11).)
 
 Considered and not chosen: NUnit, MSTest and TUnit (all workable; xUnit v3 has the simplest
 container sharing through assembly fixtures and official Testcontainers support),
