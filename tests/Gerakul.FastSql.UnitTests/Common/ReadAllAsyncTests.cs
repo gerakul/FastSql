@@ -196,7 +196,8 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         // The built-in IAsyncEnumerator<T> gets its token once, when it is created, so a token cancelled after the first
-        // row stays cancelled: every later MoveNextAsync throws, and the reader is not moved again.
+        // row makes the next MoveNextAsync throw. The enumeration is an async iterator, finished once it has thrown: a
+        // further MoveNextAsync returns false (since phase 3; it threw again before). The reader is not moved again.
         [Theory]
         [MemberData(nameof(AsyncMethods))]
         [Trait("Fixed", "Q04")]
@@ -213,7 +214,7 @@ namespace Gerakul.FastSql.UnitTests.Common
                 Func<Task> moveNext = () => cursor.MoveNextAsync();
 
                 await moveNext.Should().ThrowExactlyAsync<OperationCanceledException>();
-                await moveNext.Should().ThrowExactlyAsync<OperationCanceledException>();
+                (await cursor.MoveNextAsync()).Should().BeFalse();
             }
 
             reader.Read().Should().BeTrue();

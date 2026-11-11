@@ -3,38 +3,37 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Gerakul.FastSql.Common
 {
     public static class DbCommandExtensions
     {
-        private static AEnumerable<AsyncState<T>, T> CreateAsyncEnumerable<T>(DbCommand cmd, CancellationToken cancellationToken,
-          Func<IDataReader, ReadInfo<T>> readInfoGetter)
+        // a cancelled enumeration throws, so partial results can't pass for complete ones; the enumeration's token is
+        // checked first, a cancelled query token surfaces as the driver's exception
+        private static async IAsyncEnumerable<T> QueryAsync<T>(DbCommand cmd, Func<IDataReader, ReadInfo<T>> readInfoGetter,
+          CancellationToken queryToken, [EnumeratorCancellation] CancellationToken enumerationToken = default)
         {
-            return Helpers.CreateAsyncEnumerable<T>(
-              state =>
-              {
-                  state?.ReadInfo?.Reader?.Dispose();
-              },
+            enumerationToken.ThrowIfCancellationRequested();
+            using var linkedTokenSource = Helpers.LinkTokens(queryToken, enumerationToken, out var cancellationToken);
 
-              async (state, ct) =>
-              {
-                  var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-                  try
-                  {
-                      state.ReadInfo = readInfoGetter(reader);
-                  }
-                  catch
-                  {
-                      // the dispose action only knows the reader through ReadInfo, so close it here, otherwise it keeps
-                      // the connection busy
-                      reader.Dispose();
-                      throw;
-                  }
-              },
+            var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            await using var readerScope = reader.ConfigureAwait(false);
+            var info = readInfoGetter(reader);
 
-              cancellationToken);
+            while (true)
+            {
+                // drivers may skip the token when the next row is already buffered
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    yield break;
+                }
+
+                yield return info.GetValue();
+            }
         }
 
         public static IEnumerable<object[]> ExecuteQuery(this DbCommand cmd)
@@ -50,7 +49,7 @@ namespace Gerakul.FastSql.Common
 
         public static IAsyncEnumerable<object[]> ExecuteQueryAsync(this DbCommand cmd, CancellationToken cancellationToken = default(CancellationToken))
         {
-            return CreateAsyncEnumerable(cmd, cancellationToken, r => ReadInfoFactory.CreateObjects(r));
+            return QueryAsync(cmd, r => ReadInfoFactory.CreateObjects(r), cancellationToken);
         }
 
         public static IEnumerable<T> ExecuteQuery<T>(this DbCommand cmd, ReadOptions readOptions = null) where T : new()
@@ -67,7 +66,7 @@ namespace Gerakul.FastSql.Common
         public static IAsyncEnumerable<T> ExecuteQueryAsync<T>(this DbCommand cmd, ReadOptions readOptions = null,
           CancellationToken cancellationToken = default(CancellationToken)) where T : new()
         {
-            return CreateAsyncEnumerable(cmd, cancellationToken, r => ReadInfoFactory.CreateByType<T>(r, readOptions));
+            return QueryAsync(cmd, r => ReadInfoFactory.CreateByType<T>(r, readOptions), cancellationToken);
         }
 
         public static IEnumerable<T> ExecuteQueryAnonymous<T>(this DbCommand cmd, T proto, ReadOptions readOptions = null)
@@ -84,7 +83,7 @@ namespace Gerakul.FastSql.Common
         public static IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(this DbCommand cmd, T proto, ReadOptions readOptions = null,
           CancellationToken cancellationToken = default(CancellationToken))
         {
-            return CreateAsyncEnumerable(cmd, cancellationToken, r => ReadInfoFactory.CreateAnonymous<T>(r, proto, readOptions));
+            return QueryAsync(cmd, r => ReadInfoFactory.CreateAnonymous<T>(r, proto, readOptions), cancellationToken);
         }
 
         public static IEnumerable ExecuteQueryFirstColumn(this DbCommand cmd)
@@ -101,7 +100,7 @@ namespace Gerakul.FastSql.Common
         public static IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(this DbCommand cmd,
           CancellationToken cancellationToken = default(CancellationToken))
         {
-            return CreateAsyncEnumerable(cmd, cancellationToken, r => ReadInfoFactory.CreateFirstColumn(r));
+            return QueryAsync(cmd, r => ReadInfoFactory.CreateFirstColumn(r), cancellationToken);
         }
 
         public static IEnumerable<T> ExecuteQueryFirstColumn<T>(this DbCommand cmd)
@@ -118,7 +117,7 @@ namespace Gerakul.FastSql.Common
         public static IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(this DbCommand cmd,
           CancellationToken cancellationToken = default(CancellationToken))
         {
-            return CreateAsyncEnumerable(cmd, cancellationToken, r => ReadInfoFactory.CreateFirstColumn<T>(r));
+            return QueryAsync(cmd, r => ReadInfoFactory.CreateFirstColumn<T>(r), cancellationToken);
         }
     }
 }

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,14 +13,25 @@ namespace Gerakul.FastSql.Common
     {
         #region Read
 
-        private static AEnumerable<AsyncState<T>, T> CreateAsyncEnumerable<T>(Func<ReadInfo<T>> readInfoGetter)
+        // the reader belongs to the caller, so it stays open; a cancelled enumeration throws, so partial results can't
+        // pass for complete ones
+        private static async IAsyncEnumerable<T> CreateAsyncEnumerable<T>(Func<ReadInfo<T>> readInfoGetter,
+          [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            return Helpers.CreateAsyncEnumerable<T>(null,
-              (state, ct) =>
-              {
-                  state.ReadInfo = readInfoGetter();
-                  return Task.CompletedTask;
-              });
+            cancellationToken.ThrowIfCancellationRequested();
+            var info = readInfoGetter();
+
+            while (true)
+            {
+                // drivers may skip the token when the next row is already buffered
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!await info.Reader.ReadAsyncInternal(cancellationToken).ConfigureAwait(false))
+                {
+                    yield break;
+                }
+
+                yield return info.GetValue();
+            }
         }
 
         private static IEnumerable<T> CreateEnumerable<T>(Func<ReadInfo<T>> readInfoGetter)

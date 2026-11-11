@@ -669,7 +669,8 @@ namespace Gerakul.FastSql.IntegrationTests.Common
         }
 
         // The built-in IAsyncEnumerator<T> gets its token once, when it is created, so a token cancelled in the middle
-        // stays cancelled: every later MoveNextAsync throws.
+        // makes the next MoveNextAsync throw. The enumeration is an async iterator, finished once it has thrown: a
+        // further MoveNextAsync returns false (since phase 3; it threw again before).
         [Theory]
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
         [Trait("Fixed", "Q04")]
@@ -685,14 +686,15 @@ namespace Gerakul.FastSql.IntegrationTests.Common
                     list.Add(enumerator.Current);
                     cancellation.Cancel();
                     list.Add(await CatchAsync(() => enumerator.MoveNextAsync()));
-                    list.Add(await CatchAsync(() => enumerator.MoveNextAsync()));
+                    list.Add(await enumerator.MoveNextAsync());
                 }
 
                 return list;
             });
 
             result.Take(2).Should().Equal(true, 1);
-            result.Skip(2).Should().AllSatisfy(x => x.Should().BeOfType<OperationCanceledException>());
+            result[2].Should().BeOfType<OperationCanceledException>();
+            result[3].Should().Be(false);
         }
 
         [Fact]

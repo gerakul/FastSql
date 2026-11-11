@@ -41,20 +41,20 @@ namespace Gerakul.FastSql.Common
 
         public async Task UsingTransactionAsync(IsolationLevel isolationLevel, Func<TransactionContext, Task> action)
         {
-            using (DbTransaction tran = Connection.BeginTransaction(isolationLevel))
-            {
-                try
-                {
-                    await action(ContextProvider.GetTransactionContext(tran, QueryOptions, BulkOptions, ReadOptions)).ConfigureAwait(false);
-                }
-                catch
-                {
-                    Rollback(tran);
-                    throw;
-                }
+            DbTransaction tran = await Connection.BeginTransactionAsync(isolationLevel).ConfigureAwait(false);
+            await using var transactionScope = tran.ConfigureAwait(false);
 
-                tran.Commit();
+            try
+            {
+                await action(ContextProvider.GetTransactionContext(tran, QueryOptions, BulkOptions, ReadOptions)).ConfigureAwait(false);
             }
+            catch
+            {
+                await RollbackAsync(tran).ConfigureAwait(false);
+                throw;
+            }
+
+            await tran.CommitAsync().ConfigureAwait(false);
         }
 
         // the action's exception is what the caller needs: a rollback that fails too (broken connection, open reader)
@@ -64,6 +64,17 @@ namespace Gerakul.FastSql.Common
             try
             {
                 tran.Rollback();
+            }
+            catch
+            {
+            }
+        }
+
+        private static async Task RollbackAsync(DbTransaction tran)
+        {
+            try
+            {
+                await tran.RollbackAsync().ConfigureAwait(false);
             }
             catch
             {

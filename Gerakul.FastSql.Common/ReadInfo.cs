@@ -12,15 +12,10 @@ namespace Gerakul.FastSql.Common
         public string Name;
     }
 
-    internal abstract class ReadInfo<T> : IDisposable
+    // reads rows of a reader that is owned by the caller
+    internal abstract class ReadInfo<T>
     {
         public IDataReader Reader;
-
-        public void Dispose()
-        {
-            Reader?.Dispose();
-            GC.SuppressFinalize(this);
-        }
 
         protected object GetValueFromReader(int indexInReader, Type convertingType, bool isNullable, bool isEnum)
         {

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Gerakul.FastSql.Common
 {
@@ -38,36 +37,20 @@ namespace Gerakul.FastSql.Common
             }
         }
 
-        internal static AEnumerable<AsyncState<T>, T> CreateAsyncEnumerable<T>(Action<AsyncState<T>> disposeAction,
-          Func<AsyncState<T>, CancellationToken, Task> initTaskGetter, CancellationToken cancellationToken = default(CancellationToken))
+        // the token given to a query method and the one given to the enumeration both cancel the database calls;
+        // the source is disposed with the enumeration, null when one token is enough
+        internal static CancellationTokenSource LinkTokens(CancellationToken queryToken, CancellationToken enumerationToken,
+            out CancellationToken cancellationToken)
         {
-            return new AEnumerable<AsyncState<T>, T>(
-              state => state.Current,
+            if (queryToken.CanBeCanceled && enumerationToken.CanBeCanceled && queryToken != enumerationToken)
+            {
+                var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(queryToken, enumerationToken);
+                cancellationToken = linkedTokenSource.Token;
+                return linkedTokenSource;
+            }
 
-              disposeAction,
-
-              initTaskGetter,
-
-              async (state, ct) =>
-              {
-                  // drivers may skip the token when the next row is already buffered
-                  ct.ThrowIfCancellationRequested();
-                  var success = await state.ReadInfo.Reader.ReadAsyncInternal(ct).ConfigureAwait(false);
-
-                  if (success)
-                  {
-                      state.Current = state.ReadInfo.GetValue();
-                  }
-                  else
-                  {
-                      state.Current = default(T);
-                  }
-
-                  return success;
-              },
-
-              cancellationToken
-            );
+            cancellationToken = queryToken.CanBeCanceled ? queryToken : enumerationToken;
+            return null;
         }
 
         internal static void GetMembers(Type type, FromTypeOption fromTypeOption, bool forReading, out FieldInfo[] fields, out PropertyInfo[] properties)

@@ -41,11 +41,10 @@ namespace Gerakul.FastSql.Common
 
         internal async Task UsingConnectionAsync(Func<ConnectionContext, Task> action, CancellationToken cancellationToken)
         {
-            using (var conn = CreateConnection())
-            {
-                await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
-                await action(ContextProvider.GetConnectionContext(conn, QueryOptions, BulkOptions, ReadOptions)).ConfigureAwait(false);
-            }
+            var conn = CreateConnection();
+            await using var connectionScope = conn.ConfigureAwait(false);
+            await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
+            await action(ContextProvider.GetConnectionContext(conn, QueryOptions, BulkOptions, ReadOptions)).ConfigureAwait(false);
         }
 
         public void UsingTransaction(IsolationLevel isolationLevel, Action<TransactionContext> action)

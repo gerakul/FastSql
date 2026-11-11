@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -27,40 +28,34 @@ namespace Gerakul.FastSql.Common
 
         #endregion
 
-        private AEnumerable<AsyncState<R>, R> CreateAsyncEnumerable<R>(CancellationToken cancellationToken,
-          Func<DbDataReader, ReadInfo<R>> readInfoGetter)
+        // the connection lives as long as the enumeration; a cancelled enumeration throws, so partial results can't pass
+        // for complete ones. The enumeration's token is checked first, so a cancelled one opens no connection
+        private async IAsyncEnumerable<R> QueryAsync<R>(Func<DbDataReader, ReadInfo<R>> readInfoGetter,
+          CancellationToken queryToken, [EnumeratorCancellation] CancellationToken enumerationToken = default)
         {
-            return Helpers.CreateAsyncEnumerable<R>(
-              state =>
-              {
-                  state?.ReadInfo?.Reader?.Dispose();
-                  state?.InternalConnection?.Dispose();
-              },
+            enumerationToken.ThrowIfCancellationRequested();
+            using var linkedTokenSource = Helpers.LinkTokens(queryToken, enumerationToken, out var cancellationToken);
 
-              async (state, ct) =>
-              {
-                  DbConnection conn = null;
-                  try
-                  {
-                      conn = context.CreateConnection();
-                      await conn.OpenAsync(ct).ConfigureAwait(false);
-                      state.InternalConnection = conn;
-                      var connectionContext = context.ContextProvider.GetConnectionContext(conn, context.QueryOptions, context.BulkOptions, context.ReadOptions);
-                      var reader = await commandGetter(connectionContext).ExecuteReaderAsync(ct).ConfigureAwait(false);
-                      state.ReadInfo = readInfoGetter(reader);
-                  }
-                  catch
-                  {
-                      if (conn != null)
-                      {
-                          conn.Close();
-                      }
+            var conn = context.CreateConnection();
+            await using var connectionScope = conn.ConfigureAwait(false);
+            await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
+            var connectionContext = context.ContextProvider.GetConnectionContext(conn, context.QueryOptions, context.BulkOptions, context.ReadOptions);
 
-                      throw;
-                  }
-              },
+            var reader = await commandGetter(connectionContext).ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            await using var readerScope = reader.ConfigureAwait(false);
+            var info = readInfoGetter(reader);
 
-              cancellationToken);
+            while (true)
+            {
+                // drivers may skip the token when the next row is already buffered
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    yield break;
+                }
+
+                yield return info.GetValue();
+            }
         }
 
         #region IWrappedCommand
@@ -124,7 +119,7 @@ namespace Gerakul.FastSql.Common
 
         public IAsyncEnumerable<object[]> ExecuteQueryAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
-            return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateObjects(r));
+            return QueryAsync(r => ReadInfoFactory.CreateObjects(r), cancellationToken);
         }
 
         public IEnumerable<T> ExecuteQuery<T>(ReadOptions readOptions = null) where T : new()
@@ -142,7 +137,7 @@ namespace Gerakul.FastSql.Common
 
         public IAsyncEnumerable<T> ExecuteQueryAsync<T>(ReadOptions readOptions = null, CancellationToken cancellationToken = default(CancellationToken)) where T : new()
         {
-            return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateByType<T>(r, context.PrepareReadOptions(readOptions)));
+            return QueryAsync(r => ReadInfoFactory.CreateByType<T>(r, context.PrepareReadOptions(readOptions)), cancellationToken);
         }
 
         public IEnumerable<T> ExecuteQueryAnonymous<T>(T proto, ReadOptions readOptions = null)
@@ -161,7 +156,7 @@ namespace Gerakul.FastSql.Common
 
         public IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(T proto, ReadOptions readOptions = null, CancellationToken cancellationToken = default(CancellationToken))
         {
-            return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateAnonymous(r, proto, context.PrepareReadOptions(readOptions)));
+            return QueryAsync(r => ReadInfoFactory.CreateAnonymous(r, proto, context.PrepareReadOptions(readOptions)), cancellationToken);
         }
 
         public IEnumerable ExecuteQueryFirstColumn()
@@ -179,7 +174,7 @@ namespace Gerakul.FastSql.Common
 
         public IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
-            return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateFirstColumn(r));
+            return QueryAsync(r => ReadInfoFactory.CreateFirstColumn(r), cancellationToken);
         }
 
         public IEnumerable<T> ExecuteQueryFirstColumn<T>()
@@ -197,7 +192,7 @@ namespace Gerakul.FastSql.Common
 
         public IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(CancellationToken cancellationToken = default(CancellationToken))
         {
-            return CreateAsyncEnumerable(cancellationToken, r => ReadInfoFactory.CreateFirstColumn<T>(r));
+            return QueryAsync(r => ReadInfoFactory.CreateFirstColumn<T>(r), cancellationToken);
         }
 
         public void UseReader(Action<DbDataReader> action)
@@ -215,10 +210,9 @@ namespace Gerakul.FastSql.Common
         {
             await context.UsingConnectionAsync(async x =>
             {
-                using (var reader = await commandGetter(x).ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
-                {
-                    await action(reader).ConfigureAwait(false);
-                }
+                var reader = await commandGetter(x).ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                await using var readerScope = reader.ConfigureAwait(false);
+                await action(reader).ConfigureAwait(false);
             }, cancellationToken).ConfigureAwait(false);
         }
 

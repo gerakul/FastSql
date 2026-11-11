@@ -64,10 +64,9 @@ namespace Gerakul.FastSql.Common
 
         public static async Task WriteToServerAsync<T>(this IEnumerable<T> values, DbContext context, string destinationTable, BulkOptions bulkOptions, CancellationToken cancellationToken, params string[] fields)
         {
-            using (var reader = values.ToDataReader())
-            {
-                await reader.WriteToServerAsync(context, destinationTable, bulkOptions, cancellationToken, fields).ConfigureAwait(false);
-            }
+            var reader = values.ToDataReader();
+            await using var readerScope = reader.ConfigureAwait(false);
+            await reader.WriteToServerAsync(context, destinationTable, bulkOptions, cancellationToken, fields).ConfigureAwait(false);
         }
 
         public static Task WriteToServerAsync<T>(this IEnumerable<T> values, DbContext context, string destinationTable, BulkOptions bulkOptions, params string[] fields)

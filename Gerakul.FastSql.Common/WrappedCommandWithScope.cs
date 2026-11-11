@@ -110,10 +110,9 @@ namespace Gerakul.FastSql.Common
 
         public async Task UseReaderAsync(CancellationToken cancellationToken, Func<DbDataReader, Task> action)
         {
-            using (var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
-            {
-                await action(reader).ConfigureAwait(false);
-            }
+            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            await using var readerScope = reader.ConfigureAwait(false);
+            await action(reader).ConfigureAwait(false);
         }
 
         #endregion

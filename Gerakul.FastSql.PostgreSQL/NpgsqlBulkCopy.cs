@@ -146,20 +146,20 @@ namespace Gerakul.FastSql.PostgreSQL
                 }
 
                 var columns = context.ContextProvider.CommandTextGenerator.ColumnList(map.Select(x => x.Destination).ToArray());
-                using (var writer = await Connection.BeginBinaryImportAsync($"COPY {destinationTable} ({columns}) FROM STDIN (FORMAT BINARY)", cancellationToken).ConfigureAwait(false))
+                var writer = await Connection.BeginBinaryImportAsync($"COPY {destinationTable} ({columns}) FROM STDIN (FORMAT BINARY)", cancellationToken).ConfigureAwait(false);
+                await using var writerScope = writer.ConfigureAwait(false);
+
+                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
                 {
-                    while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                    await writer.StartRowAsync(cancellationToken).ConfigureAwait(false);
+
+                    foreach (var item in map)
                     {
-                        await writer.StartRowAsync(cancellationToken).ConfigureAwait(false);
-
-                        foreach (var item in map)
-                        {
-                            await writer.WriteAsync(reader.GetValue(item.Ordinal), cancellationToken).ConfigureAwait(false);
-                        }
+                        await writer.WriteAsync(reader.GetValue(item.Ordinal), cancellationToken).ConfigureAwait(false);
                     }
-
-                    await writer.CompleteAsync(cancellationToken).ConfigureAwait(false);
                 }
+
+                await writer.CompleteAsync(cancellationToken).ConfigureAwait(false);
             }
         }
 
