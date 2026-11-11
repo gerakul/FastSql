@@ -9,7 +9,7 @@ namespace Gerakul.FastSql.PostgreSQL
         public short BytesMaxLength { get; set; }
         public byte DateTimeScale { get; set; }
         public byte Precision { get; set; }
-        public System.Collections.Generic.List<string> PrimaryKey { get; set; }
+        public System.Collections.Generic.List<string>? PrimaryKey { get; set; }
         public byte Scale { get; set; }
         public short StringMaxLength { get; set; }
         public bool ThrowIfUnsupportedType { get; set; }
@@ -60,7 +60,7 @@ namespace Gerakul.FastSql.PostgreSQL
         public override Gerakul.FastSql.CommandTextGenerator CommandTextGenerator { get; }
         public override Gerakul.FastSql.Common.QueryOptions QueryOptions { get; }
         public static Gerakul.FastSql.PostgreSQL.NpgsqlContextProvider DefaultInstance { get; }
-        protected override System.Data.Common.DbParameter AddParamWithValue(System.Data.Common.DbCommand cmd, string paramName, object value) { }
+        protected override System.Data.Common.DbParameter AddParamWithValue(System.Data.Common.DbCommand cmd, string paramName, object? value) { }
         protected override Gerakul.FastSql.Common.BulkCopy GetBulkCopy(Gerakul.FastSql.Common.ScopedContext context, System.Data.Common.DbDataReader reader, string destinationTable, Gerakul.FastSql.Common.BulkOptions bulkOptions, params string[] fields) { }
         protected override Gerakul.FastSql.Common.ConnectionContext GetConnectionContext(System.Data.Common.DbConnection connection, Gerakul.FastSql.Common.QueryOptions queryOptions, Gerakul.FastSql.Common.BulkOptions bulkOptions, Gerakul.FastSql.Common.ReadOptions readOptions) { }
         protected override Gerakul.FastSql.Common.ConnectionStringContext GetConnectionStringContext(string connectionString, Gerakul.FastSql.Common.QueryOptions queryOptions, Gerakul.FastSql.Common.BulkOptions bulkOptions, Gerakul.FastSql.Common.ReadOptions readOptions) { }
