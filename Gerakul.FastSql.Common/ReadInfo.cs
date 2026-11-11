@@ -23,9 +23,9 @@ namespace Gerakul.FastSql.Common
     // reads rows of a reader that is owned by the caller
     internal abstract class ReadInfo<T>
     {
-        public IDataReader Reader;
+        public required IDataReader Reader;
 
-        protected object GetValueFromReader(in ValueSource source)
+        protected object? GetValueFromReader(in ValueSource source)
         {
             if (Reader.IsDBNull(source.Ordinal) && source.IsNullable)
             {
@@ -79,7 +79,7 @@ namespace Gerakul.FastSql.Common
 
     internal static class ReadInfoFactory
     {
-        private static ReadOptions GetReadOptions(ReadOptions readOptions)
+        private static ReadOptions GetReadOptions(ReadOptions? readOptions)
         {
             if (readOptions == null)
             {
@@ -93,7 +93,7 @@ namespace Gerakul.FastSql.Common
 
         private static StringComparer GetComparer(ReadOptions readOptions)
         {
-            return readOptions.CaseSensitiveFieldsMatching.Value ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
+            return readOptions.CaseSensitiveFieldsMatching!.Value ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
         }
 
         private static ReaderField[] GetReaderFields(IDataReader reader)
@@ -108,12 +108,12 @@ namespace Gerakul.FastSql.Common
             return readerFields;
         }
 
-        public static ReadInfoByType<T> CreateByType<T>(IDataReader reader, ReadOptions readOptions) where T : new()
+        public static ReadInfoByType<T> CreateByType<T>(IDataReader reader, ReadOptions? readOptions) where T : new()
         {
             ReadOptions readOpt = GetReadOptions(readOptions);
             var readerFields = GetReaderFields(reader);
 
-            Helpers.GetMembers(typeof(T), readOpt.FromTypeOption.Value, true, out FieldInfo[] fiAll, out PropertyInfo[] piAll);
+            Helpers.GetMembers(typeof(T), readOpt.FromTypeOption!.Value, true, out FieldInfo[] fiAll, out PropertyInfo[] piAll);
 
             var comparer = GetComparer(readOpt);
 
@@ -132,7 +132,7 @@ namespace Gerakul.FastSql.Common
             var properties = piAll.Join(readerFields, x => x.Name, x => x.Name,
                 (x, y) => (Property: x, Source: ValueSource.For(y.Ordinal, x.PropertyType)), comparer).ToArray();
 
-            Helpers.CheckFieldSelection(readOpt.FieldsSelector.Value, readerFields.Length, fiAll.Length + piAll.Length, fields.Length + properties.Length);
+            Helpers.CheckFieldSelection(readOpt.FieldsSelector!.Value, readerFields.Length, fiAll.Length + piAll.Length, fields.Length + properties.Length);
 
             return new ReadInfoByType<T>()
             {
@@ -151,12 +151,12 @@ namespace Gerakul.FastSql.Common
             };
         }
 
-        public static ReadInfoAnonymous<T> CreateAnonymous<T>(IDataReader reader, T proto, ReadOptions readOptions)
+        public static ReadInfoAnonymous<T> CreateAnonymous<T>(IDataReader reader, T proto, ReadOptions? readOptions)
         {
             ReadOptions readOpt = GetReadOptions(readOptions);
             var readerFields = GetReaderFields(reader);
 
-            ConstructorInfo constructor = typeof(T).GetConstructors().FirstOrDefault();
+            ConstructorInfo? constructor = typeof(T).GetConstructors().FirstOrDefault();
             if (constructor == null)
             {
                 throw new InvalidOperationException($"Type {typeof(T)} has no public constructor");
@@ -179,7 +179,7 @@ namespace Gerakul.FastSql.Common
             var parameters = piAll.Join(readerFields, x => x.Name, x => x.Name,
                 (x, y) => (x.Position, Source: ValueSource.For(y.Ordinal, x.ParameterType)), comparer).ToArray();
 
-            Helpers.CheckFieldSelection(readOpt.FieldsSelector.Value, readerFields.Length, piAll.Length, parameters.Length);
+            Helpers.CheckFieldSelection(readOpt.FieldsSelector!.Value, readerFields.Length, piAll.Length, parameters.Length);
 
             return new ReadInfoAnonymous<T>()
             {
@@ -210,8 +210,8 @@ namespace Gerakul.FastSql.Common
 
     internal sealed class ReadInfoByType<T> : ReadInfo<T> where T : new()
     {
-        public (FieldInfo Field, ValueSource Source)[] fields;
-        public (PropertyInfo Property, ValueSource Source)[] properties;
+        public required (FieldInfo Field, ValueSource Source)[] fields;
+        public required (PropertyInfo Property, ValueSource Source)[] properties;
 
         public override T GetValue()
         {
@@ -246,13 +246,13 @@ namespace Gerakul.FastSql.Common
 
     internal sealed class ReadInfoAnonymous<T> : ReadInfo<T>
     {
-        public ConstructorInfo constructor;
+        public required ConstructorInfo constructor;
         public int parameterCount;
-        public (int Position, ValueSource Source)[] parameters;
+        public required (int Position, ValueSource Source)[] parameters;
 
         public override T GetValue()
         {
-            object[] args = new object[parameterCount];
+            object?[] args = new object?[parameterCount];
 
             for (int i = 0; i < parameters.Length; i++)
             {
@@ -263,9 +263,9 @@ namespace Gerakul.FastSql.Common
         }
     }
 
-    internal sealed class ReadInfoFirstColumn : ReadInfo<object>
+    internal sealed class ReadInfoFirstColumn : ReadInfo<object?>
     {
-        public override object GetValue()
+        public override object? GetValue()
         {
             return Reader.IsDBNull(0) ? null : Reader.GetValue(0);
         }
@@ -277,7 +277,7 @@ namespace Gerakul.FastSql.Common
 
         public override T GetValue()
         {
-            return (T)GetValueFromReader(in source);
+            return (T)GetValueFromReader(in source)!;
         }
     }
 }

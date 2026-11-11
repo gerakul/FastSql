@@ -19,14 +19,14 @@ namespace Gerakul.FastSql.Common
 
         #region IBulkWriter
 
-        public void WriteToServer(string destinationTable, BulkOptions bulkOptions, params string[] fields)
+        public void WriteToServer(string destinationTable, BulkOptions? bulkOptions, params string[] fields)
         {
             BulkCopy bulk = scopedContext.ContextProvider.GetBulkCopy(scopedContext, reader, destinationTable, 
                 scopedContext.PrepareBulkOptions(bulkOptions), fields);
             bulk.WriteToServer();
         }
 
-        public Task WriteToServerAsync(string destinationTable, BulkOptions bulkOptions, CancellationToken cancellationToken, params string[] fields)
+        public Task WriteToServerAsync(string destinationTable, BulkOptions? bulkOptions, CancellationToken cancellationToken, params string[] fields)
         {
             BulkCopy bulk = scopedContext.ContextProvider.GetBulkCopy(scopedContext, reader, destinationTable,
                 scopedContext.PrepareBulkOptions(bulkOptions), fields);

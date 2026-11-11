@@ -39,7 +39,7 @@ namespace Gerakul.FastSql.Common
 
         // the token given to a query method and the one given to the enumeration both cancel the database calls;
         // the source is disposed with the enumeration, null when one token is enough
-        internal static CancellationTokenSource LinkTokens(CancellationToken queryToken, CancellationToken enumerationToken,
+        internal static CancellationTokenSource? LinkTokens(CancellationToken queryToken, CancellationToken enumerationToken,
             out CancellationToken cancellationToken)
         {
             if (queryToken.CanBeCanceled && enumerationToken.CanBeCanceled && queryToken != enumerationToken)
@@ -62,7 +62,7 @@ namespace Gerakul.FastSql.Common
             // a member hidden with "new" is returned together with the hiding one; keep the most derived
             var visible = allFields.Cast<MemberInfo>().Concat(allProperties)
                 .GroupBy(x => x.Name)
-                .Select(x => x.OrderByDescending(y => GetDepth(y.DeclaringType)).First())
+                .Select(x => x.OrderByDescending(y => GetDepth(y.DeclaringType!)).First())
                 .ToArray();
 
             fields = [];

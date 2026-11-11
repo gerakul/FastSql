@@ -11,12 +11,12 @@ namespace Gerakul.FastSql.Common
 {
     public class UniversalDataReader<T> : DbDataReader
     {
-        private readonly IEnumerator<T> enumerator;
-        private readonly IAsyncEnumerator<T> asyncEnumerator;
+        private readonly IEnumerator<T>? enumerator;
+        private readonly IAsyncEnumerator<T>? asyncEnumerator;
         private bool isClosed;
-        private T curRow;
+        private T curRow = default!;
         private readonly int fieldCount;
-        private readonly Func<T, object>[] getters;
+        private readonly Func<T, object?>[] getters;
         private readonly Func<T, bool>[] isNullGetters;
         private readonly string[] dataTypeNames;
         private readonly Type[] types;
@@ -32,7 +32,7 @@ namespace Gerakul.FastSql.Common
             this.settings = settings.ToArray();
             this.fieldCount = this.settings.Length;
 
-            this.getters = new Func<T, object>[this.fieldCount];
+            this.getters = new Func<T, object?>[this.fieldCount];
             this.isNullGetters = new Func<T, bool>[this.fieldCount];
             this.dataTypeNames = new string[this.fieldCount];
             this.types = new Type[this.fieldCount];
@@ -123,7 +123,8 @@ namespace Gerakul.FastSql.Common
                 throw new InvalidOperationException("DataReader has been closed");
             }
 
-            if (enumerator == null)
+            // one of the two sources is set
+            if (asyncEnumerator != null)
             {
                 // a move that has already completed (buffered rows, in-memory sources) is read without a task
                 var move = asyncEnumerator.MoveNextAsync();
@@ -135,7 +136,7 @@ namespace Gerakul.FastSql.Common
             }
             else
             {
-                if (enumerator.MoveNext())
+                if (enumerator!.MoveNext())
                 {
                     curRow = enumerator.Current;
                     return true;
@@ -154,7 +155,8 @@ namespace Gerakul.FastSql.Common
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (enumerator == null)
+            // one of the two sources is set
+            if (asyncEnumerator != null)
             {
                 if (await asyncEnumerator.MoveNextAsync().ConfigureAwait(false))
                 {
@@ -164,7 +166,7 @@ namespace Gerakul.FastSql.Common
             }
             else
             {
-                if (enumerator.MoveNext())
+                if (enumerator!.MoveNext())
                 {
                     curRow = enumerator.Current;
                     return true;
@@ -183,17 +185,17 @@ namespace Gerakul.FastSql.Common
 
         public override bool GetBoolean(int i)
         {
-            return (bool)getters[i](curRow);
+            return (bool)Value(i);
         }
 
         public override byte GetByte(int i)
         {
-            return (byte)getters[i](curRow);
+            return (byte)Value(i);
         }
 
-        public override long GetBytes(int i, long fieldOffset, byte[] buffer, int bufferOffset, int length)
+        public override long GetBytes(int i, long fieldOffset, byte[]? buffer, int bufferOffset, int length)
         {
-            byte[] bytes = (byte[])getters[i](curRow);
+            byte[] bytes = (byte[])Value(i);
 
             // without a buffer the length of the value is returned (IDataRecord contract)
             if (buffer == null)
@@ -216,12 +218,12 @@ namespace Gerakul.FastSql.Common
 
         public override char GetChar(int i)
         {
-            return (char)getters[i](curRow);
+            return (char)Value(i);
         }
 
-        public override long GetChars(int i, long fieldOffset, char[] buffer, int bufferOffset, int length)
+        public override long GetChars(int i, long fieldOffset, char[]? buffer, int bufferOffset, int length)
         {
-            var value = getters[i](curRow);
+            var value = Value(i);
 
             // a string is read in place, not copied as a whole on every call
             ReadOnlySpan<char> chars = value is string str ? str.AsSpan() : (char[])value;
@@ -252,17 +254,17 @@ namespace Gerakul.FastSql.Common
 
         public override DateTime GetDateTime(int i)
         {
-            return (DateTime)getters[i](curRow);
+            return (DateTime)Value(i);
         }
 
         public override decimal GetDecimal(int i)
         {
-            return (decimal)getters[i](curRow);
+            return (decimal)Value(i);
         }
 
         public override double GetDouble(int i)
         {
-            return (double)getters[i](curRow);
+            return (double)Value(i);
         }
 
         public override Type GetFieldType(int i)
@@ -272,27 +274,27 @@ namespace Gerakul.FastSql.Common
 
         public override float GetFloat(int i)
         {
-            return (float)getters[i](curRow);
+            return (float)Value(i);
         }
 
         public override Guid GetGuid(int i)
         {
-            return (Guid)getters[i](curRow);
+            return (Guid)Value(i);
         }
 
         public override short GetInt16(int i)
         {
-            return (short)getters[i](curRow);
+            return (short)Value(i);
         }
 
         public override int GetInt32(int i)
         {
-            return (int)getters[i](curRow);
+            return (int)Value(i);
         }
 
         public override long GetInt64(int i)
         {
-            return (long)getters[i](curRow);
+            return (long)Value(i);
         }
 
         public override string GetName(int i)
@@ -313,12 +315,18 @@ namespace Gerakul.FastSql.Common
 
         public override string GetString(int i)
         {
-            return (string)getters[i](curRow);
+            return (string)Value(i);
         }
 
         public override object GetValue(int i)
         {
-            return getters[i](curRow);
+            return Value(i);
+        }
+
+        // null for a null value (IsDBNull is true), as it always was, although DbDataReader declares non-null values
+        private object Value(int i)
+        {
+            return getters[i](curRow)!;
         }
 
         public override int GetValues(object[] values)
@@ -326,7 +334,7 @@ namespace Gerakul.FastSql.Common
             int res = Math.Min(values.Length, fieldCount);
             for (int i = 0; i < res; i++)
             {
-                values[i] = getters[i](curRow);
+                values[i] = Value(i);
             }
 
             return res;
@@ -339,12 +347,12 @@ namespace Gerakul.FastSql.Common
 
         public override IEnumerator GetEnumerator()
         {
-            return enumerator;
+            return enumerator!; // null for an async source, as before
         }
 
-        public override object this[string name] => getters[GetOrdinal(name)](curRow);
+        public override object this[string name] => Value(GetOrdinal(name));
 
-        public override object this[int i] => getters[i](curRow);
+        public override object this[int i] => Value(i);
 
         #endregion
     }

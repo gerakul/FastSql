@@ -20,7 +20,7 @@ namespace Gerakul.FastSql.PostgreSQL
 
         public override DbCommand CreateCommand(string commandText)
         {
-            return new NpgsqlCommand(commandText, (NpgsqlConnection)Transaction.Connection, (NpgsqlTransaction)Transaction);
+            return new NpgsqlCommand(commandText, (NpgsqlConnection?)Transaction.Connection, (NpgsqlTransaction)Transaction);
         }
     }
 }

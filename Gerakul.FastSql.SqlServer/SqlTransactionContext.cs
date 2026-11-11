@@ -20,7 +20,7 @@ namespace Gerakul.FastSql.SqlServer
 
         public override DbCommand CreateCommand(string commandText)
         {
-            return new SqlCommand(commandText, (SqlConnection)Transaction.Connection, (SqlTransaction)Transaction);
+            return new SqlCommand(commandText, (SqlConnection?)Transaction.Connection, (SqlTransaction)Transaction);
         }
     }
 }

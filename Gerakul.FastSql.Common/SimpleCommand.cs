@@ -19,7 +19,7 @@ namespace Gerakul.FastSql.Common
             this.CommandType = commandType;
         }
 
-        internal DbCommand Create(ScopedContext scopedContext, QueryOptions queryOptions, object[] parameters)
+        internal DbCommand Create(ScopedContext scopedContext, QueryOptions? queryOptions, object?[] parameters)
         {
             if (scopedContext.ContextProvider != contextProvider)
             {
@@ -33,9 +33,9 @@ namespace Gerakul.FastSql.Common
 
             for (int i = 0; i < parameters.Length; i++)
             {
-                if (parameters[i] is DbParameter)
+                if (parameters[i] is DbParameter parameter)
                 {
-                    cmd.Parameters.Add(parameters[i]);
+                    cmd.Parameters.Add(parameter);
                 }
                 else
                 {

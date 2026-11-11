@@ -50,7 +50,7 @@ namespace Gerakul.FastSql.Common
             return QueryAsync(cmd, r => ReadInfoFactory.CreateObjects(r), cancellationToken);
         }
 
-        public static IEnumerable<T> ExecuteQuery<T>(this DbCommand cmd, ReadOptions readOptions = null) where T : new()
+        public static IEnumerable<T> ExecuteQuery<T>(this DbCommand cmd, ReadOptions? readOptions = null) where T : new()
         {
             using DbDataReader reader = cmd.ExecuteReader();
             foreach (var item in reader.ReadAll<T>(readOptions))
@@ -59,13 +59,13 @@ namespace Gerakul.FastSql.Common
             }
         }
 
-        public static IAsyncEnumerable<T> ExecuteQueryAsync<T>(this DbCommand cmd, ReadOptions readOptions = null,
+        public static IAsyncEnumerable<T> ExecuteQueryAsync<T>(this DbCommand cmd, ReadOptions? readOptions = null,
           CancellationToken cancellationToken = default) where T : new()
         {
             return QueryAsync(cmd, r => ReadInfoFactory.CreateByType<T>(r, readOptions), cancellationToken);
         }
 
-        public static IEnumerable<T> ExecuteQueryAnonymous<T>(this DbCommand cmd, T proto, ReadOptions readOptions = null)
+        public static IEnumerable<T> ExecuteQueryAnonymous<T>(this DbCommand cmd, T proto, ReadOptions? readOptions = null)
         {
             using DbDataReader reader = cmd.ExecuteReader();
             foreach (var item in reader.ReadAllAnonymous(proto, readOptions))
@@ -74,7 +74,7 @@ namespace Gerakul.FastSql.Common
             }
         }
 
-        public static IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(this DbCommand cmd, T proto, ReadOptions readOptions = null,
+        public static IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(this DbCommand cmd, T proto, ReadOptions? readOptions = null,
           CancellationToken cancellationToken = default)
         {
             return QueryAsync(cmd, r => ReadInfoFactory.CreateAnonymous<T>(r, proto, readOptions), cancellationToken);
@@ -89,7 +89,7 @@ namespace Gerakul.FastSql.Common
             }
         }
 
-        public static IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(this DbCommand cmd,
+        public static IAsyncEnumerable<object?> ExecuteQueryFirstColumnAsync(this DbCommand cmd,
           CancellationToken cancellationToken = default)
         {
             return QueryAsync(cmd, r => ReadInfoFactory.CreateFirstColumn(r), cancellationToken);

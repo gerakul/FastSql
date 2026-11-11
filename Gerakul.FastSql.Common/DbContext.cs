@@ -23,7 +23,7 @@ namespace Gerakul.FastSql.Common
             this.ReadOptions = readOptions.Clone();
         }
 
-        internal QueryOptions PrepareQueryOptions(QueryOptions options)
+        internal QueryOptions PrepareQueryOptions(QueryOptions? options)
         {
             if (options == null)
             {
@@ -39,7 +39,7 @@ namespace Gerakul.FastSql.Common
             return opt.SetDefaults(QueryOptions).SetDefaults();
         }
 
-        internal BulkOptions PrepareBulkOptions(BulkOptions options)
+        internal BulkOptions PrepareBulkOptions(BulkOptions? options)
         {
             if (options == null)
             {
@@ -55,7 +55,7 @@ namespace Gerakul.FastSql.Common
             return opt.SetDefaults(BulkOptions).SetDefaults();
         }
 
-        internal ReadOptions PrepareReadOptions(ReadOptions options)
+        internal ReadOptions PrepareReadOptions(ReadOptions? options)
         {
             if (options == null)
             {

@@ -13,14 +13,14 @@ namespace Gerakul.FastSql.SqlServer
     {
         private readonly record struct Mapping(string Source, string Destination);
 
-        private SqlConnection Connection => context switch
+        private SqlConnection? Connection => context switch
         {
-            TransactionContext transactionContext => (SqlConnection)transactionContext.Transaction.Connection,
+            TransactionContext transactionContext => (SqlConnection?)transactionContext.Transaction.Connection,
             ConnectionContext connectionContext => (SqlConnection)connectionContext.Connection,
             _ => null
         };
 
-        private SqlTransaction Transaction => context is TransactionContext transactionContext ? (SqlTransaction)transactionContext.Transaction : null;
+        private SqlTransaction? Transaction => context is TransactionContext transactionContext ? (SqlTransaction)transactionContext.Transaction : null;
 
         private SqlBulkOptions SqlBulkOptions => (SqlBulkOptions)bulkOptions;
 
@@ -33,14 +33,14 @@ namespace Gerakul.FastSql.SqlServer
         {
             string[] sourceFields = fields.Length > 0 ? fields.ToArray() : reader.GetColumnNames().ToArray();
 
-            if (bulkOptions.CreateTable.Value)
+            if (bulkOptions.CreateTable!.Value)
             {
                 CreateTable(sourceFields);
             }
 
             Mapping[] map;
 
-            if (bulkOptions.FieldsSelector.Value == FieldsSelector.Source && !bulkOptions.CaseSensitiveFieldsMatching.HasValue)
+            if (bulkOptions.FieldsSelector!.Value == FieldsSelector.Source && !bulkOptions.CaseSensitiveFieldsMatching.HasValue)
             {
                 map = sourceFields.Select(x => new Mapping(x, x)).ToArray();
             }
@@ -51,12 +51,12 @@ namespace Gerakul.FastSql.SqlServer
                 var comparer = bulkOptions.CaseSensitiveFieldsMatching == true ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
                 map = sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping(x, y), comparer).ToArray();
 
-                CheckFieldSelection(bulkOptions.FieldsSelector.Value, sourceFields.Length, destFields.Length, map.Length);
+                CheckFieldSelection(bulkOptions.FieldsSelector!.Value, sourceFields.Length, destFields.Length, map.Length);
             }
 
             if (map.Length > 0)
             {
-                using var bcp = new SqlBulkCopy(Connection, SqlBulkOptions.SqlBulkCopyOptions.Value, Transaction);
+                using var bcp = new SqlBulkCopy(Connection, SqlBulkOptions.SqlBulkCopyOptions!.Value, Transaction);
 
                 bcp.DestinationTableName = destinationTable;
                 if (SqlBulkOptions.BatchSize.HasValue)
@@ -87,14 +87,14 @@ namespace Gerakul.FastSql.SqlServer
         {
             string[] sourceFields = fields.Length > 0 ? fields.ToArray() : reader.GetColumnNames().ToArray();
 
-            if (bulkOptions.CreateTable.Value)
+            if (bulkOptions.CreateTable!.Value)
             {
                 await CreateTableAsync(sourceFields, cancellationToken).ConfigureAwait(false);
             }
 
             Mapping[] map;
 
-            if (bulkOptions.FieldsSelector.Value == FieldsSelector.Source && !bulkOptions.CaseSensitiveFieldsMatching.HasValue)
+            if (bulkOptions.FieldsSelector!.Value == FieldsSelector.Source && !bulkOptions.CaseSensitiveFieldsMatching.HasValue)
             {
                 map = sourceFields.Select(x => new Mapping(x, x)).ToArray();
             }
@@ -105,12 +105,12 @@ namespace Gerakul.FastSql.SqlServer
                 var comparer = bulkOptions.CaseSensitiveFieldsMatching == true ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
                 map = sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping(x, y), comparer).ToArray();
 
-                CheckFieldSelection(bulkOptions.FieldsSelector.Value, sourceFields.Length, destFields.Length, map.Length);
+                CheckFieldSelection(bulkOptions.FieldsSelector!.Value, sourceFields.Length, destFields.Length, map.Length);
             }
 
             if (map.Length > 0)
             {
-                using var bcp = new SqlBulkCopy(Connection, SqlBulkOptions.SqlBulkCopyOptions.Value, Transaction);
+                using var bcp = new SqlBulkCopy(Connection, SqlBulkOptions.SqlBulkCopyOptions!.Value, Transaction);
 
                 bcp.DestinationTableName = destinationTable;
                 if (SqlBulkOptions.BatchSize.HasValue)
@@ -139,7 +139,7 @@ namespace Gerakul.FastSql.SqlServer
 
         private string GetCreateTableScript(string[] sourceFields)
         {
-            var colDefs = reader.GetColumnDefinitions(SqlBulkOptions.ColumnDefinitionOptions, bulkOptions.IgnoreDataReaderSchemaTable.Value)
+            var colDefs = reader.GetColumnDefinitions(SqlBulkOptions.ColumnDefinitionOptions, bulkOptions.IgnoreDataReaderSchemaTable!.Value)
                 .Where(x => x != null && sourceFields.Contains(x.Name)).ToArray(); // null: a type without a column type
 
             if (colDefs.Length != sourceFields.Length)
@@ -147,7 +147,7 @@ namespace Gerakul.FastSql.SqlServer
                 throw new InvalidOperationException("Can not create table with specified fields");
             }
 
-            return colDefs.CreateTableScript(destinationTable, bulkOptions.CheckTableIfNotExistsBeforeCreation.Value);
+            return colDefs.CreateTableScript(destinationTable, bulkOptions.CheckTableIfNotExistsBeforeCreation!.Value);
         }
 
         private void CreateTable(string[] sourceFields)

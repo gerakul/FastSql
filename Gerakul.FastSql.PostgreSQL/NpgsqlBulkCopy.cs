@@ -13,14 +13,14 @@ namespace Gerakul.FastSql.PostgreSQL
     {
         private readonly record struct Mapping(string Source, string Destination);
 
-        private NpgsqlConnection Connection => context switch
+        private NpgsqlConnection? Connection => context switch
         {
-            TransactionContext transactionContext => (NpgsqlConnection)transactionContext.Transaction.Connection,
+            TransactionContext transactionContext => (NpgsqlConnection?)transactionContext.Transaction.Connection,
             ConnectionContext connectionContext => (NpgsqlConnection)connectionContext.Connection,
             _ => null
         };
 
-        private NpgsqlTransaction Transaction => context is TransactionContext transactionContext ? (NpgsqlTransaction)transactionContext.Transaction : null;
+        private NpgsqlTransaction? Transaction => context is TransactionContext transactionContext ? (NpgsqlTransaction)transactionContext.Transaction : null;
 
         private NpgsqlBulkOptions NpgsqlBulkOptions => (NpgsqlBulkOptions)bulkOptions;
 
@@ -33,7 +33,7 @@ namespace Gerakul.FastSql.PostgreSQL
         {
             string[] sourceFields = fields.Length > 0 ? fields.ToArray() : reader.GetColumnNames().ToArray();
 
-            if (bulkOptions.CreateTable.Value)
+            if (bulkOptions.CreateTable!.Value)
             {
                 throw new NotImplementedException("Table creation is not implemented for PostgreSQL");
                 //CreateTable(sourceFields);
@@ -41,7 +41,7 @@ namespace Gerakul.FastSql.PostgreSQL
 
             Mapping[] map;
 
-            if (bulkOptions.FieldsSelector.Value == FieldsSelector.Source && !bulkOptions.CaseSensitiveFieldsMatching.HasValue)
+            if (bulkOptions.FieldsSelector!.Value == FieldsSelector.Source && !bulkOptions.CaseSensitiveFieldsMatching.HasValue)
             {
                 map = sourceFields.Select(x => new Mapping(x, x)).ToArray();
             }
@@ -52,14 +52,14 @@ namespace Gerakul.FastSql.PostgreSQL
                 var comparer = bulkOptions.CaseSensitiveFieldsMatching == true ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
                 map = sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping(x, y), comparer).ToArray();
 
-                CheckFieldSelection(bulkOptions.FieldsSelector.Value, sourceFields.Length, destFields.Length, map.Length);
+                CheckFieldSelection(bulkOptions.FieldsSelector!.Value, sourceFields.Length, destFields.Length, map.Length);
             }
 
             if (map.Length > 0)
             {
                 var ordinals = map.Select(x => reader.GetOrdinal(x.Source)).ToArray();
                 var columns = context.ContextProvider.CommandTextGenerator.ColumnList(map.Select(x => x.Destination).ToArray());
-                using var writer = Connection.BeginBinaryImport($"COPY {destinationTable} ({columns}) FROM STDIN (FORMAT BINARY)");
+                using var writer = Connection!.BeginBinaryImport($"COPY {destinationTable} ({columns}) FROM STDIN (FORMAT BINARY)");
 
                 while (reader.Read())
                 {
@@ -79,7 +79,7 @@ namespace Gerakul.FastSql.PostgreSQL
         {
             string[] sourceFields = fields.Length > 0 ? fields.ToArray() : reader.GetColumnNames().ToArray();
 
-            if (bulkOptions.CreateTable.Value)
+            if (bulkOptions.CreateTable!.Value)
             {
                 throw new NotImplementedException("Table creation is not implemented for PostgreSQL");
                 //CreateTable(sourceFields);
@@ -87,7 +87,7 @@ namespace Gerakul.FastSql.PostgreSQL
 
             Mapping[] map;
 
-            if (bulkOptions.FieldsSelector.Value == FieldsSelector.Source && !bulkOptions.CaseSensitiveFieldsMatching.HasValue)
+            if (bulkOptions.FieldsSelector!.Value == FieldsSelector.Source && !bulkOptions.CaseSensitiveFieldsMatching.HasValue)
             {
                 map = sourceFields.Select(x => new Mapping(x, x)).ToArray();
             }
@@ -98,14 +98,14 @@ namespace Gerakul.FastSql.PostgreSQL
                 var comparer = bulkOptions.CaseSensitiveFieldsMatching == true ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
                 map = sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping(x, y), comparer).ToArray();
 
-                CheckFieldSelection(bulkOptions.FieldsSelector.Value, sourceFields.Length, destFields.Length, map.Length);
+                CheckFieldSelection(bulkOptions.FieldsSelector!.Value, sourceFields.Length, destFields.Length, map.Length);
             }
 
             if (map.Length > 0)
             {
                 var ordinals = map.Select(x => reader.GetOrdinal(x.Source)).ToArray();
                 var columns = context.ContextProvider.CommandTextGenerator.ColumnList(map.Select(x => x.Destination).ToArray());
-                var writer = await Connection.BeginBinaryImportAsync($"COPY {destinationTable} ({columns}) FROM STDIN (FORMAT BINARY)", cancellationToken).ConfigureAwait(false);
+                var writer = await Connection!.BeginBinaryImportAsync($"COPY {destinationTable} ({columns}) FROM STDIN (FORMAT BINARY)", cancellationToken).ConfigureAwait(false);
                 await using var writerScope = writer.ConfigureAwait(false);
 
                 while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))

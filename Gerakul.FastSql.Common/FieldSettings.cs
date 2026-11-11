@@ -10,11 +10,11 @@ namespace Gerakul.FastSql.Common
         public string Name { get; }
         public string DataTypeName { get; }
         public Type FieldType { get; }
-        public Func<T, object> Getter { get; }
+        public Func<T, object?> Getter { get; }
         public Func<T, bool> IsNullGetter { get; }
         public bool DetermineNullByValue { get; }
 
-        private FieldSettings(string name, string dataTypeName, Type fieldType, Func<T, object> getter, Func<T, bool> isNullGetter, bool determineNullByValue)
+        private FieldSettings(string name, string dataTypeName, Type fieldType, Func<T, object?> getter, Func<T, bool> isNullGetter, bool determineNullByValue)
         {
             this.Name = name;
             this.DataTypeName = dataTypeName;
@@ -24,22 +24,22 @@ namespace Gerakul.FastSql.Common
             this.DetermineNullByValue = determineNullByValue;
         }
 
-        public FieldSettings(string name, string dataTypeName, Type fieldType, Func<T, object> getter, Func<T, bool> isNullGetter)
+        public FieldSettings(string name, string dataTypeName, Type fieldType, Func<T, object?> getter, Func<T, bool> isNullGetter)
           : this(name, dataTypeName, fieldType, getter, isNullGetter, false)
         {
         }
 
-        public FieldSettings(string name, Type fieldType, Func<T, object> getter, Func<T, bool> isNullGetter)
+        public FieldSettings(string name, Type fieldType, Func<T, object?> getter, Func<T, bool> isNullGetter)
           : this(name, fieldType.Name, fieldType, getter, isNullGetter, false)
         {
         }
 
-        public FieldSettings(string name, string dataTypeName, Type fieldType, Func<T, object> getter)
+        public FieldSettings(string name, string dataTypeName, Type fieldType, Func<T, object?> getter)
           : this(name, dataTypeName, fieldType, getter, x => getter(x) == null, true)
         {
         }
 
-        public FieldSettings(string name, Type fieldType, Func<T, object> getter)
+        public FieldSettings(string name, Type fieldType, Func<T, object?> getter)
           : this(name, fieldType.Name, fieldType, getter, x => getter(x) == null, true)
         {
         }

@@ -10,7 +10,7 @@ namespace Gerakul.FastSql.PostgreSQL
     // ::: temporary internal
     internal static partial class DataReaderExtensions
     {
-        public static IEnumerable<ColumnDefinition> GetColumnDefinitions(this IDataReader reader, ColumnDefinitionOptions options = null, bool ignoreSchemaTable = false)
+        public static IEnumerable<ColumnDefinition?> GetColumnDefinitions(this IDataReader reader, ColumnDefinitionOptions? options = null, bool ignoreSchemaTable = false)
         {
             if (reader is DbDataReader sqlReader && !ignoreSchemaTable)
             {
@@ -23,7 +23,7 @@ namespace Gerakul.FastSql.PostgreSQL
                     yield return new ColumnDefinition()
                     {
                         Name = name,
-                        TypeName = row.DataTypeName,
+                        TypeName = row.DataTypeName!,
                         IsPrimaryKey = row.IsKey ?? optionKeys.Contains(name),
                         MaxLength = checked((short)((row.IsLong ?? false) ? -1 : (row.ColumnSize ?? -1))),
                         Precision = checked((byte)(row.NumericPrecision ?? 0)),

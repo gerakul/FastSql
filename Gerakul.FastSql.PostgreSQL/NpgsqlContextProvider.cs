@@ -41,9 +41,9 @@ namespace Gerakul.FastSql.PostgreSQL
         //    base.ApplyQueryOptions(cmd, queryOptions);
         //}
 
-        protected override DbParameter AddParamWithValue(DbCommand cmd, string paramName, object value)
+        protected override DbParameter AddParamWithValue(DbCommand cmd, string paramName, object? value)
         {
-            return ((NpgsqlCommand)cmd).Parameters.AddWithValue(paramName, value);
+            return ((NpgsqlCommand)cmd).Parameters.AddWithValue(paramName, value!);
         }
 
         protected override object GetDbNull(Type type)

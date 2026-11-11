@@ -40,7 +40,7 @@ namespace Gerakul.FastSql.Common
         protected internal abstract TransactionContext GetTransactionContext(DbTransaction transaction, 
             QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions);
 
-        protected internal virtual void ApplyQueryOptions(DbCommand cmd, QueryOptions queryOptions)
+        protected internal virtual void ApplyQueryOptions(DbCommand cmd, QueryOptions? queryOptions)
         {
             if (queryOptions == null)
             {
@@ -53,7 +53,7 @@ namespace Gerakul.FastSql.Common
             }
         }
 
-        protected internal abstract DbParameter AddParamWithValue(DbCommand cmd, string paramName, object value);
+        protected internal abstract DbParameter AddParamWithValue(DbCommand cmd, string paramName, object? value);
 
         protected internal abstract string GetSqlParameterName(string name);
 

@@ -11,17 +11,17 @@ namespace Gerakul.FastSql.Common
     {
         int ExecuteNonQuery();
         Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken = default);
-        object ExecuteScalar();
-        Task<object> ExecuteScalarAsync(CancellationToken cancellationToken = default);
+        object? ExecuteScalar();
+        Task<object?> ExecuteScalarAsync(CancellationToken cancellationToken = default);
 
         IEnumerable<object[]> ExecuteQuery();
         IAsyncEnumerable<object[]> ExecuteQueryAsync(CancellationToken cancellationToken = default);
-        IEnumerable<T> ExecuteQuery<T>(ReadOptions readOptions = null) where T : new();
-        IAsyncEnumerable<T> ExecuteQueryAsync<T>(ReadOptions readOptions = null, CancellationToken cancellationToken = default) where T : new();
-        IEnumerable<T> ExecuteQueryAnonymous<T>(T proto, ReadOptions readOptions = null);
-        IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(T proto, ReadOptions readOptions = null, CancellationToken cancellationToken = default);
+        IEnumerable<T> ExecuteQuery<T>(ReadOptions? readOptions = null) where T : new();
+        IAsyncEnumerable<T> ExecuteQueryAsync<T>(ReadOptions? readOptions = null, CancellationToken cancellationToken = default) where T : new();
+        IEnumerable<T> ExecuteQueryAnonymous<T>(T proto, ReadOptions? readOptions = null);
+        IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(T proto, ReadOptions? readOptions = null, CancellationToken cancellationToken = default);
         IEnumerable ExecuteQueryFirstColumn();
-        IAsyncEnumerable<object> ExecuteQueryFirstColumnAsync(CancellationToken cancellationToken = default);
+        IAsyncEnumerable<object?> ExecuteQueryFirstColumnAsync(CancellationToken cancellationToken = default);
         IEnumerable<T> ExecuteQueryFirstColumn<T>();
         IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(CancellationToken cancellationToken = default);
 
@@ -38,17 +38,17 @@ namespace Gerakul.FastSql.Common
 
         #region WriteToServer
 
-        public static void WriteToServer(this IWrappedCommand cmd, DbContext context, string destinationTable, BulkOptions bulkOptions, params string[] fields)
+        public static void WriteToServer(this IWrappedCommand cmd, DbContext context, string destinationTable, BulkOptions? bulkOptions, params string[] fields)
         {
             cmd.UseReader(x => x.WriteToServer(context, destinationTable, bulkOptions, fields));
         }
 
-        public static Task WriteToServerAsync(this IWrappedCommand cmd, DbContext context, string destinationTable, BulkOptions bulkOptions, CancellationToken cancellationToken, params string[] fields)
+        public static Task WriteToServerAsync(this IWrappedCommand cmd, DbContext context, string destinationTable, BulkOptions? bulkOptions, CancellationToken cancellationToken, params string[] fields)
         {
             return cmd.UseReaderAsync(cancellationToken, x => x.WriteToServerAsync(context, destinationTable, bulkOptions, cancellationToken, fields));
         }
 
-        public static Task WriteToServerAsync(this IWrappedCommand cmd, DbContext context, string destinationTable, BulkOptions bulkOptions, params string[] fields)
+        public static Task WriteToServerAsync(this IWrappedCommand cmd, DbContext context, string destinationTable, BulkOptions? bulkOptions, params string[] fields)
         {
             return cmd.UseReaderAsync(x => x.WriteToServerAsync(context, destinationTable, bulkOptions, fields));
         }

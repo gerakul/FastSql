@@ -7,13 +7,13 @@ namespace Gerakul.FastSql.Common
     {
         DbContext Context { get; }
 
-        void WriteToServer(string destinationTable, BulkOptions bulkOptions, params string[] fields);
-        Task WriteToServerAsync(string destinationTable, BulkOptions bulkOptions, CancellationToken cancellationToken, params string[] fields);
+        void WriteToServer(string destinationTable, BulkOptions? bulkOptions, params string[] fields);
+        Task WriteToServerAsync(string destinationTable, BulkOptions? bulkOptions, CancellationToken cancellationToken, params string[] fields);
     }
 
     internal static class BulkWriterExtensions
     {
-        public static Task WriteToServerAsync(this IBulkWriter writer, string destinationTable, BulkOptions bulkOptions, params string[] fields)
+        public static Task WriteToServerAsync(this IBulkWriter writer, string destinationTable, BulkOptions? bulkOptions, params string[] fields)
         {
             return writer.WriteToServerAsync(destinationTable, bulkOptions, CancellationToken.None, fields);
         }

@@ -41,7 +41,7 @@ namespace Gerakul.FastSql.SqlServer
         //    base.ApplyQueryOptions(cmd, queryOptions);
         //}
 
-        protected override DbParameter AddParamWithValue(DbCommand cmd, string paramName, object value)
+        protected override DbParameter AddParamWithValue(DbCommand cmd, string paramName, object? value)
         {
             return ((SqlCommand)cmd).Parameters.AddWithValue(paramName, value);
         }

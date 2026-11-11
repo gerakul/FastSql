@@ -1,6 +1,7 @@
 ﻿using Gerakul.FastSql.Common;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Gerakul.FastSql.SqlServer
@@ -8,8 +9,8 @@ namespace Gerakul.FastSql.SqlServer
     // ::: temporary internal
     internal sealed class ColumnDefinition
     {
-        public string Name { get; set; }
-        public string TypeName { get; set; }
+        public required string Name { get; set; }
+        public required string TypeName { get; set; }
         public bool IsPrimaryKey { get; set; }
         public short MaxLength { get; set; }
         public byte Precision { get; set; }
@@ -20,6 +21,7 @@ namespace Gerakul.FastSql.SqlServer
         {
         }
 
+        [SetsRequiredMembers]
         private ColumnDefinition(string name, string typeName, bool isPrimaryKey, short maxLength, byte precision, byte scale, bool isNullable)
         {
             this.Name = name;
@@ -67,7 +69,7 @@ namespace Gerakul.FastSql.SqlServer
             [typeof(byte[])] = "varbinary"
         };
 
-        public static ColumnDefinition FromFieldType(Type type, string name, ColumnDefinitionOptions options = null)
+        public static ColumnDefinition? FromFieldType(Type type, string name, ColumnDefinitionOptions? options = null)
         {
             var opt = options ?? ColumnDefinitionOptions.Default;
             bool isPrimaryKey = opt.PrimaryKey?.Contains(name) ?? false;
@@ -100,7 +102,7 @@ namespace Gerakul.FastSql.SqlServer
 
     public class ColumnDefinitionOptions
     {
-        public List<string> PrimaryKey { get; set; }
+        public List<string>? PrimaryKey { get; set; }
         public short StringMaxLength { get; set; }
         public short BytesMaxLength { get; set; }
         public byte Precision { get; set; }
@@ -174,12 +176,12 @@ namespace Gerakul.FastSql.SqlServer
 
     internal static class ColumnDefinitionExtensions
     {
-        public static string CreateTableScript(this IEnumerable<ColumnDefinition> columnDefinitions, string tableName, bool checkIfNotExists = false)
+        public static string CreateTableScript(this IEnumerable<ColumnDefinition?> columnDefinitions, string tableName, bool checkIfNotExists = false)
         {
             string create = $@"
 create table {tableName}
 (
-{"\t"} {string.Join(Environment.NewLine + "\t,", columnDefinitions.Where(x => x != null).Select(x => x.GetColumnDeclaration()))}
+{"\t"} {string.Join(Environment.NewLine + "\t,", columnDefinitions.OfType<ColumnDefinition>().Select(x => x.GetColumnDeclaration()))}
 )
 ";
 
@@ -202,7 +204,7 @@ end
 
         }
 
-        public static IEnumerable<ColumnDefinition> GetColumnDefinitions<T>(this IEnumerable<FieldSettings<T>> fieldSettings, ColumnDefinitionOptions options = null)
+        public static IEnumerable<ColumnDefinition?> GetColumnDefinitions<T>(this IEnumerable<FieldSettings<T>> fieldSettings, ColumnDefinitionOptions? options = null)
         {
             foreach (var item in fieldSettings)
             {
@@ -211,13 +213,13 @@ end
         }
 
         public static string CreateTableScript<T>(string tableName, bool checkIfNotExists = false,
-            ColumnDefinitionOptions options = null, FromTypeOption fromTypeOption = FromTypeOption.Default)
+            ColumnDefinitionOptions? options = null, FromTypeOption fromTypeOption = FromTypeOption.Default)
         {
             return FieldSettings.FromType<T>(fromTypeOption).GetColumnDefinitions(options).CreateTableScript(tableName, checkIfNotExists);
         }
 
         public static string CreateTableScript<T>(T proto, string tableName, bool checkIfNotExists = false,
-            ColumnDefinitionOptions options = null, FromTypeOption fromTypeOption = FromTypeOption.Default)
+            ColumnDefinitionOptions? options = null, FromTypeOption fromTypeOption = FromTypeOption.Default)
         {
             return CreateTableScript<T>(tableName, checkIfNotExists, options, fromTypeOption);
         }

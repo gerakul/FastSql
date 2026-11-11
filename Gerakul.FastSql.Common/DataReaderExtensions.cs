@@ -65,12 +65,12 @@ namespace Gerakul.FastSql.Common
             return CreateAsyncEnumerable(() => ReadInfoFactory.CreateObjects(reader));
         }
 
-        public static IEnumerable<T> ReadAll<T>(this IDataReader reader, ReadOptions readOptions) where T : new()
+        public static IEnumerable<T> ReadAll<T>(this IDataReader reader, ReadOptions? readOptions) where T : new()
         {
             return CreateEnumerable(() => ReadInfoFactory.CreateByType<T>(reader, readOptions));
         }
 
-        public static IAsyncEnumerable<T> ReadAllAsync<T>(this IDataReader reader, ReadOptions readOptions) where T : new()
+        public static IAsyncEnumerable<T> ReadAllAsync<T>(this IDataReader reader, ReadOptions? readOptions) where T : new()
         {
             return CreateAsyncEnumerable(() => ReadInfoFactory.CreateByType<T>(reader, readOptions));
         }
@@ -85,12 +85,12 @@ namespace Gerakul.FastSql.Common
             return ReadAllAsync<T>(reader, null);
         }
 
-        public static IEnumerable<T> ReadAllAnonymous<T>(this IDataReader reader, T proto, ReadOptions readOptions)
+        public static IEnumerable<T> ReadAllAnonymous<T>(this IDataReader reader, T proto, ReadOptions? readOptions)
         {
             return CreateEnumerable(() => ReadInfoFactory.CreateAnonymous(reader, proto, readOptions));
         }
 
-        public static IAsyncEnumerable<T> ReadAllAnonymousAsync<T>(this IDataReader reader, T proto, ReadOptions readOptions)
+        public static IAsyncEnumerable<T> ReadAllAnonymousAsync<T>(this IDataReader reader, T proto, ReadOptions? readOptions)
         {
             return CreateAsyncEnumerable(() => ReadInfoFactory.CreateAnonymous(reader, proto, readOptions));
         }
@@ -110,7 +110,7 @@ namespace Gerakul.FastSql.Common
             return CreateEnumerable(() => ReadInfoFactory.CreateFirstColumn(reader));
         }
 
-        public static IAsyncEnumerable<object> ReadAllFirstColumnAsync(this IDataReader reader)
+        public static IAsyncEnumerable<object?> ReadAllFirstColumnAsync(this IDataReader reader)
         {
             return CreateAsyncEnumerable(() => ReadInfoFactory.CreateFirstColumn(reader));
         }
@@ -139,17 +139,17 @@ namespace Gerakul.FastSql.Common
             };
         }
 
-        public static void WriteToServer(this DbDataReader reader, DbContext context, string destinationTable, BulkOptions bulkOptions, params string[] fields)
+        public static void WriteToServer(this DbDataReader reader, DbContext context, string destinationTable, BulkOptions? bulkOptions, params string[] fields)
         {
             reader.GetBulkWriter(context).WriteToServer(destinationTable, bulkOptions, fields);
         }
 
-        public static Task WriteToServerAsync(this DbDataReader reader, DbContext context, string destinationTable, BulkOptions bulkOptions, CancellationToken cancellationToken, params string[] fields)
+        public static Task WriteToServerAsync(this DbDataReader reader, DbContext context, string destinationTable, BulkOptions? bulkOptions, CancellationToken cancellationToken, params string[] fields)
         {
             return reader.GetBulkWriter(context).WriteToServerAsync(destinationTable, bulkOptions, cancellationToken, fields);
         }
 
-        public static Task WriteToServerAsync(this DbDataReader reader, DbContext context, string destinationTable, BulkOptions bulkOptions, params string[] fields)
+        public static Task WriteToServerAsync(this DbDataReader reader, DbContext context, string destinationTable, BulkOptions? bulkOptions, params string[] fields)
         {
             return reader.GetBulkWriter(context).WriteToServerAsync(destinationTable, bulkOptions, fields);
         }

@@ -11,13 +11,13 @@ namespace Gerakul.FastSql.SqlServer
         public int? BulkCopyTimeout { get; set; }
         public SqlBulkCopyOptions? SqlBulkCopyOptions { get; set; }
         public bool? EnableStreaming { get; set; }
-        public ColumnDefinitionOptions ColumnDefinitionOptions { get; set; }
+        public ColumnDefinitionOptions? ColumnDefinitionOptions { get; set; }
 
         protected override BulkOptions Default => defaultOptions;
 
         public SqlBulkOptions(int? batchSize = null, int? bulkCopyTimeout = null, SqlBulkCopyOptions? sqlBulkCopyOptions = null,
           FieldsSelector? fieldsSelector = null, bool? caseSensitiveFieldsMatching = null, bool? enableStreaming = null,
-          bool? createTable = null, ColumnDefinitionOptions columnDefinitionOptions = null, bool? ignoreDataReaderSchemaTable = null,
+          bool? createTable = null, ColumnDefinitionOptions? columnDefinitionOptions = null, bool? ignoreDataReaderSchemaTable = null,
           bool? checkTableIfNotExistsBeforeCreation = null)
             : base(fieldsSelector, caseSensitiveFieldsMatching, createTable, ignoreDataReaderSchemaTable, checkTableIfNotExistsBeforeCreation)
         {

@@ -19,7 +19,7 @@ namespace Gerakul.FastSql.Common
 
         #region IBulkWriter
 
-        public void WriteToServer(string destinationTable, BulkOptions bulkOptions, params string[] fields)
+        public void WriteToServer(string destinationTable, BulkOptions? bulkOptions, params string[] fields)
         {
             connectionStringContext.UsingConnection(x =>
             {
@@ -27,7 +27,7 @@ namespace Gerakul.FastSql.Common
             });
         }
 
-        public async Task WriteToServerAsync(string destinationTable, BulkOptions bulkOptions, CancellationToken cancellationToken, params string[] fields)
+        public async Task WriteToServerAsync(string destinationTable, BulkOptions? bulkOptions, CancellationToken cancellationToken, params string[] fields)
         {
             await connectionStringContext.UsingConnectionAsync(async x =>
             {

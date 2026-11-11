@@ -13,7 +13,7 @@ namespace Gerakul.FastSql.SqlServer
             return creator.CreateInsertAndGetID(tableName, value, null, ignoreFields);
         }
 
-        public static IWrappedCommand CreateInsertAndGetID<T>(this ISqlCommandCreator creator, string tableName, T value, QueryOptions queryOptions, params string[] ignoreFields)
+        public static IWrappedCommand CreateInsertAndGetID<T>(this ISqlCommandCreator creator, string tableName, T value, QueryOptions? queryOptions, params string[] ignoreFields)
         {
             // the text comes from the context's provider; a creator that is not a context gets the default one
             var provider = (creator as DbContext)?.ContextProvider ?? SqlContextProvider.DefaultInstance;
