@@ -1,0 +1,2 @@
+# written by the public API snapshot tests when the API differs from the approved file
+*.received.txt

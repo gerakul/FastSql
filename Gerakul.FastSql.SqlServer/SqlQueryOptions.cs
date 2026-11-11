@@ -1,37 +1,36 @@
 ﻿using Gerakul.FastSql.Common;
 
-namespace Gerakul.FastSql.SqlServer
+namespace Gerakul.FastSql.SqlServer;
+
+public class SqlQueryOptions : QueryOptions
 {
-    public class SqlQueryOptions : QueryOptions
+    private static readonly SqlQueryOptions defaultOptions = new SqlQueryOptions(true);
+
+    protected override QueryOptions Default => defaultOptions;
+
+    public SqlQueryOptions(int? commandTimeoutSeconds = null, bool? caseSensitiveParamsMatching = null)
+        : base(commandTimeoutSeconds, caseSensitiveParamsMatching)
     {
-        private static readonly SqlQueryOptions defaultOptions = new SqlQueryOptions(true);
+    }
 
-        protected override QueryOptions Default => defaultOptions;
+    protected SqlQueryOptions(bool defaultOptions)
+        : base(defaultOptions)
+    {
+    }
 
-        public SqlQueryOptions(int? commandTimeoutSeconds = null, bool? caseSensitiveParamsMatching = null)
-            : base(commandTimeoutSeconds, caseSensitiveParamsMatching)
-        {
-        }
+    protected internal SqlQueryOptions(QueryOptions queryOptions)
+        : base(queryOptions)
+    {
+    }
 
-        protected SqlQueryOptions(bool defaultOptions)
-            : base(defaultOptions)
-        {
-        }
+    protected override QueryOptions SetDefaults(QueryOptions defaultOptions)
+    {
+        base.SetDefaults(defaultOptions);
+        return this;
+    }
 
-        protected internal SqlQueryOptions(QueryOptions queryOptions)
-            : base(queryOptions)
-        {
-        }
-
-        protected override QueryOptions SetDefaults(QueryOptions defaultOptions)
-        {
-            base.SetDefaults(defaultOptions);
-            return this;
-        }
-
-        public override QueryOptions Clone()
-        {
-            return new SqlQueryOptions(this);
-        }
+    public override QueryOptions Clone()
+    {
+        return new SqlQueryOptions(this);
     }
 }

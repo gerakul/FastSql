@@ -1,69 +1,85 @@
-﻿using System;
-using System.Data;
+﻿using System.Data;
 using System.Data.Common;
-using System.Threading.Tasks;
 
-namespace Gerakul.FastSql.Common
+namespace Gerakul.FastSql.Common;
+
+public abstract class ConnectionContext : ScopedContext
 {
-    public abstract class ConnectionContext : ScopedContext
+    public DbConnection Connection { get; }
+
+    protected internal ConnectionContext(ContextProvider contextProvider, DbConnection connection,
+        QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
+        : base(contextProvider, queryOptions, bulkOptions, readOptions)
     {
-        public DbConnection Connection { get; }
+        this.Connection = connection;
+    }
 
-        protected internal ConnectionContext(ContextProvider contextProvider, DbConnection connection,
-            QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
-            : base(contextProvider, queryOptions, bulkOptions, readOptions)
+    public void UsingTransaction(IsolationLevel isolationLevel, Action<TransactionContext> action)
+    {
+        using DbTransaction tran = Connection.BeginTransaction(isolationLevel);
+
+        try
         {
-            this.Connection = connection;
+            action(ContextProvider.GetTransactionContext(tran, QueryOptions, BulkOptions, ReadOptions));
+        }
+        catch
+        {
+            Rollback(tran);
+            throw;
         }
 
-        public void UsingTransaction(IsolationLevel isolationLevel, Action<TransactionContext> action)
-        {
-            DbTransaction tran = null;
-            try
-            {
-                tran = Connection.BeginTransaction(isolationLevel);
-                action(ContextProvider.GetTransactionContext(tran, QueryOptions, BulkOptions, ReadOptions));
-                tran.Commit();
-            }
-            catch
-            {
-                if (tran != null)
-                {
-                    tran.Rollback();
-                }
+        tran.Commit();
+    }
 
-                throw;
-            }
+    public void UsingTransaction(Action<TransactionContext> action)
+    {
+        UsingTransaction(IsolationLevel.Unspecified, action);
+    }
+
+    public async Task UsingTransactionAsync(IsolationLevel isolationLevel, Func<TransactionContext, Task> action)
+    {
+        DbTransaction tran = await Connection.BeginTransactionAsync(isolationLevel).ConfigureAwait(false);
+        await using var transactionScope = tran.ConfigureAwait(false);
+
+        try
+        {
+            await action(ContextProvider.GetTransactionContext(tran, QueryOptions, BulkOptions, ReadOptions)).ConfigureAwait(false);
+        }
+        catch
+        {
+            await RollbackAsync(tran).ConfigureAwait(false);
+            throw;
         }
 
-        public void UsingTransaction(Action<TransactionContext> action)
-        {
-            UsingTransaction(IsolationLevel.Unspecified, action);
-        }
+        await tran.CommitAsync().ConfigureAwait(false);
+    }
 
-        public async Task UsingTransactionAsync(IsolationLevel isolationLevel, Func<TransactionContext, Task> action)
+    // the action's exception is what the caller needs: a rollback that fails too (broken connection, open reader)
+    // must not replace it, and disposing the transaction rolls back whatever is still open
+    private static void Rollback(DbTransaction tran)
+    {
+        try
         {
-            DbTransaction tran = null;
-            try
-            {
-                tran = Connection.BeginTransaction(isolationLevel);
-                await action(ContextProvider.GetTransactionContext(tran, QueryOptions, BulkOptions, ReadOptions)).ConfigureAwait(false);
-                tran.Commit();
-            }
-            catch
-            {
-                if (tran != null)
-                {
-                    tran.Rollback();
-                }
-
-                throw;
-            }
+            tran.Rollback();
         }
-
-        public Task UsingTransactionAsync(Func<TransactionContext, Task> action)
+        catch
         {
-            return UsingTransactionAsync(IsolationLevel.Unspecified, action);
         }
+    }
+
+    private static async Task RollbackAsync(DbTransaction tran)
+    {
+        try
+        {
+            await tran.RollbackAsync().ConfigureAwait(false);
+        }
+        catch
+        {
+        }
+    }
+
+    public Task UsingTransactionAsync(Func<TransactionContext, Task> action)
+    {
+        return UsingTransactionAsync(IsolationLevel.Unspecified, action);
     }
 }

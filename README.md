@@ -4,6 +4,11 @@ Light-weight, flexible and easy to use C# library to retrieve and manipulate (in
 
 **NOTE:** Put "using Gerakul.FastSql.Common;" in your code file to use Create<...> methods.
 
+## Requirements
+- .NET 10.
+- Sql Server: Microsoft.Data.SqlClient. It encrypts connections by default, so a server without a trusted certificate needs `TrustServerCertificate=True` in the connection string.
+- PostgreSQL: Npgsql 10. `CreateProcedure` calls procedures (with `CALL`), not functions. `date` and `time` columns can be read into `DateOnly` / `TimeOnly` members as well as into `DateTime` / `TimeSpan` members.
+
 ## Simple example
   ```csharp
   // get context
@@ -85,18 +90,18 @@ Simple retrieving data
   ```csharp
   var data1 = context.CreateSimple("select * from Employee").ExecuteQuery<Employee>().ToArray();
   // or async
-  var data2 = await context.CreateSimple("select * from Employee").ExecuteQueryAsync<Employee>().ToArray();
+  var data2 = await context.CreateSimple("select * from Employee").ExecuteQueryAsync<Employee>().ToArrayAsync();
   ```
 Using parameters
   ```csharp
   // simple
   var data3 = context.CreateSimple("select * from Employee where CompanyID = @p0 and Age > @p1", 1, 40).ExecuteQuery<Employee>().ToArray();
   // or async
-  var data4 = await context.CreateSimple("select * from Employee where CompanyID = @p0 and Age > @p1", 1, 40).ExecuteQueryAsync<Employee>().ToArray();
+  var data4 = await context.CreateSimple("select * from Employee where CompanyID = @p0 and Age > @p1", 1, 40).ExecuteQueryAsync<Employee>().ToArrayAsync();
   // parameters mapped to object
   var data5 = context.CreateMapped("select * from Employee where CompanyID = @CompanyID and Age > @Age", new { CompanyID = 1, Age = 40 }).ExecuteQuery<Employee>().ToArray();
   // or async
-  var data6 = await context.CreateMapped("select * from Employee where CompanyID = @CompanyID and Age > @Age", new { CompanyID = 1, Age = 40 }).ExecuteQueryAsync<Employee>().ToArray();
+  var data6 = await context.CreateMapped("select * from Employee where CompanyID = @CompanyID and Age > @Age", new { CompanyID = 1, Age = 40 }).ExecuteQueryAsync<Employee>().ToArrayAsync();
   ```
 
 **NOTE:** all commands can be executed asynchronously but examples below only show synchronous execution in order not to complicate them.
@@ -138,6 +143,8 @@ Merge
   var company = new { ID = 3, Name = "New name", DateOfFoundation = DateTime.Now };
   context.Merge("Company", company, "ID");
   ```  
+**NOTE:** when every member is a key field, Merge inserts the row if it is missing and leaves an existing row as it is.
+
 Delete
   ```csharp
   var emp = new { ID = 2, CompanyID = 2, Name = "Updated", Phone = "111" };
@@ -145,6 +152,8 @@ Delete
   // or even simplier
   context.Delete("Employee", new { ID = 2 });
   ```
+**NOTE:** key values are compared with `=`, so a null key value matches no rows. Without key fields every member is a key field, so an object with a null member deletes nothing.
+
 Bulk copy
   ```csharp
   Employee[] newEmployees = new Employee[] {
@@ -155,6 +164,8 @@ Bulk copy
   
   newEmployees.WriteToServer(context, "Employee");
   ```  
+**NOTE:** on Sql Server the default bulk options pass the field names to SqlBulkCopy as they are, and SqlBulkCopy matches them with the column names case-sensitively. To match names regardless of case, set `CaseSensitiveFieldsMatching = false` in the bulk options, for example `new SqlBulkOptions(caseSensitiveFieldsMatching: false)`; FastSql then reads the table's column names first.
+
 Stored procedures
   ```csharp
   var data10 = context.CreateProcedure("TestProc", new { CompanyID = 1, Age = 40 }).ExecuteQuery<Employee>().ToArray();
