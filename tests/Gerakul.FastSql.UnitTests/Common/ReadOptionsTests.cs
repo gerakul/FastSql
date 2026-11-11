@@ -73,22 +73,21 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
-        [Trait("Quirk", "Q31")]
-        public void ReadAll_UnsetOptions_AreFilledWithDefaultsInPlace()
+        [Trait("Fixed", "Q31")]
+        public void ReadAll_UnsetOptions_StayUnset()
         {
             var options = new ReadOptions();
 
             var rows = Table().CreateDataReader().ReadAll<Row>(options);
 
-            options.FieldsSelector.Should().BeNull();
             rows.ToList().Should().ContainSingle();
-            options.FieldsSelector.Should().Be(FieldsSelector.Destination);
-            options.FromTypeOption.Should().Be(FromTypeOption.Default);
-            options.CaseSensitiveFieldsMatching.Should().BeFalse();
+            options.FieldsSelector.Should().BeNull();
+            options.FromTypeOption.Should().BeNull();
+            options.CaseSensitiveFieldsMatching.Should().BeNull();
         }
 
         [Fact]
-        [Trait("Quirk", "Q31")]
+        [Trait("Fixed", "Q31")]
         public void ReadAll_SetOptions_AreKept()
         {
             var options = new ReadOptions(FieldsSelector.Common, true, FromTypeOption.PublicProperty);
@@ -101,42 +100,42 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
-        [Trait("Quirk", "Q31")]
-        public void ReadAll_PartlySetOptions_OnlyUnsetValuesAreFilled()
+        [Trait("Fixed", "Q31")]
+        public void ReadAll_PartlySetOptions_AreNotModified()
         {
             var options = new ReadOptions(caseSensitiveFieldsMatching: true);
 
             Table().CreateDataReader().ReadAll<Row>(options).ToList();
 
-            options.FieldsSelector.Should().Be(FieldsSelector.Destination);
+            options.FieldsSelector.Should().BeNull();
             options.CaseSensitiveFieldsMatching.Should().BeTrue();
-            options.FromTypeOption.Should().Be(FromTypeOption.Default);
+            options.FromTypeOption.Should().BeNull();
         }
 
         [Fact]
-        [Trait("Quirk", "Q31")]
-        public async Task ReadAllAsync_UnsetOptions_AreFilledWithDefaultsInPlaceAsync()
+        [Trait("Fixed", "Q31")]
+        public async Task ReadAllAsync_UnsetOptions_StayUnsetAsync()
         {
             var options = new ReadOptions();
 
             await Table().CreateDataReader().ReadAllAsync<Row>(options).ToListCompat(TestContext.Current.CancellationToken);
 
-            options.FieldsSelector.Should().Be(FieldsSelector.Destination);
-            options.FromTypeOption.Should().Be(FromTypeOption.Default);
-            options.CaseSensitiveFieldsMatching.Should().BeFalse();
+            options.FieldsSelector.Should().BeNull();
+            options.FromTypeOption.Should().BeNull();
+            options.CaseSensitiveFieldsMatching.Should().BeNull();
         }
 
         [Fact]
-        [Trait("Quirk", "Q31")]
-        public void ReadAllAnonymous_UnsetOptions_AreFilledWithDefaultsInPlace()
+        [Trait("Fixed", "Q31")]
+        public void ReadAllAnonymous_UnsetOptions_StayUnset()
         {
             var options = new ReadOptions();
 
             Table().CreateDataReader().ReadAllAnonymous(new { ID = 0 }, options).ToList();
 
-            options.FieldsSelector.Should().Be(FieldsSelector.Destination);
-            options.FromTypeOption.Should().Be(FromTypeOption.Default);
-            options.CaseSensitiveFieldsMatching.Should().BeFalse();
+            options.FieldsSelector.Should().BeNull();
+            options.FromTypeOption.Should().BeNull();
+            options.CaseSensitiveFieldsMatching.Should().BeNull();
         }
     }
 }

@@ -120,7 +120,7 @@ namespace Gerakul.FastSql.SqlServer
 
             if (bulkOptions.CreateTable.Value)
             {
-                await CreateTableAsync(sourceFields).ConfigureAwait(false);
+                await CreateTableAsync(sourceFields, cancellationToken).ConfigureAwait(false);
             }
 
             Mapping[] map;
@@ -173,7 +173,7 @@ namespace Gerakul.FastSql.SqlServer
         private string GetCreateTableScript(string[] sourceFields)
         {
             var colDefs = reader.GetColumnDefinitions(SqlBulkOptions.ColumnDefinitionOptions, bulkOptions.IgnoreDataReaderSchemaTable.Value)
-                .Where(x => sourceFields.Contains(x.Name)).ToArray();
+                .Where(x => x != null && sourceFields.Contains(x.Name)).ToArray(); // null: a type without a column type
 
             if (colDefs.Length != sourceFields.Length)
             {
@@ -189,10 +189,10 @@ namespace Gerakul.FastSql.SqlServer
             context.CreateSimple(cmd).ExecuteNonQuery();
         }
 
-        private async Task CreateTableAsync(string[] sourceFields)
+        private async Task CreateTableAsync(string[] sourceFields, CancellationToken cancellationToken)
         {
             string cmd = GetCreateTableScript(sourceFields);
-            await context.CreateSimple(cmd).ExecuteNonQueryAsync().ConfigureAwait(false);
+            await context.CreateSimple(cmd).ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
 
         private IList<string> GetTableColumns()
@@ -214,7 +214,7 @@ namespace Gerakul.FastSql.SqlServer
         {
             List<string> result = new List<string>();
             await context.CreateSimple(string.Format("select top 0 * from {0} with(nolock)", destinationTable))
-                .UseReaderAsync(r =>
+                .UseReaderAsync(cancellationToken, r =>
                 {
                     foreach (var item in r.GetColumnNames())
                     {

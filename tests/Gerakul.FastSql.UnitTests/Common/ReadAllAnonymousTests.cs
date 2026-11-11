@@ -404,25 +404,25 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
-        [Trait("Quirk", "Q54")]
+        [Trait("Fixed", "Q54")]
         public void ReadAllAnonymous_TypeWithoutPublicConstructor_ThrowsInvalidOperationException()
         {
             var reader = People().CreateReader();
 
             Action act = () => reader.ReadAllAnonymous(PrivateConstructor.Create()).ToList();
 
-            act.Should().ThrowExactly<InvalidOperationException>().WithMessage("Sequence contains no elements");
+            act.Should().ThrowExactly<InvalidOperationException>().WithMessage("Type *+PrivateConstructor has no public constructor");
         }
 
         [Fact]
-        [Trait("Quirk", "Q54")]
+        [Trait("Fixed", "Q54")]
         public async Task ReadAllAnonymousAsync_TypeWithoutPublicConstructor_ThrowsInvalidOperationExceptionAsync()
         {
             var reader = People().CreateReader();
 
             Func<Task> act = () => reader.ReadAllAnonymousAsync(PrivateConstructor.Create()).ToListCompat(TestContext.Current.CancellationToken);
 
-            await act.Should().ThrowExactlyAsync<InvalidOperationException>().WithMessage("Sequence contains no elements");
+            await act.Should().ThrowExactlyAsync<InvalidOperationException>().WithMessage("Type *+PrivateConstructor has no public constructor");
         }
 
         #endregion
@@ -482,34 +482,28 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
-        [Trait("Quirk", "Q31")]
-        public void ReadAllAnonymous_PassedOptions_UnsetValuesAreFilledOnEnumeration()
+        [Trait("Fixed", "Q31")]
+        public void ReadAllAnonymous_PassedOptions_AreNotModified()
         {
             var options = new ReadOptions(caseSensitiveFieldsMatching: true);
 
-            var result = People().CreateReader().ReadAllAnonymous(new { ID = 0, Name = "" }, options);
-            var beforeEnumeration = options.FieldsSelector;
-            result.ToList();
+            People().CreateReader().ReadAllAnonymous(new { ID = 0, Name = "" }, options).ToList();
 
-            beforeEnumeration.Should().BeNull();
-            options.FieldsSelector.Should().Be(FieldsSelector.Destination);
-            options.FromTypeOption.Should().Be(FromTypeOption.Default);
+            options.FieldsSelector.Should().BeNull();
+            options.FromTypeOption.Should().BeNull();
             options.CaseSensitiveFieldsMatching.Should().BeTrue();
         }
 
         [Fact]
-        [Trait("Quirk", "Q31")]
-        public async Task ReadAllAnonymousAsync_PassedOptions_UnsetValuesAreFilledOnFirstMoveNextAsync()
+        [Trait("Fixed", "Q31")]
+        public async Task ReadAllAnonymousAsync_PassedOptions_AreNotModifiedAsync()
         {
             var options = new ReadOptions(caseSensitiveFieldsMatching: true);
 
-            var result = People().CreateReader().ReadAllAnonymousAsync(new { ID = 0, Name = "" }, options);
-            var beforeEnumeration = options.FieldsSelector;
-            await result.ToListCompat(TestContext.Current.CancellationToken);
+            await People().CreateReader().ReadAllAnonymousAsync(new { ID = 0, Name = "" }, options).ToListCompat(TestContext.Current.CancellationToken);
 
-            beforeEnumeration.Should().BeNull();
-            options.FieldsSelector.Should().Be(FieldsSelector.Destination);
-            options.FromTypeOption.Should().Be(FromTypeOption.Default);
+            options.FieldsSelector.Should().BeNull();
+            options.FromTypeOption.Should().BeNull();
             options.CaseSensitiveFieldsMatching.Should().BeTrue();
         }
 

@@ -60,7 +60,7 @@ namespace Gerakul.FastSql.SqlServer
 
         public string GetColumnDeclaration()
         {
-            return $"[{Name}] {GetTypeDeclaration()} {(IsPrimaryKey ? "primary key not null" : (IsNullable ? "null" : "not null"))}";
+            return $"[{Name.Replace("]", "]]")}] {GetTypeDeclaration()} {(IsPrimaryKey ? "primary key not null" : (IsNullable ? "null" : "not null"))}";
         }
 
         public static ColumnDefinition FromFieldType(Type type, string name, ColumnDefinitionOptions options = null)
@@ -253,8 +253,11 @@ create table {tableName}
 
             if (checkIfNotExists)
             {
+                // temp tables live in tempdb, where object_id finds them only with the database name
+                var objectName = tableName.StartsWith("#") || tableName.StartsWith("[#") ? "tempdb.." + tableName : tableName;
+
                 return $@"
-if object_id (N'{tableName}', N'U') is null
+if object_id (N'{objectName.Replace("'", "''")}', N'U') is null
 begin
 {create}
 end

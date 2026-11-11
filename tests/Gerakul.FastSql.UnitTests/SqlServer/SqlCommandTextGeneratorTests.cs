@@ -32,19 +32,20 @@ namespace Gerakul.FastSql.UnitTests.SqlServer
         }
 
         [Theory]
-        [Trait("Quirk", "Q20")]
-        [InlineData("a]b", "[a]b]")]
-        [InlineData("[A]", "[[A]]")]
-        public void ColumnList_QuoteCharacterInName_IsNotEscaped(string field, string expected)
+        [Trait("Fixed", "Q20")]
+        [InlineData("a]b", "[a]]b]")]
+        [InlineData("[A]", "[[A]]]")]
+        public void ColumnList_QuoteCharacterInName_IsEscaped(string field, string expected)
         {
             generator.ColumnList(field).Should().Be(expected);
         }
 
+        // the parameter keeps the raw name (Q30)
         [Fact]
-        [Trait("Quirk", "Q20")]
-        public void WhereClause_QuoteCharacterInName_IsNotEscaped()
+        [Trait("Fixed", "Q20")]
+        public void WhereClause_QuoteCharacterInName_IsEscapedInColumnOnly()
         {
-            generator.WhereClause("a]b").Should().Be("[a]b] = @a]b");
+            generator.WhereClause("a]b").Should().Be("[a]]b] = @a]b");
         }
 
         [Theory]

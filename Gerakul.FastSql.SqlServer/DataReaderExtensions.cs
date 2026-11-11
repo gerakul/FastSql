@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Gerakul.FastSql.Common;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
@@ -12,7 +13,7 @@ namespace Gerakul.FastSql.SqlServer
     {
         public static IEnumerable<ColumnDefinition> GetColumnDefinitions(this IDataReader reader, ColumnDefinitionOptions options = null, bool ignoreSchemaTable = false)
         {
-            if (reader is DbDataReader && !ignoreSchemaTable)
+            if (reader is DbDataReader && !ignoreSchemaTable && HasSchemaTable(reader))
             {
                 var sqlReader = (DbDataReader)reader;
                 var schema = sqlReader.GetColumnSchema();
@@ -25,7 +26,7 @@ namespace Gerakul.FastSql.SqlServer
                     {
                         Name = name,
                         TypeName = row.DataTypeName,
-                        IsPrimaryKey = row.IsKey ?? optionKeys.Contains(name),
+                        IsPrimaryKey = (row.IsKey ?? false) || optionKeys.Contains(name),
                         MaxLength = checked((short)((row.IsLong ?? false) ? -1 : (row.ColumnSize ?? -1))),
                         Precision = checked((byte)(row.NumericPrecision ?? 0)),
                         Scale = checked((byte)(row.NumericScale ?? 0)),
@@ -42,6 +43,20 @@ namespace Gerakul.FastSql.SqlServer
                     yield return ColumnDefinition.FromFieldType(type, name, options);
                 }
             }
+        }
+
+        // UniversalDataReader has no schema table (GetSchemaTable throws); its field types describe the columns
+        private static bool HasSchemaTable(IDataReader reader)
+        {
+            for (var type = reader.GetType(); type != null; type = type.BaseType)
+            {
+                if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(UniversalDataReader<>))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 }

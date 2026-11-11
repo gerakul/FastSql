@@ -146,19 +146,19 @@ namespace Gerakul.FastSql.PostgreSQL
                 }
 
                 var columns = context.ContextProvider.CommandTextGenerator.ColumnList(map.Select(x => x.Destination).ToArray());
-                using (var writer = Connection.BeginBinaryImport($"COPY {destinationTable} ({columns}) FROM STDIN (FORMAT BINARY)"))
+                using (var writer = await Connection.BeginBinaryImportAsync($"COPY {destinationTable} ({columns}) FROM STDIN (FORMAT BINARY)", cancellationToken).ConfigureAwait(false))
                 {
-                    while (reader.Read())
+                    while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
                     {
-                        writer.StartRow();
+                        await writer.StartRowAsync(cancellationToken).ConfigureAwait(false);
 
                         foreach (var item in map)
                         {
-                            writer.Write(reader.GetValue(item.Ordinal));
+                            await writer.WriteAsync(reader.GetValue(item.Ordinal), cancellationToken).ConfigureAwait(false);
                         }
                     }
 
-                    writer.Complete();
+                    await writer.CompleteAsync(cancellationToken).ConfigureAwait(false);
                 }
             }
         }
@@ -182,7 +182,7 @@ namespace Gerakul.FastSql.PostgreSQL
         {
             List<string> result = new List<string>();
             await context.CreateSimple(string.Format("select * from {0} limit 0", destinationTable))
-                .UseReaderAsync(r =>
+                .UseReaderAsync(cancellationToken, r =>
                 {
                     foreach (var item in r.GetColumnNames())
                     {

@@ -15,11 +15,12 @@ namespace Gerakul.FastSql.SqlServer
 
         public static IWrappedCommand CreateInsertAndGetID<T>(this ISqlCommandCreator creator, string tableName, T value, QueryOptions queryOptions, params string[] ignoreFields)
         {
-            var c = (DbContext)creator;
+            // the text comes from the context's provider; a creator that is not a context gets the default one
+            var provider = (creator as DbContext)?.ContextProvider ?? SqlContextProvider.DefaultInstance;
             var settings = FieldSettings.FromType<T>(FromTypeOption.Default);
-            var fields = settings.Select(x => x.Name).Except(ignoreFields.Select(x => x)).ToArray();
-            string query = ((SqlCommandTextGenerator)c.ContextProvider.CommandTextGenerator).InsertAndGetID(tableName, fields);
-            return c.CreateMapped(query, fields, settings, value, queryOptions);
+            var fields = settings.Select(x => x.Name).Except(ignoreFields ?? new string[0]).ToArray();
+            string query = ((SqlCommandTextGenerator)provider.CommandTextGenerator).InsertAndGetID(tableName, fields);
+            return creator.CreateMapped(query, fields, settings, value, queryOptions);
         }
     }
 }

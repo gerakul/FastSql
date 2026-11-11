@@ -235,6 +235,39 @@ namespace Gerakul.FastSql.IntegrationTests.Common
             CountRows(table).Should().Be(0);
         }
 
+        // the rollback fails too (here because the action closed the connection), which must not hide the action's exception
+        [Theory]
+        [MemberData(nameof(TransactionOwners))]
+        [Trait("Fixed", "Q123")]
+        public void UsingTransaction_ActionThrowsAndRollbackFails_RethrowsActionException(ContextKind owner, IsolationLevel? isolationLevel)
+        {
+            var exception = new ActionException();
+
+            Action act = () => UsingTransaction(owner, isolationLevel, x =>
+            {
+                x.Transaction.Connection.Close();
+                throw exception;
+            });
+
+            act.Should().Throw<ActionException>().Which.Should().BeSameAs(exception);
+        }
+
+        [Theory]
+        [MemberData(nameof(TransactionOwners))]
+        [Trait("Fixed", "Q123")]
+        public async Task UsingTransactionAsync_ActionThrowsAndRollbackFails_RethrowsActionExceptionAsync(ContextKind owner, IsolationLevel? isolationLevel)
+        {
+            var exception = new ActionException();
+
+            Func<Task> act = () => UsingTransactionAsync(owner, isolationLevel, x =>
+            {
+                x.Transaction.Connection.Close();
+                throw exception;
+            });
+
+            (await act.Should().ThrowAsync<ActionException>()).Which.Should().BeSameAs(exception);
+        }
+
         [Theory]
         [MemberData(nameof(IsolationLevels))]
         public void UsingTransaction_WithIsolationLevel_LevelReachesServer(ContextKind owner, IsolationLevel isolationLevel, string expected)

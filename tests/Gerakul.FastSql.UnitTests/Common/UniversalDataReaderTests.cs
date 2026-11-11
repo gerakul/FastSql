@@ -209,7 +209,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             Action lookup = () => reader.GetOrdinal("name");
             if (caseSensitive)
             {
-                lookup.Should().Throw<KeyNotFoundException>();
+                lookup.Should().Throw<IndexOutOfRangeException>();
             }
             else
             {
@@ -359,6 +359,7 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
+        [Trait("Fixed", "Q129")]
         public void GetOrdinal_CaseSensitive_MatchesExactNameOnly()
         {
             var reader = CreateReader(true);
@@ -367,7 +368,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             reader.GetOrdinal("Name").Should().Be(1);
             reader.GetOrdinal("Age").Should().Be(2);
             Action act = () => reader.GetOrdinal("NAME");
-            act.Should().Throw<KeyNotFoundException>().WithMessage("The given key 'NAME' was not present in the dictionary.");
+            act.Should().Throw<IndexOutOfRangeException>().WithMessage("Field 'NAME' is not found");
         }
 
         [Fact]
@@ -381,13 +382,14 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
-        public void GetOrdinal_CaseInsensitiveUnknownName_ThrowsKeyNotFoundExceptionWithLowerCaseName()
+        [Trait("Fixed", "Q129")]
+        public void GetOrdinal_CaseInsensitiveUnknownName_ThrowsIndexOutOfRangeExceptionWithGivenName()
         {
             var reader = CreateReader(false);
 
             Action act = () => reader.GetOrdinal("Unknown");
 
-            act.Should().Throw<KeyNotFoundException>().WithMessage("The given key 'unknown' was not present in the dictionary.");
+            act.Should().Throw<IndexOutOfRangeException>().WithMessage("Field 'Unknown' is not found");
         }
 
         #endregion
@@ -453,14 +455,15 @@ namespace Gerakul.FastSql.UnitTests.Common
         [Theory]
         [InlineData(SourceKind.Enumerable)]
         [InlineData(SourceKind.AsyncEnumerable)]
-        [Trait("Quirk", "Q41")]
-        public async Task ReadAsync_CancelledToken_StillReadsAsync(SourceKind source)
+        [Trait("Fixed", "Q41")]
+        public async Task ReadAsync_CancelledToken_ThrowsOperationCanceledExceptionAsync(SourceKind source)
         {
             var reader = CreateReader(source, CreateRows());
 
-            var result = await reader.ReadAsync(new CancellationToken(true));
+            Func<Task> act = () => reader.ReadAsync(new CancellationToken(true));
 
-            result.Should().BeTrue();
+            await act.Should().ThrowAsync<OperationCanceledException>();
+            (await reader.ReadAsync(TestContext.Current.CancellationToken)).Should().BeTrue();
             reader.GetValue(0).Should().Be(1);
         }
 
@@ -477,18 +480,15 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
-        [Trait("Quirk", "Q42")]
-        [Trait("UpgradeSensitive", "the async source reports exceptions through the MoveNextAsync task")]
-        public void Read_AsyncSourceThrows_ThrowsAggregateException()
+        [Trait("Fixed", "Q42")]
+        public void Read_AsyncSourceThrows_ThrowsOriginalException()
         {
             var reader = CreateReader(SourceKind.AsyncEnumerable, RowThenThrow());
             reader.Read();
 
             var exception = Record.Exception(() => reader.Read());
 
-            exception.Should().BeOfType<AggregateException>()
-                .Which.InnerExceptions.Should().ContainSingle()
-                .Which.Should().BeOfType<InvalidOperationException>().Which.Message.Should().Be("Source failed");
+            exception.Should().BeOfType<InvalidOperationException>().Which.Message.Should().Be("Source failed");
         }
 
         [Theory]
@@ -618,6 +618,7 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
+        [Trait("Fixed", "Q129")]
         public void IndexerByName_CaseSensitive_MatchesExactNameOnly()
         {
             var reader = CreateReader(true);
@@ -625,7 +626,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
             reader["Name"].Should().Be("John");
             Func<object> act = () => reader["name"];
-            act.Should().Throw<KeyNotFoundException>().WithMessage("The given key 'name' was not present in the dictionary.");
+            act.Should().Throw<IndexOutOfRangeException>().WithMessage("Field 'name' is not found");
         }
 
         [Fact]
@@ -771,42 +772,41 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
-        [Trait("Quirk", "Q43")]
-        public void GetBytes_NullBuffer_ThrowsNullReferenceException()
+        [Trait("Fixed", "Q43")]
+        public void GetBytes_NullBuffer_ReturnsFieldLength()
         {
             var reader = CreateReader(SourceKind.Enumerable, new[] { new Binary() { Bytes = new byte[] { 1, 2, 3 } } },
                 FieldSettings.FromType<Binary>(FromTypeOption.All));
             reader.Read();
 
-            Action act = () => reader.GetBytes(0, 0, null, 0, 0);
-
-            act.Should().Throw<NullReferenceException>();
+            reader.GetBytes(0, 0, null, 0, 0).Should().Be(3);
         }
 
         [Fact]
-        [Trait("Quirk", "Q43")]
-        public void GetChars_NullBuffer_ThrowsNullReferenceException()
+        [Trait("Fixed", "Q43")]
+        public void GetChars_NullBuffer_ReturnsFieldLength()
         {
-            var reader = CreateReader(SourceKind.Enumerable, new[] { new Binary() { Chars = "abc".ToCharArray() } },
+            var reader = CreateReader(SourceKind.Enumerable, new[] { new Binary() { Chars = "abcd".ToCharArray(), Text = "ab" } },
                 FieldSettings.FromType<Binary>(FromTypeOption.All));
             reader.Read();
 
-            Action act = () => reader.GetChars(1, 0, null, 0, 0);
-
-            act.Should().Throw<NullReferenceException>();
+            reader.GetChars(1, 0, null, 0, 0).Should().Be(4);
+            reader.GetChars(2, 0, null, 0, 0).Should().Be(2);
         }
 
         [Fact]
-        [Trait("Quirk", "Q43")]
-        public void GetChars_StringValue_ThrowsInvalidCastException()
+        [Trait("Fixed", "Q43")]
+        public void GetChars_StringValue_CopiesCharacters()
         {
             var reader = CreateReader(SourceKind.Enumerable, new[] { new Binary() { Text = "abc" } },
                 FieldSettings.FromType<Binary>(FromTypeOption.All));
             reader.Read();
+            var buffer = new char[3];
 
-            Action act = () => reader.GetChars(2, 0, new char[3], 0, 3);
+            var count = reader.GetChars(2, 1, buffer, 0, 3);
 
-            act.Should().Throw<InvalidCastException>().WithMessage("Unable to cast object of type 'System.String' to type 'System.Char[]'.");
+            count.Should().Be(2);
+            new string(buffer, 0, 2).Should().Be("bc");
         }
 
         [Fact]
@@ -998,8 +998,8 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
-        [Trait("Quirk", "Q40")]
-        public void Close_EnumerableSource_NeverDisposesSourceEnumerator()
+        [Trait("Fixed", "Q40")]
+        public void Close_EnumerableSource_DisposesSourceEnumeratorOnce()
         {
             var partial = new TrackingEnumerable(CreateRows());
             var full = new TrackingEnumerable(CreateRows());
@@ -1008,19 +1008,20 @@ namespace Gerakul.FastSql.UnitTests.Common
 
             partialReader.Read();
             partialReader.Close();
+            partialReader.Dispose();
             while (fullReader.Read())
             {
             }
             fullReader.Dispose();
 
-            partial.LastEnumerator.DisposeCalls.Should().Be(0);
-            full.LastEnumerator.DisposeCalls.Should().Be(0);
+            partial.LastEnumerator.DisposeCalls.Should().Be(1);
+            full.LastEnumerator.DisposeCalls.Should().Be(1);
         }
 
         [Fact]
-        [Trait("Quirk", "Q40")]
+        [Trait("Fixed", "Q40")]
         [Trait("UpgradeSensitive", "ToAsyncEnumerable of System.Linq.AsyncEnumerable pulls lazily and disposes the source only when disposed itself")]
-        public void Close_PartiallyReadAsyncSource_DoesNotDisposeSourceEnumerator()
+        public void Close_PartiallyReadAsyncSource_DisposesSourceEnumerator()
         {
             var source = new TrackingEnumerable(CreateRows());
             var reader = new UniversalDataReader<Row>(source.ToAsyncEnumerableCompat(), FieldSettings.FromType<Row>(), true);
@@ -1030,7 +1031,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             reader.Dispose();
 
             source.LastEnumerator.MoveNextCalls.Should().Be(1);
-            source.LastEnumerator.DisposeCalls.Should().Be(0);
+            source.LastEnumerator.DisposeCalls.Should().Be(1);
         }
 
         #endregion

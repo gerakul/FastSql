@@ -317,6 +317,16 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
+        [Trait("Fixed", "Q120")]
+        public async Task ReadAllAsync_Struct_SetsFieldsAndPropertiesAsync()
+        {
+            var result = await People().CreateReader().ReadAllAsync<PersonStruct>().ToListCompat(TestContext.Current.CancellationToken);
+
+            result.Select(x => x.ID).Should().Equal(1, 2);
+            result.Select(x => x.Name).Should().Equal("John", "Kate");
+        }
+
+        [Fact]
         public async Task ReadAllAsync_PrivateSetter_IsSetAsync()
         {
             var result = await People().CreateReader().ReadAllAsync<WithPrivateSetter>().ToListCompat(TestContext.Current.CancellationToken);
@@ -325,29 +335,33 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
-        [Trait("Quirk", "Q13")]
-        public async Task ReadAllAsync_GetOnlyPropertyWithoutColumn_IsRequiredByDestinationAsync()
+        [Trait("Fixed", "Q13")]
+        public async Task ReadAllAsync_GetOnlyPropertyWithoutColumn_IsNotADestinationAsync()
         {
             var reader = new ReaderTable().Column<int>("ID").Row(1).CreateReader();
 
-            Func<Task> act = () => reader.ReadAllAsync<WithGetOnly>().ToListCompat(TestContext.Current.CancellationToken);
+            var result = await reader.ReadAllAsync<WithGetOnly>().ToListCompat(TestContext.Current.CancellationToken);
 
-            await act.Should().ThrowExactlyAsync<InvalidOperationException>().WithMessage(DestinationMessage);
+            result.Should().ContainSingle().Which.ID.Should().Be(1);
         }
 
         [Fact]
-        [Trait("Quirk", "Q13")]
-        public async Task ReadAllAsync_GetOnlyPropertyWithColumn_ThrowsWhenSetAsync()
+        [Trait("Fixed", "Q13")]
+        public async Task ReadAllAsync_GetOnlyPropertyWithColumn_IgnoresColumnAsync()
         {
             var reader = new ReaderTable().Column<int>("ID").Column<string>("Computed").Row(1, "x").CreateReader();
+            var sourceReader = new ReaderTable().Column<int>("ID").Column<string>("Computed").Row(1, "x").CreateReader();
 
-            Func<Task> act = () => reader.ReadAllAsync<WithGetOnly>().ToListCompat(TestContext.Current.CancellationToken);
+            var result = await reader.ReadAllAsync<WithGetOnly>().ToListCompat(TestContext.Current.CancellationToken);
+            Func<Task> source = () => sourceReader.ReadAllAsync<WithGetOnly>(new ReadOptions(fieldsSelector: FieldsSelector.Source))
+                .ToListCompat(TestContext.Current.CancellationToken);
 
-            await act.Should().ThrowExactlyAsync<ArgumentException>().WithMessage("Property set method not found.");
+            result.Should().ContainSingle().Which.Computed.Should().Be("computed");
+            await source.Should().ThrowExactlyAsync<InvalidOperationException>().WithMessage(SourceMessage);
         }
 
         [Fact]
-        [Trait("Quirk", "Q13")]
+        [Trait("Fixed", "Q13")]
         public async Task ReadAllAsync_GetOnlyPropertyWithCommonSelector_IsSkippedAsync()
         {
             var reader = new ReaderTable().Column<int>("ID").Row(1).CreateReader();
@@ -359,25 +373,25 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
-        [Trait("Quirk", "Q53")]
-        public async Task ReadAllAsync_IndexerWithoutColumn_IsRequiredByDestinationAsync()
+        [Trait("Fixed", "Q53")]
+        public async Task ReadAllAsync_IndexerWithoutColumn_IsNotADestinationAsync()
         {
             var reader = new ReaderTable().Column<int>("ID").Row(1).CreateReader();
 
-            Func<Task> act = () => reader.ReadAllAsync<WithIndexer>().ToListCompat(TestContext.Current.CancellationToken);
+            var result = await reader.ReadAllAsync<WithIndexer>().ToListCompat(TestContext.Current.CancellationToken);
 
-            await act.Should().ThrowExactlyAsync<InvalidOperationException>().WithMessage(DestinationMessage);
+            result.Should().ContainSingle().Which.ID.Should().Be(1);
         }
 
         [Fact]
-        [Trait("Quirk", "Q53")]
-        public async Task ReadAllAsync_IndexerWithItemColumn_ThrowsWhenSetAsync()
+        [Trait("Fixed", "Q53")]
+        public async Task ReadAllAsync_IndexerWithItemColumn_IgnoresColumnAsync()
         {
             var reader = new ReaderTable().Column<int>("ID").Column<string>("Item").Row(1, "x").CreateReader();
 
-            Func<Task> act = () => reader.ReadAllAsync<WithIndexer>().ToListCompat(TestContext.Current.CancellationToken);
+            var result = await reader.ReadAllAsync<WithIndexer>().ToListCompat(TestContext.Current.CancellationToken);
 
-            await act.Should().ThrowExactlyAsync<TargetParameterCountException>().WithMessage("Parameter count mismatch.");
+            result.Should().ContainSingle().Which.ID.Should().Be(1);
         }
 
         #endregion
@@ -443,15 +457,15 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
-        [Trait("Quirk", "Q52")]
-        public async Task ReadAllAsync_ArrayColumnIntoInterfaceMember_ThrowsInvalidCastExceptionAsync()
+        [Trait("Fixed", "Q52")]
+        public async Task ReadAllAsync_ArrayColumnIntoInterfaceMember_AssignsArrayAsync()
         {
             var reader = new ReaderTable().Column<int>("ID").Column<string[]>("Tags").Row(1, new[] { "a", "b" }).CreateReader();
 
-            Func<Task> act = () => reader.ReadAllAsync<WithEnumerable>(new ReadOptions(fromTypeOption: FromTypeOption.All))
+            var result = await reader.ReadAllAsync<WithEnumerable>(new ReadOptions(fromTypeOption: FromTypeOption.All))
                 .ToListCompat(TestContext.Current.CancellationToken);
 
-            await act.Should().ThrowExactlyAsync<InvalidCastException>().WithMessage("Object must implement IConvertible.");
+            result.Should().ContainSingle().Which.Tags.Should().Equal("a", "b");
         }
 
         [Fact]
@@ -704,19 +718,15 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
-        [Trait("Quirk", "Q31")]
-        public async Task ReadAllAsync_PassedOptions_UnsetValuesAreFilledOnFirstMoveNextAsync()
+        [Trait("Fixed", "Q31")]
+        public async Task ReadAllAsync_PassedOptions_AreNotModifiedAsync()
         {
             var options = new ReadOptions(caseSensitiveFieldsMatching: true);
 
-            var result = People().CreateReader().ReadAllAsync<Person>(options);
-            var beforeEnumeration = new { options.FieldsSelector, options.FromTypeOption };
-            await result.ToListCompat(TestContext.Current.CancellationToken);
+            await People().CreateReader().ReadAllAsync<Person>(options).ToListCompat(TestContext.Current.CancellationToken);
 
-            beforeEnumeration.FieldsSelector.Should().BeNull();
-            beforeEnumeration.FromTypeOption.Should().BeNull();
-            options.FieldsSelector.Should().Be(FieldsSelector.Destination);
-            options.FromTypeOption.Should().Be(FromTypeOption.Default);
+            options.FieldsSelector.Should().BeNull();
+            options.FromTypeOption.Should().BeNull();
             options.CaseSensitiveFieldsMatching.Should().BeTrue();
         }
 

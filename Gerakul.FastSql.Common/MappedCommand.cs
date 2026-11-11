@@ -30,6 +30,7 @@ namespace Gerakul.FastSql.Common
             if (parameters == null || parameters.Count == 0)
             {
                 map = new ParMap<T>[0];
+                parameters = new string[0]; // the checks below treat a missing list as an empty one
             }
 
             if (caseSensitiveParamsMatching)

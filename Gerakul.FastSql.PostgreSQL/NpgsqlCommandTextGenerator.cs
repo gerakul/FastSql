@@ -6,9 +6,15 @@ namespace Gerakul.FastSql.PostgreSQL
 {
     public class NpgsqlCommandTextGenerator : CommandTextGenerator
     {
+        // a double quote inside a name is written twice
+        private static string Quote(string name)
+        {
+            return $"\"{name.Replace("\"", "\"\"")}\"";
+        }
+
         public override string ColumnList(params string[] fields)
         {
-            return string.Join(", ", fields.Select(x => $"\"{x}\""));
+            return string.Join(", ", fields.Select(x => Quote(x)));
         }
 
         public override string ParamList(params string[] fields)
@@ -18,12 +24,12 @@ namespace Gerakul.FastSql.PostgreSQL
 
         public override string WhereClause(params string[] fields)
         {
-            return string.Join(" and ", fields.Select(x => $"\"{x}\" = @{x}"));
+            return string.Join(" and ", fields.Select(x => $"{Quote(x)} = @{x}"));
         }
 
         public override string SetClause(params string[] fields)
         {
-            return string.Join(", ", fields.Select(x => $"\"{x}\" = @{x}"));
+            return string.Join(", ", fields.Select(x => $"{Quote(x)} = @{x}"));
         }
 
         public override string Insert(string tableName, params string[] fields)
@@ -49,7 +55,7 @@ namespace Gerakul.FastSql.PostgreSQL
         public override string Merge(string tableName, IEnumerable<string> keyFields, params string[] fields)
         {
             var allFields = keyFields.Union(fields).ToArray();
-            var setClause = string.Join(", ", fields.Select(x => $"\"{x}\" = excluded.\"{x}\""));
+            var setClause = string.Join(", ", fields.Select(x => $"{Quote(x)} = excluded.{Quote(x)}"));
 
             var cmd = $"insert into {tableName} ({ColumnList(allFields)}) "
                 + Environment.NewLine + $"values ({ParamList(allFields)}) "

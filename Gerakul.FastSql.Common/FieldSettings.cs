@@ -56,31 +56,10 @@ namespace Gerakul.FastSql.Common
         {
             List<FieldSettings<T>> fieldSettings = new List<FieldSettings<T>>();
 
-            Type type = typeof(T);
+            Helpers.GetMembers(typeof(T), fromTypeOption, false, out FieldInfo[] fi, out PropertyInfo[] pi);
 
-            if ((fromTypeOption & FromTypeOption.PublicField) == FromTypeOption.PublicField)
-            {
-                FieldInfo[] fi = type.GetFields(BindingFlags.Instance | BindingFlags.Public);
-
-                if ((fromTypeOption & FromTypeOption.Collection) == 0)
-                {
-                    fi = fi.Where(x => !Helpers.IsCollection(x.FieldType)).ToArray();
-                }
-
-                fieldSettings.AddRange(fi.Select(x => new FieldSettings<T>(x.Name, x.FieldType, y => x.GetValue(y))));
-            }
-
-            if ((fromTypeOption & FromTypeOption.PublicProperty) == FromTypeOption.PublicProperty)
-            {
-                PropertyInfo[] pi = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
-
-                if ((fromTypeOption & FromTypeOption.Collection) == 0)
-                {
-                    pi = pi.Where(x => !Helpers.IsCollection(x.PropertyType)).ToArray();
-                }
-
-                fieldSettings.AddRange(pi.Select(x => new FieldSettings<T>(x.Name, x.PropertyType, y => x.GetValue(y))));
-            }
+            fieldSettings.AddRange(fi.Select(x => new FieldSettings<T>(x.Name, x.FieldType, y => x.GetValue(y))));
+            fieldSettings.AddRange(pi.Select(x => new FieldSettings<T>(x.Name, x.PropertyType, y => x.GetValue(y))));
 
             return fieldSettings.ToArray();
         }

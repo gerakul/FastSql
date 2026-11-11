@@ -40,12 +40,6 @@ namespace Gerakul.FastSql.IntegrationTests.Common
         // checks the exception of a command that ran longer than its CommandTimeout
         protected abstract void AssertCommandTimeout(Exception exception);
 
-        // the driver's message when a command runs on a connection where openCommandText still has an open data reader
-        protected abstract string OpenReaderMessage(string openCommandText);
-
-        // the exact type of that exception (derived from InvalidOperationException)
-        protected abstract Type OpenReaderExceptionType { get; }
-
         #region Laziness
 
         [Theory]
@@ -481,24 +475,21 @@ namespace Gerakul.FastSql.IntegrationTests.Common
         [Theory]
         [InlineData(ContextKind.Connection)]
         [InlineData(ContextKind.Transaction)]
-        [Trait("Quirk", "Q70")]
-        [Trait("UpgradeSensitive", "driver message for a busy connection")]
-        public async Task ExecuteQueryAsync_ScopedContextMappingFails_ReaderLeftOpenAsync(ContextKind kind)
+        [Trait("Fixed", "Q70")]
+        public async Task ExecuteQueryAsync_ScopedContextMappingFails_ReaderDisposedAsync(ContextKind kind)
         {
-            var sql = SelectCompanyIdAndName();
-
             using (var connection = await Database.OpenConnectionAsync())
             {
                 var transaction = kind == ContextKind.Transaction ? connection.BeginTransaction() : null;
                 var context = CreateScopedContext(connection, transaction);
 
-                var mappingFails = await CatchAsync(() => context.CreateSimple(sql).ExecuteQueryAsync<Company>(cancellationToken: Token).ToListCompat(Token));
-                var nextCommand = await CatchAsync(() => context.CreateSimple(SelectCompanyNames()).ExecuteScalarAsync(Token));
+                var mappingFails = await CatchAsync(() => context.CreateSimple(SelectCompanyIdAndName()).ExecuteQueryAsync<Company>(cancellationToken: Token)
+                    .ToListCompat(Token));
+                var name = await context.CreateSimple(SelectCompanyNames()).ExecuteScalarAsync(Token);
+                transaction?.Commit();
 
                 mappingFails.Should().BeOfType<InvalidOperationException>().Which.Message.Should().Be(DestinationSelectorMessage);
-                nextCommand.Should().BeOfType(OpenReaderExceptionType);
-                nextCommand.Message.Should().Be(OpenReaderMessage(sql));
-                // the transaction is left as is: closing the connection discards it together with the open reader
+                name.Should().Be("Mega Co");
             }
         }
 
@@ -540,6 +531,31 @@ namespace Gerakul.FastSql.IntegrationTests.Common
             exceptions.Should().AllSatisfy(x => x.Should().BeOfType(CancellationExceptionType(operation)));
         }
 
+        // the token given to the method stops the enumeration while it reads rows, not only the start
+        [Theory]
+        [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
+        [Trait("Fixed", "Q122")]
+        public async Task ExecuteQueryAsync_TokenPassedToMethodCancelledWhileReading_NextMoveNextThrowsAsync(ContextKind kind)
+        {
+            var read = 0;
+
+            var exception = await Database.RunAsync(kind, async x =>
+            {
+                using (var cancellation = new CancellationTokenSource())
+                using (var enumerator = x.CreateSimple(SelectCompanyNames()).ExecuteQueryFirstColumnAsync<string>(cancellation.Token).GetEnumeratorCompat(Token))
+                {
+                    (await enumerator.MoveNextAsync()).Should().BeTrue();
+                    read++;
+                    cancellation.Cancel();
+
+                    return await CatchAsync(() => enumerator.MoveNextAsync());
+                }
+            });
+
+            exception.Should().BeAssignableTo<OperationCanceledException>();
+            read.Should().Be(1);
+        }
+
         [Fact]
         public async Task ExecuteQueryAsync_ConnectionStringContextCancelledToken_OpensNoSessionAsync()
         {
@@ -564,16 +580,20 @@ namespace Gerakul.FastSql.IntegrationTests.Common
         }
 
         [Fact]
-        [Trait("Quirk", "Q06")]
-        public async Task ExecuteNonQueryAsync_ConnectionStringContextCancelledToken_IgnoresTokenAsync()
+        [Trait("Fixed", "Q06")]
+        [Trait("UpgradeSensitive", "driver exception type for a cancelled token")]
+        public async Task ExecuteNonQueryAsync_ConnectionStringContextCancelledToken_ThrowsAsync()
         {
+            var applicationName = NewApplicationName();
             var table = CreateTable();
-            var context = Spec.DefaultProvider.CreateContext(Database.ConnectionString);
+            var context = CreateTrackedContext(applicationName);
 
-            var rows = await context.CreateSimple($"insert into {table} ({Q("ID")}) values (1)").ExecuteNonQueryAsync(new CancellationToken(true));
+            var exception = await CatchAsync(() => context.CreateSimple($"insert into {table} ({Q("ID")}) values (1)")
+                .ExecuteNonQueryAsync(new CancellationToken(true)));
 
-            rows.Should().Be(1);
-            CountRows(table).Should().Be(1);
+            exception.Should().BeOfType(CancellationExceptionType("OpenAsync"));
+            CountRows(table).Should().Be(0);
+            Database.WaitForSessionCount(applicationName, 0).Should().Be(0);
         }
 
         [Theory]
@@ -594,20 +614,20 @@ namespace Gerakul.FastSql.IntegrationTests.Common
         [Theory]
         [InlineData(ContextKind.Connection)]
         [InlineData(ContextKind.Transaction)]
-        [Trait("Quirk", "Q06")]
-        public async Task UseReaderAsync_ScopedContextCancelledToken_IgnoresTokenAsync(ContextKind kind)
+        [Trait("Fixed", "Q06")]
+        [Trait("UpgradeSensitive", "driver exception type for a cancelled token")]
+        public async Task UseReaderAsync_ScopedContextCancelledToken_ThrowsAsync(ContextKind kind)
         {
-            var names = new List<string>();
+            var actionCalled = false;
 
-            await Database.RunAsync(kind, x => x.CreateSimple(SelectCompanyNames()).UseReaderAsync(new CancellationToken(true), async r =>
+            var exception = await Database.RunAsync(kind, x => CatchAsync(() => x.CreateSimple(SelectCompanyNames()).UseReaderAsync(new CancellationToken(true), r =>
             {
-                while (await r.ReadAsync(Token))
-                {
-                    names.Add(r.GetString(0));
-                }
-            }));
+                actionCalled = true;
+                return Task.CompletedTask;
+            })));
 
-            names.Should().Equal("Mega Co", "Oldest Co");
+            exception.Should().BeOfType(CancellationExceptionType("ExecuteReaderAsync"));
+            actionCalled.Should().BeFalse();
         }
 
         [Fact]

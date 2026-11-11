@@ -94,6 +94,12 @@ namespace Gerakul.FastSql.UnitTests.Common
             public string Computed => "computed";
         }
 
+        public struct PersonStruct
+        {
+            public int ID;
+            public string Name { get; set; }
+        }
+
         public class WithPrivateSetter
         {
             public int ID { get; private set; }
@@ -231,6 +237,18 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
+        [Trait("Fixed", "Q120")]
+        public void ReadAll_Struct_SetsFieldsAndProperties()
+        {
+            var reader = People().CreateReader();
+
+            var result = reader.ReadAll<PersonStruct>().ToList();
+
+            result.Select(x => x.ID).Should().Equal(1, 2);
+            result.Select(x => x.Name).Should().Equal("John", "Kate");
+        }
+
+        [Fact]
         public void ReadAll_PrivateSetter_IsSet()
         {
             var reader = People().CreateReader();
@@ -241,29 +259,32 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
-        [Trait("Quirk", "Q13")]
-        public void ReadAll_GetOnlyPropertyWithoutColumn_IsRequiredByDestination()
+        [Trait("Fixed", "Q13")]
+        public void ReadAll_GetOnlyPropertyWithoutColumn_IsNotADestination()
         {
             var reader = new ReaderTable().Column<int>("ID").Row(1).CreateReader();
 
-            Action act = () => reader.ReadAll<WithGetOnly>().ToList();
+            var result = reader.ReadAll<WithGetOnly>().ToList();
 
-            act.Should().ThrowExactly<InvalidOperationException>().WithMessage(DestinationMessage);
+            result.Should().ContainSingle().Which.ID.Should().Be(1);
         }
 
         [Fact]
-        [Trait("Quirk", "Q13")]
-        public void ReadAll_GetOnlyPropertyWithColumn_ThrowsWhenSet()
+        [Trait("Fixed", "Q13")]
+        public void ReadAll_GetOnlyPropertyWithColumn_IgnoresColumn()
         {
             var reader = new ReaderTable().Column<int>("ID").Column<string>("Computed").Row(1, "x").CreateReader();
+            var sourceReader = new ReaderTable().Column<int>("ID").Column<string>("Computed").Row(1, "x").CreateReader();
 
-            Action act = () => reader.ReadAll<WithGetOnly>().ToList();
+            var result = reader.ReadAll<WithGetOnly>().ToList();
+            Action source = () => sourceReader.ReadAll<WithGetOnly>(new ReadOptions(fieldsSelector: FieldsSelector.Source)).ToList();
 
-            act.Should().ThrowExactly<ArgumentException>().WithMessage("Property set method not found.");
+            result.Should().ContainSingle().Which.Computed.Should().Be("computed");
+            source.Should().ThrowExactly<InvalidOperationException>().WithMessage(SourceMessage);
         }
 
         [Fact]
-        [Trait("Quirk", "Q13")]
+        [Trait("Fixed", "Q13")]
         public void ReadAll_GetOnlyPropertyWithCommonSelector_IsSkipped()
         {
             var reader = new ReaderTable().Column<int>("ID").Row(1).CreateReader();
@@ -274,28 +295,28 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
-        [Trait("Quirk", "Q53")]
-        public void ReadAll_IndexerWithoutColumn_IsRequiredByDestination()
+        [Trait("Fixed", "Q53")]
+        public void ReadAll_IndexerWithoutColumn_IsNotADestination()
         {
             var reader = new ReaderTable().Column<int>("ID").Row(1).CreateReader();
             var commonReader = new ReaderTable().Column<int>("ID").Row(1).CreateReader();
 
-            Action act = () => reader.ReadAll<WithIndexer>().ToList();
+            var result = reader.ReadAll<WithIndexer>().ToList();
             var common = commonReader.ReadAll<WithIndexer>(new ReadOptions(fieldsSelector: FieldsSelector.Common)).ToList();
 
-            act.Should().ThrowExactly<InvalidOperationException>().WithMessage(DestinationMessage);
+            result.Should().ContainSingle().Which.ID.Should().Be(1);
             common.Should().ContainSingle().Which.ID.Should().Be(1);
         }
 
         [Fact]
-        [Trait("Quirk", "Q53")]
-        public void ReadAll_IndexerWithItemColumn_ThrowsWhenSet()
+        [Trait("Fixed", "Q53")]
+        public void ReadAll_IndexerWithItemColumn_IgnoresColumn()
         {
             var reader = new ReaderTable().Column<int>("ID").Column<string>("Item").Row(1, "x").CreateReader();
 
-            Action act = () => reader.ReadAll<WithIndexer>().ToList();
+            var result = reader.ReadAll<WithIndexer>().ToList();
 
-            act.Should().ThrowExactly<TargetParameterCountException>().WithMessage("Parameter count mismatch.");
+            result.Should().ContainSingle().Which.ID.Should().Be(1);
         }
 
         #endregion
@@ -370,14 +391,14 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
-        [Trait("Quirk", "Q52")]
-        public void ReadAll_ArrayColumnIntoInterfaceMember_ThrowsInvalidCastException()
+        [Trait("Fixed", "Q52")]
+        public void ReadAll_ArrayColumnIntoInterfaceMember_AssignsArray()
         {
             var reader = new ReaderTable().Column<int>("ID").Column<string[]>("Tags").Row(1, new[] { "a", "b" }).CreateReader();
 
-            Action act = () => reader.ReadAll<WithEnumerable>(new ReadOptions(fromTypeOption: FromTypeOption.All)).ToList();
+            var result = reader.ReadAll<WithEnumerable>(new ReadOptions(fromTypeOption: FromTypeOption.All)).ToList();
 
-            act.Should().ThrowExactly<InvalidCastException>().WithMessage("Object must implement IConvertible.");
+            result.Should().ContainSingle().Which.Tags.Should().Equal("a", "b");
         }
 
         [Fact]
@@ -501,13 +522,16 @@ namespace Gerakul.FastSql.UnitTests.Common
         [Theory]
         [InlineData(true)]
         [InlineData(false)]
-        public void ReadAll_PropertyHidingInheritedFieldOfSameName_ThrowsArgumentException(bool caseSensitive)
+        [Trait("Fixed", "Q48")]
+        public void ReadAll_PropertyHidingInheritedFieldOfSameName_SetsHidingProperty(bool caseSensitive)
         {
             var reader = new ReaderTable().Column<int>("Value").Row(2).CreateReader();
 
-            Action act = () => reader.ReadAll<PropertyHidingField>(new ReadOptions(caseSensitiveFieldsMatching: caseSensitive)).ToList();
+            var result = reader.ReadAll<PropertyHidingField>(new ReadOptions(caseSensitiveFieldsMatching: caseSensitive)).ToList();
 
-            act.Should().ThrowExactly<ArgumentException>().WithMessage("Destination object field names has been duplicated");
+            result.Should().ContainSingle();
+            result[0].Value.Should().Be(2);
+            ((HiddenFieldBase)result[0]).Value.Should().Be(0);
         }
 
         #endregion
@@ -636,19 +660,15 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
-        [Trait("Quirk", "Q31")]
-        public void ReadAll_PassedOptions_UnsetValuesAreFilledOnEnumeration()
+        [Trait("Fixed", "Q31")]
+        public void ReadAll_PassedOptions_AreNotModified()
         {
             var options = new ReadOptions(caseSensitiveFieldsMatching: true);
 
-            var result = People().CreateReader().ReadAll<Person>(options);
-            var beforeEnumeration = new { options.FieldsSelector, options.FromTypeOption, options.CaseSensitiveFieldsMatching };
-            result.ToList();
+            People().CreateReader().ReadAll<Person>(options).ToList();
 
-            beforeEnumeration.FieldsSelector.Should().BeNull();
-            beforeEnumeration.FromTypeOption.Should().BeNull();
-            options.FieldsSelector.Should().Be(FieldsSelector.Destination);
-            options.FromTypeOption.Should().Be(FromTypeOption.Default);
+            options.FieldsSelector.Should().BeNull();
+            options.FromTypeOption.Should().BeNull();
             options.CaseSensitiveFieldsMatching.Should().BeTrue();
         }
 

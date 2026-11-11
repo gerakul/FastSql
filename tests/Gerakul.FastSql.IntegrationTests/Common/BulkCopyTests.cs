@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
 using System.Threading.Tasks;
@@ -81,6 +83,33 @@ namespace Gerakul.FastSql.IntegrationTests.Common
             await Database.RunAsync(kind, x => CommentedEmployees.WriteToServerAsync(x, table, new BulkOptions(FieldsSelector.Common)));
 
             ReadEmployees(table).Should().BeEquivalentTo(ToEmployees(NewEmployees), o => o.WithStrictOrdering());
+        }
+
+        // the reader made from the enumerable is disposed, and with it the source enumerator, also when the copy fails
+        [Theory]
+        [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
+        [Trait("Fixed", "Q40")]
+        public void WriteToServer_EnumerableCopyFails_DisposesSourceEnumerator(ContextKind kind)
+        {
+            var source = new TrackingSource<NewEmployee>(NewEmployees);
+
+            Action act = () => Database.Run(kind, x => source.WriteToServer(x, "no_such_table"));
+
+            act.Should().Throw<Exception>();
+            source.Disposed.Should().BeTrue();
+        }
+
+        [Theory]
+        [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
+        [Trait("Fixed", "Q40")]
+        public async Task WriteToServerAsync_EnumerableCopyFails_DisposesSourceEnumeratorAsync(ContextKind kind)
+        {
+            var source = new TrackingSource<NewEmployee>(NewEmployees);
+
+            Func<Task> act = () => Database.RunAsync(kind, x => source.WriteToServerAsync(x, "no_such_table", TestContext.Current.CancellationToken));
+
+            await act.Should().ThrowAsync<Exception>();
+            source.Disposed.Should().BeTrue();
         }
 
         [Theory]
@@ -859,6 +888,61 @@ namespace Gerakul.FastSql.IntegrationTests.Common
         private class CommentedEmployee : NewEmployee
         {
             public string Comment { get; set; }
+        }
+
+        // records whether the enumerator it hands out was disposed
+        private class TrackingSource<T> : IEnumerable<T>
+        {
+            private readonly IEnumerable<T> items;
+
+            public TrackingSource(IEnumerable<T> items)
+            {
+                this.items = items;
+            }
+
+            public bool Disposed { get; private set; }
+
+            public IEnumerator<T> GetEnumerator()
+            {
+                return new Enumerator(this, items.GetEnumerator());
+            }
+
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return GetEnumerator();
+            }
+
+            private class Enumerator : IEnumerator<T>
+            {
+                private readonly TrackingSource<T> owner;
+                private readonly IEnumerator<T> inner;
+
+                public Enumerator(TrackingSource<T> owner, IEnumerator<T> inner)
+                {
+                    this.owner = owner;
+                    this.inner = inner;
+                }
+
+                public T Current => inner.Current;
+
+                object IEnumerator.Current => inner.Current;
+
+                public bool MoveNext()
+                {
+                    return inner.MoveNext();
+                }
+
+                public void Reset()
+                {
+                    inner.Reset();
+                }
+
+                public void Dispose()
+                {
+                    owner.Disposed = true;
+                    inner.Dispose();
+                }
+            }
         }
 
         private class ReorderedEmployee

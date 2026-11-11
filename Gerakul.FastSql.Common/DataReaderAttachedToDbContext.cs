@@ -32,7 +32,7 @@ namespace Gerakul.FastSql.Common
             await connectionStringContext.UsingConnectionAsync(async x =>
             {
                 await reader.GetBulkWriter(x).WriteToServerAsync(destinationTable, bulkOptions, cancellationToken, fields).ConfigureAwait(false);
-            }).ConfigureAwait(false);
+            }, cancellationToken).ConfigureAwait(false);
         }
 
         #endregion

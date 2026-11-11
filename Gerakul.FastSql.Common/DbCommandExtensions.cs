@@ -20,9 +20,21 @@ namespace Gerakul.FastSql.Common
 
               async (state, ct) =>
               {
-                  var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-                  state.ReadInfo = readInfoGetter(reader);
-              });
+                  var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+                  try
+                  {
+                      state.ReadInfo = readInfoGetter(reader);
+                  }
+                  catch
+                  {
+                      // the dispose action only knows the reader through ReadInfo, so close it here, otherwise it keeps
+                      // the connection busy
+                      reader.Dispose();
+                      throw;
+                  }
+              },
+
+              cancellationToken);
         }
 
         public static IEnumerable<object[]> ExecuteQuery(this DbCommand cmd)

@@ -37,13 +37,6 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
             npgsqlException.InnerException.Should().BeOfType<TimeoutException>().Which.Message.Should().Be("Timeout during reading attempt");
         }
 
-        protected override Type OpenReaderExceptionType => typeof(NpgsqlOperationInProgressException);
-
-        protected override string OpenReaderMessage(string openCommandText)
-        {
-            return "A command is already in progress: " + openCommandText;
-        }
-
         // Npgsql 4 did not apply CommandTimeout to async execution (Q71), so the whole sleep ran
         [Theory]
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]

@@ -36,13 +36,6 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
             sqlException.Message.Should().StartWith("Execution Timeout Expired.  The timeout period elapsed prior to completion of the operation or the server is not responding.");
         }
 
-        protected override Type OpenReaderExceptionType => typeof(InvalidOperationException);
-
-        protected override string OpenReaderMessage(string openCommandText)
-        {
-            return "There is already an open DataReader associated with this Connection which must be closed first.";
-        }
-
         [Theory]
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
         [Trait("UpgradeSensitive", "driver exception for a command timeout")]

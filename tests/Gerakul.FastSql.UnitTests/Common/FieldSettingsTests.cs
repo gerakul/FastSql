@@ -490,19 +490,17 @@ namespace Gerakul.FastSql.UnitTests.Common
             var settings = FieldSettings.FromType<NonPublicAccessors>();
             var item = new NonPublicAccessors() { PrivateGetter = 5 };
 
-            settings.GetNames().Should().Equal("PrivateGetter", "WriteOnly");
+            settings.GetNames().Should().Equal("PrivateGetter");
             settings[0].Getter(item).Should().Be(5);
         }
 
         [Fact]
-        [Trait("Quirk", "Q46")]
-        public void FromType_WriteOnlyProperty_IsIncludedAndGetterThrows()
+        [Trait("Fixed", "Q46")]
+        public void FromType_WriteOnlyProperty_IsExcluded()
         {
-            var settings = FieldSettings.FromType<NonPublicAccessors>().Single(x => x.Name == "WriteOnly");
+            var settings = FieldSettings.FromType<NonPublicAccessors>();
 
-            settings.FieldType.Should().Be(typeof(int));
-            Action act = () => settings.Getter(new NonPublicAccessors());
-            act.Should().Throw<ArgumentException>().WithMessage("Property Get method was not found.");
+            settings.GetNames().Should().NotContain("WriteOnly");
         }
 
         [Fact]
@@ -527,8 +525,8 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         [Fact]
-        [Trait("Quirk", "Q48")]
-        public void FromType_MemberHiddenWithOtherType_AppearsTwice()
+        [Trait("Fixed", "Q48")]
+        public void FromType_MemberHiddenWithOtherType_AppearsOnceAsHidingMember()
         {
             var settings = FieldSettings.FromType<OtherTypeHiding>();
             var item = new OtherTypeHiding() { Value = "derived" };
@@ -536,21 +534,17 @@ namespace Gerakul.FastSql.UnitTests.Common
 
             Describe(settings).Should().Equal(
                 "Field:String:String:True",
-                "Field:Int32:Int32:True",
-                "Value:String:String:True",
-                "Value:Int32:Int32:True");
-            settings.Select(x => x.Getter(item)).Should().Equal("a", 1, "derived", 6);
+                "Value:String:String:True");
+            settings.Select(x => x.Getter(item)).Should().Equal("a", "derived");
         }
 
         [Fact]
-        [Trait("Quirk", "Q21")]
-        public void FromType_Indexer_IsIncludedAndGetterThrows()
+        [Trait("Fixed", "Q21")]
+        public void FromType_Indexer_IsExcluded()
         {
             var settings = FieldSettings.FromType<WithIndexer>();
 
-            Describe(settings).Should().Equal("ID:Int32:Int32:True", "Item:Int32:Int32:True");
-            Action act = () => settings[1].Getter(new WithIndexer());
-            act.Should().Throw<TargetParameterCountException>().WithMessage("Parameter count mismatch.");
+            Describe(settings).Should().Equal("ID:Int32:Int32:True");
         }
 
         [Fact]
