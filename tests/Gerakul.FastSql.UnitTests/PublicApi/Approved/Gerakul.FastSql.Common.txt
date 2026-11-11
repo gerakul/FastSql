@@ -376,6 +376,7 @@ namespace Gerakul.FastSql.Common
         public System.Collections.ObjectModel.ReadOnlyCollection<Gerakul.FastSql.Common.FieldSettings<T>> Settings { get; }
         public new void Close() { }
         protected override void Dispose(bool disposing) { }
+        public override System.Threading.Tasks.ValueTask DisposeAsync() { }
         public override bool GetBoolean(int i) { }
         public override byte GetByte(int i) { }
         public override long GetBytes(int i, long fieldOffset, byte[] buffer, int bufferOffset, int length) { }
