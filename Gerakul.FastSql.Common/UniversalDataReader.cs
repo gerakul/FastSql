@@ -1,384 +1,353 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 using System.Collections.ObjectModel;
 using System.Data.Common;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
-namespace Gerakul.FastSql.Common
+namespace Gerakul.FastSql.Common;
+
+public class UniversalDataReader<T> : DbDataReader
 {
-    public class UniversalDataReader<T> : DbDataReader
+    private readonly IEnumerator<T>? enumerator;
+    private readonly IAsyncEnumerator<T>? asyncEnumerator;
+    private bool isClosed;
+    private T curRow = default!;
+    private readonly int fieldCount;
+    private readonly Func<T, object?>[] getters;
+    private readonly Func<T, bool>[] isNullGetters;
+    private readonly string[] dataTypeNames;
+    private readonly Type[] types;
+    private readonly string[] names;
+    private readonly Dictionary<string, int> ordinals;
+
+    private readonly FieldSettings<T>[] settings;
+
+    public ReadOnlyCollection<FieldSettings<T>> Settings => new ReadOnlyCollection<FieldSettings<T>>(settings);
+
+    private UniversalDataReader(IEnumerable<FieldSettings<T>> settings, bool caseSensitive)
     {
-        private IEnumerator<T> enumerator;
-        private IAsyncEnumerator<T> asyncEnumerator;
-        private bool isClosed;
-        private T curRow;
-        private int fieldCount;
-        private Func<T, object>[] getters;
-        private Func<T, bool>[] isNullGetters;
-        private string[] dataTypeNames;
-        private Type[] types;
-        private string[] names;
-        private Dictionary<string, int> ordinals;
+        this.settings = settings.ToArray();
+        this.fieldCount = this.settings.Length;
 
-        private FieldSettings<T>[] settings;
-        private bool caseSensitive;
+        this.getters = new Func<T, object?>[this.fieldCount];
+        this.isNullGetters = new Func<T, bool>[this.fieldCount];
+        this.dataTypeNames = new string[this.fieldCount];
+        this.types = new Type[this.fieldCount];
+        this.names = new string[this.fieldCount];
+        this.ordinals = new Dictionary<string, int>(caseSensitive ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase);
 
-        public ReadOnlyCollection<FieldSettings<T>> Settings
+        for (int i = 0; i < this.fieldCount; i++)
         {
-            get
-            {
-                return new ReadOnlyCollection<FieldSettings<T>>(settings);
-            }
+            var item = this.settings[i];
+            this.getters[i] = item.Getter;
+            this.isNullGetters[i] = item.IsNullGetter;
+            this.dataTypeNames[i] = item.DataTypeName;
+            this.types[i] = item.FieldType;
+            this.names[i] = item.Name;
+            this.ordinals.Add(item.Name, i);
         }
-
-        private UniversalDataReader(IEnumerable<FieldSettings<T>> settings, bool caseSensitive)
-        {
-            this.isClosed = false;
-            this.settings = settings.ToArray();
-            this.caseSensitive = caseSensitive;
-            this.ApplySettings();
-        }
-
-        public UniversalDataReader(IEnumerable<T> values, IEnumerable<FieldSettings<T>> settings, bool caseSensitive)
-          : this(settings, caseSensitive)
-        {
-            this.enumerator = values.GetEnumerator();
-        }
-
-        public UniversalDataReader(IAsyncEnumerable<T> values, IEnumerable<FieldSettings<T>> settings, bool caseSensitive)
-           : this(settings, caseSensitive)
-        {
-            this.asyncEnumerator = values.GetAsyncEnumerator();
-        }
-
-        private void ApplySettings()
-        {
-            this.fieldCount = settings.Length;
-
-            this.getters = new Func<T, object>[this.fieldCount];
-            this.isNullGetters = new Func<T, bool>[this.fieldCount];
-            this.dataTypeNames = new string[this.fieldCount];
-            this.types = new Type[this.fieldCount];
-            this.names = new string[this.fieldCount];
-            this.ordinals = new Dictionary<string, int>();
-
-            for (int i = 0; i < settings.Length; i++)
-            {
-                this.getters[i] = settings[i].Getter;
-                this.isNullGetters[i] = settings[i].IsNullGetter;
-                this.dataTypeNames[i] = settings[i].DataTypeName;
-                this.types[i] = settings[i].FieldType;
-                this.names[i] = settings[i].Name;
-                this.ordinals.Add(caseSensitive ? settings[i].Name : settings[i].Name.ToLowerInvariant(), i);
-            }
-        }
-
-        #region DbDataReader
-
-        public void Close()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            base.Dispose(disposing);
-
-            if (disposing)
-            {
-                if (!isClosed)
-                {
-                    isClosed = true;
-
-                    // the source can hold resources, for example a FastSql query keeps its reader and connection
-                    enumerator?.Dispose();
-                    asyncEnumerator?.DisposeAsync().AsTask().GetAwaiter().GetResult();
-                }
-            }
-        }
-
-        public override int Depth
-        {
-            get
-            {
-                return 0;
-            }
-        }
-
-        public override bool IsClosed
-        {
-            get
-            {
-                return isClosed;
-            }
-        }
-
-        // there is only one result set
-        public override bool NextResult()
-        {
-            return false;
-        }
-
-        public override bool Read()
-        {
-            if (isClosed)
-            {
-                throw new InvalidOperationException("DataReader has been closed");
-            }
-
-            if (enumerator == null)
-            {
-                if (asyncEnumerator.MoveNextAsync().AsTask().GetAwaiter().GetResult())
-                {
-                    curRow = asyncEnumerator.Current;
-                    return true;
-                }
-            }
-            else
-            {
-                if (enumerator.MoveNext())
-                {
-                    curRow = enumerator.Current;
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        public override async Task<bool> ReadAsync(CancellationToken cancellationToken)
-        {
-            if (isClosed)
-            {
-                throw new InvalidOperationException("DataReader has been closed");
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (enumerator == null)
-            {
-                if (await asyncEnumerator.MoveNextAsync().ConfigureAwait(false))
-                {
-                    curRow = asyncEnumerator.Current;
-                    return true;
-                }
-            }
-            else
-            {
-                if (enumerator.MoveNext())
-                {
-                    curRow = enumerator.Current;
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        // -1, as for a select statement
-        public override int RecordsAffected
-        {
-            get
-            {
-                return -1;
-            }
-        }
-
-        public override int FieldCount
-        {
-            get
-            {
-                return fieldCount;
-            }
-        }
-
-        public override bool HasRows
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        public override bool GetBoolean(int i)
-        {
-            return (bool)getters[i](curRow);
-        }
-
-        public override byte GetByte(int i)
-        {
-            return (byte)getters[i](curRow);
-        }
-
-        public override long GetBytes(int i, long fieldOffset, byte[] buffer, int bufferOffset, int length)
-        {
-            byte[] bytes = (byte[])getters[i](curRow);
-
-            // without a buffer the length of the value is returned (IDataRecord contract)
-            if (buffer == null)
-            {
-                return bytes.Length;
-            }
-
-            if (fieldOffset < 0 || fieldOffset >= bytes.Length || bufferOffset < 0 || bufferOffset >= buffer.Length)
-            {
-                return 0;
-            }
-
-            int fo = checked((int)fieldOffset);
-
-            int len = Math.Min(Math.Min(bytes.Length - fo, buffer.Length - bufferOffset), length);
-            Array.Copy(bytes, fo, buffer, bufferOffset, len);
-
-            return len;
-        }
-
-        public override char GetChar(int i)
-        {
-            return (char)getters[i](curRow);
-        }
-
-        public override long GetChars(int i, long fieldOffset, char[] buffer, int bufferOffset, int length)
-        {
-            var value = getters[i](curRow);
-            char[] chars = value is string str ? str.ToCharArray() : (char[])value;
-
-            // without a buffer the length of the value is returned (IDataRecord contract)
-            if (buffer == null)
-            {
-                return chars.Length;
-            }
-
-            if (fieldOffset < 0 || fieldOffset >= chars.Length || bufferOffset < 0 || bufferOffset >= buffer.Length)
-            {
-                return 0;
-            }
-
-            int fo = checked((int)fieldOffset);
-
-            int len = Math.Min(Math.Min(chars.Length - fo, buffer.Length - bufferOffset), length);
-            Array.Copy(chars, fo, buffer, bufferOffset, len);
-
-            return len;
-        }
-
-        public override string GetDataTypeName(int i)
-        {
-            return dataTypeNames[i];
-        }
-
-        public override DateTime GetDateTime(int i)
-        {
-            return (DateTime)getters[i](curRow);
-        }
-
-        public override decimal GetDecimal(int i)
-        {
-            return (decimal)getters[i](curRow);
-        }
-
-        public override double GetDouble(int i)
-        {
-            return (double)getters[i](curRow);
-        }
-
-        public override Type GetFieldType(int i)
-        {
-            return types[i];
-        }
-
-        public override float GetFloat(int i)
-        {
-            return (float)getters[i](curRow);
-        }
-
-        public override Guid GetGuid(int i)
-        {
-            return (Guid)getters[i](curRow);
-        }
-
-        public override short GetInt16(int i)
-        {
-            return (short)getters[i](curRow);
-        }
-
-        public override int GetInt32(int i)
-        {
-            return (int)getters[i](curRow);
-        }
-
-        public override long GetInt64(int i)
-        {
-            return (long)getters[i](curRow);
-        }
-
-        public override string GetName(int i)
-        {
-            return names[i];
-        }
-
-        public override int GetOrdinal(string name)
-        {
-            // IDataRecord documents IndexOutOfRangeException for an unknown name
-            if (!this.ordinals.TryGetValue(caseSensitive ? name : name.ToLowerInvariant(), out int ordinal))
-            {
-                throw new IndexOutOfRangeException($"Field '{name}' is not found");
-            }
-
-            return ordinal;
-        }
-
-        public override string GetString(int i)
-        {
-            return (string)getters[i](curRow);
-        }
-
-        public override object GetValue(int i)
-        {
-            return getters[i](curRow);
-        }
-
-        public override int GetValues(object[] values)
-        {
-            int res = Math.Min(values.Length, fieldCount);
-            for (int i = 0; i < res; i++)
-            {
-                values[i] = getters[i](curRow);
-            }
-
-            return res;
-        }
-
-        public override bool IsDBNull(int i)
-        {
-            return isNullGetters[i](curRow);
-        }
-
-        public override IEnumerator GetEnumerator()
-        {
-            return enumerator;
-        }
-
-        public override object this[string name]
-        {
-            get
-            {
-                return getters[GetOrdinal(name)](curRow);
-            }
-        }
-
-        public override object this[int i]
-        {
-            get
-            {
-                return getters[i](curRow);
-            }
-        }
-
-        #endregion
     }
+
+    public UniversalDataReader(IEnumerable<T> values, IEnumerable<FieldSettings<T>> settings, bool caseSensitive)
+      : this(settings, caseSensitive)
+    {
+        this.enumerator = values.GetEnumerator();
+    }
+
+    public UniversalDataReader(IAsyncEnumerable<T> values, IEnumerable<FieldSettings<T>> settings, bool caseSensitive)
+       : this(settings, caseSensitive)
+    {
+        this.asyncEnumerator = values.GetAsyncEnumerator();
+    }
+
+    #region DbDataReader
+
+    // hides DbDataReader.Close instead of overriding it (Q01): closing through a DbDataReader reference does nothing
+    public new void Close()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+
+        if (disposing)
+        {
+            if (!isClosed)
+            {
+                isClosed = true;
+
+                // the source can hold resources, for example a FastSql query keeps its reader and connection
+                enumerator?.Dispose();
+                asyncEnumerator?.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            }
+        }
+    }
+
+    // disposes an async source without blocking on it, unlike Dispose
+    public override async ValueTask DisposeAsync()
+    {
+        if (!isClosed)
+        {
+            isClosed = true;
+            enumerator?.Dispose();
+
+            if (asyncEnumerator != null)
+            {
+                await asyncEnumerator.DisposeAsync().ConfigureAwait(false);
+            }
+        }
+
+        await base.DisposeAsync().ConfigureAwait(false);
+    }
+
+    public override int Depth => 0;
+
+    public override bool IsClosed => isClosed;
+
+    // there is only one result set
+    public override bool NextResult()
+    {
+        return false;
+    }
+
+    public override bool Read()
+    {
+        if (isClosed)
+        {
+            throw new InvalidOperationException("DataReader has been closed");
+        }
+
+        // one of the two sources is set
+        if (asyncEnumerator != null)
+        {
+            // a move that has already completed (buffered rows, in-memory sources) is read without a task
+            var move = asyncEnumerator.MoveNextAsync();
+            if (move.IsCompletedSuccessfully ? move.Result : move.AsTask().GetAwaiter().GetResult())
+            {
+                curRow = asyncEnumerator.Current;
+                return true;
+            }
+        }
+        else
+        {
+            if (enumerator!.MoveNext())
+            {
+                curRow = enumerator.Current;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public override async Task<bool> ReadAsync(CancellationToken cancellationToken)
+    {
+        if (isClosed)
+        {
+            throw new InvalidOperationException("DataReader has been closed");
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        // one of the two sources is set
+        if (asyncEnumerator != null)
+        {
+            if (await asyncEnumerator.MoveNextAsync().ConfigureAwait(false))
+            {
+                curRow = asyncEnumerator.Current;
+                return true;
+            }
+        }
+        else
+        {
+            if (enumerator!.MoveNext())
+            {
+                curRow = enumerator.Current;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // -1, as for a select statement
+    public override int RecordsAffected => -1;
+
+    public override int FieldCount => fieldCount;
+
+    public override bool HasRows => throw new NotImplementedException();
+
+    public override bool GetBoolean(int i)
+    {
+        return (bool)Value(i);
+    }
+
+    public override byte GetByte(int i)
+    {
+        return (byte)Value(i);
+    }
+
+    public override long GetBytes(int i, long fieldOffset, byte[]? buffer, int bufferOffset, int length)
+    {
+        byte[] bytes = (byte[])Value(i);
+
+        // without a buffer the length of the value is returned (IDataRecord contract)
+        if (buffer == null)
+        {
+            return bytes.Length;
+        }
+
+        if (fieldOffset < 0 || fieldOffset >= bytes.Length || bufferOffset < 0 || bufferOffset >= buffer.Length)
+        {
+            return 0;
+        }
+
+        int fo = checked((int)fieldOffset);
+
+        int len = Math.Min(Math.Min(bytes.Length - fo, buffer.Length - bufferOffset), length);
+        Array.Copy(bytes, fo, buffer, bufferOffset, len);
+
+        return len;
+    }
+
+    public override char GetChar(int i)
+    {
+        return (char)Value(i);
+    }
+
+    public override long GetChars(int i, long fieldOffset, char[]? buffer, int bufferOffset, int length)
+    {
+        var value = Value(i);
+
+        // a string is read in place, not copied as a whole on every call
+        ReadOnlySpan<char> chars = value is string str ? str.AsSpan() : (char[])value;
+
+        // without a buffer the length of the value is returned (IDataRecord contract)
+        if (buffer == null)
+        {
+            return chars.Length;
+        }
+
+        if (fieldOffset < 0 || fieldOffset >= chars.Length || bufferOffset < 0 || bufferOffset >= buffer.Length)
+        {
+            return 0;
+        }
+
+        int fo = checked((int)fieldOffset);
+
+        int len = Math.Min(Math.Min(chars.Length - fo, buffer.Length - bufferOffset), length);
+        chars.Slice(fo, len).CopyTo(buffer.AsSpan(bufferOffset));
+
+        return len;
+    }
+
+    public override string GetDataTypeName(int i)
+    {
+        return dataTypeNames[i];
+    }
+
+    public override DateTime GetDateTime(int i)
+    {
+        return (DateTime)Value(i);
+    }
+
+    public override decimal GetDecimal(int i)
+    {
+        return (decimal)Value(i);
+    }
+
+    public override double GetDouble(int i)
+    {
+        return (double)Value(i);
+    }
+
+    public override Type GetFieldType(int i)
+    {
+        return types[i];
+    }
+
+    public override float GetFloat(int i)
+    {
+        return (float)Value(i);
+    }
+
+    public override Guid GetGuid(int i)
+    {
+        return (Guid)Value(i);
+    }
+
+    public override short GetInt16(int i)
+    {
+        return (short)Value(i);
+    }
+
+    public override int GetInt32(int i)
+    {
+        return (int)Value(i);
+    }
+
+    public override long GetInt64(int i)
+    {
+        return (long)Value(i);
+    }
+
+    public override string GetName(int i)
+    {
+        return names[i];
+    }
+
+    public override int GetOrdinal(string name)
+    {
+        // IDataRecord documents IndexOutOfRangeException for an unknown name
+        if (!this.ordinals.TryGetValue(name, out int ordinal))
+        {
+            throw new IndexOutOfRangeException($"Field '{name}' is not found");
+        }
+
+        return ordinal;
+    }
+
+    public override string GetString(int i)
+    {
+        return (string)Value(i);
+    }
+
+    public override object GetValue(int i)
+    {
+        return Value(i);
+    }
+
+    // null for a null value (IsDBNull is true), as it always was, although DbDataReader declares non-null values
+    private object Value(int i)
+    {
+        return getters[i](curRow)!;
+    }
+
+    public override int GetValues(object[] values)
+    {
+        int res = Math.Min(values.Length, fieldCount);
+        for (int i = 0; i < res; i++)
+        {
+            values[i] = Value(i);
+        }
+
+        return res;
+    }
+
+    public override bool IsDBNull(int i)
+    {
+        return isNullGetters[i](curRow);
+    }
+
+    public override IEnumerator GetEnumerator()
+    {
+        return enumerator!; // null for an async source, as before
+    }
+
+    public override object this[string name] => Value(GetOrdinal(name));
+
+    public override object this[int i] => Value(i);
+
+    #endregion
 }

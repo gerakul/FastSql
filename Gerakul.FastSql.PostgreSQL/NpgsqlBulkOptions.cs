@@ -1,38 +1,36 @@
 ﻿using Gerakul.FastSql.Common;
-using Npgsql;
 
-namespace Gerakul.FastSql.PostgreSQL
+namespace Gerakul.FastSql.PostgreSQL;
+
+public class NpgsqlBulkOptions : BulkOptions
 {
-    public class NpgsqlBulkOptions : BulkOptions
+    private static readonly NpgsqlBulkOptions defaultOptions = new NpgsqlBulkOptions(true);
+
+    protected override BulkOptions Default => defaultOptions;
+
+    public NpgsqlBulkOptions(FieldsSelector? fieldsSelector = null, bool? caseSensitiveFieldsMatching = null)
+        : base(fieldsSelector, caseSensitiveFieldsMatching, null, null, null)
     {
-        private static readonly NpgsqlBulkOptions defaultOptions = new NpgsqlBulkOptions(true);
+    }
 
-        protected override BulkOptions Default => defaultOptions;
+    protected NpgsqlBulkOptions(bool defaultOptions)
+        : base(defaultOptions)
+    {
+    }
 
-        public NpgsqlBulkOptions(FieldsSelector? fieldsSelector = null, bool? caseSensitiveFieldsMatching = null)
-            : base(fieldsSelector, caseSensitiveFieldsMatching, null, null, null)
-        {
-        }
+    protected internal NpgsqlBulkOptions(BulkOptions bulkOptions)
+        : base(bulkOptions)
+    {
+    }
 
-        protected NpgsqlBulkOptions(bool defaultOptions)
-            : base(defaultOptions)
-        {
-        }
+    protected override BulkOptions SetDefaults(BulkOptions defaultOptions)
+    {
+        base.SetDefaults(defaultOptions);
+        return this;
+    }
 
-        protected internal NpgsqlBulkOptions(BulkOptions bulkOptions)
-            : base(bulkOptions)
-        {
-        }
-
-        protected override BulkOptions SetDefaults(BulkOptions defaultOptions)
-        {
-            base.SetDefaults(defaultOptions);
-            return this;
-        }
-
-        public override BulkOptions Clone()
-        {
-            return new NpgsqlBulkOptions(this);
-        }
+    public override BulkOptions Clone()
+    {
+        return new NpgsqlBulkOptions(this);
     }
 }

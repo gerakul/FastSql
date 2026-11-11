@@ -87,3 +87,13 @@ jobs:
           name: ${{ matrix.results }}
           path: TestResults
           if-no-files-found: warn
+
+      # a public API change writes <Assembly>.received.txt next to the approved file; when the change is intended,
+      # it replaces the approved one (see PublicApiTests), also when the tests cannot run locally
+      - name: Upload public API differences
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.results }}-public-api
+          path: tests/**/PublicApi/Approved/*.received.txt
+          if-no-files-found: ignore

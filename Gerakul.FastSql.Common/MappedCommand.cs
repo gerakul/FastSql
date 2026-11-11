@@ -1,120 +1,90 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
+﻿using System.Data;
 using System.Data.Common;
-using System.Linq;
 
-namespace Gerakul.FastSql.Common
+namespace Gerakul.FastSql.Common;
+
+public class MappedCommand<T>
 {
-    public class MappedCommand<T>
+    private readonly record struct ParMap(string ParameterName, FieldSettings<T> Settings);
+
+    private readonly ContextProvider contextProvider;
+    private readonly ParMap[] map;
+
+    public string CommandText { get; }
+    public CommandType CommandType { get; }
+
+    internal MappedCommand(ContextProvider contextProvider, string commandText, IList<string>? parameters,
+        IList<FieldSettings<T>> settings, bool caseSensitiveParamsMatching, CommandType commandType = CommandType.Text)
     {
-        private class ParMap<M>
+        this.contextProvider = contextProvider;
+        this.CommandText = commandText;
+        this.CommandType = commandType;
+
+        // the checks below treat a missing list as an empty one
+        parameters ??= Array.Empty<string>();
+
+        var comparer = caseSensitiveParamsMatching ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
+
+        if (parameters.GroupBy(x => contextProvider.GetSqlParameterName(x), comparer).Any(x => x.Count() > 1))
         {
-            public string ParameterName;
-            public FieldSettings<M> Settings;
+            throw new ArgumentException("Parameter names has been duplicated");
         }
 
-        private ContextProvider contextProvider;
-        private ParMap<T>[] map;
-
-        public string CommandText { get; private set; }
-        public CommandType CommandType { get; private set; }
-
-        internal MappedCommand(ContextProvider contextProvider, string commandText, IList<string> parameters,
-            IList<FieldSettings<T>> settings, bool caseSensitiveParamsMatching, CommandType commandType = CommandType.Text)
+        if (settings.GroupBy(x => x.Name, comparer).Any(x => x.Count() > 1))
         {
-            this.contextProvider = contextProvider;
-            this.CommandText = commandText;
-            this.CommandType = commandType;
+            throw new ArgumentException("Setting names has been duplicated");
+        }
 
-            if (parameters == null || parameters.Count == 0)
+        map = parameters
+          .Join(settings,
+            x => contextProvider.GetSqlParameterName(x),
+            x => x.Name,
+            (x, y) => new ParMap(x, y),
+            comparer).ToArray();
+
+        if (map.Length < parameters.Count)
+        {
+            throw new ArgumentException("Not all parameters has been mapped on settings", nameof(parameters));
+        }
+    }
+
+    internal DbCommand Create(ScopedContext scopedContext, T value, QueryOptions? queryOptions)
+    {
+        if (scopedContext.ContextProvider != contextProvider)
+        {
+            throw new ArgumentException($"{nameof(scopedContext.ContextProvider)} presented in received {nameof(ScopedContext)} does not match "
+                + $"stored in given {nameof(MappedCommand<T>)}",
+                nameof(scopedContext));
+        }
+
+        var cmd = scopedContext.CreateCommand(CommandText);
+        cmd.CommandType = CommandType;
+
+        foreach (var m in map)
+        {
+            object? paramValue;
+            if (m.Settings.DetermineNullByValue)
             {
-                map = new ParMap<T>[0];
-                parameters = new string[0]; // the checks below treat a missing list as an empty one
-            }
-
-            if (caseSensitiveParamsMatching)
-            {
-                if (parameters.GroupBy(x => contextProvider.GetSqlParameterName(x)).Any(x => x.Count() > 1))
-                {
-                    throw new ArgumentException("Parameter names has been duplicated");
-                }
-
-                if (settings.GroupBy(x => x.Name).Any(x => x.Count() > 1))
-                {
-                    throw new ArgumentException("Setting names has been duplicated");
-                }
-
-                map = parameters
-                  .Join(settings,
-                    x => contextProvider.GetSqlParameterName(x),
-                    x => x.Name,
-                    (x, y) => new ParMap<T>() { ParameterName = x, Settings = y }).ToArray();
+                var val = m.Settings.Getter(value);
+                paramValue = val == null ? contextProvider.GetDbNull(m.Settings.FieldType) : val;
             }
             else
             {
-                if (parameters.GroupBy(x => contextProvider.GetSqlParameterName(x).ToLowerInvariant()).Any(x => x.Count() > 1))
-                {
-                    throw new ArgumentException("Parameter names has been duplicated");
-                }
-
-                if (settings.GroupBy(x => x.Name.ToLowerInvariant()).Any(x => x.Count() > 1))
-                {
-                    throw new ArgumentException("Setting names has been duplicated");
-                }
-
-                map = parameters
-                  .Join(settings,
-                    x => contextProvider.GetSqlParameterName(x).ToLowerInvariant(),
-                    x => x.Name.ToLowerInvariant(),
-                    (x, y) => new ParMap<T>() { ParameterName = x, Settings = y }).ToArray();
+                paramValue = m.Settings.IsNullGetter(value) ? contextProvider.GetDbNull(m.Settings.FieldType) : m.Settings.Getter(value);
             }
 
-            if (map.Length < parameters.Count)
+            if (paramValue is DbParameter parameter)
             {
-                throw new ArgumentException("Not all parameters has been mapped on settings", nameof(parameters));
+                cmd.Parameters.Add(parameter);
+            }
+            else
+            {
+                contextProvider.AddParamWithValue(cmd, m.ParameterName, paramValue);
             }
         }
 
-        internal DbCommand Create(ScopedContext scopedContext, T value, QueryOptions queryOptions)
-        {
-            if (scopedContext.ContextProvider != contextProvider)
-            {
-                throw new ArgumentException($"{nameof(scopedContext.ContextProvider)} presented in received {nameof(ScopedContext)} does not match "
-                    + $"stored in given {nameof(MappedCommand<T>)}",
-                    nameof(scopedContext));
-            }
+        contextProvider.ApplyQueryOptions(cmd, scopedContext.PrepareQueryOptions(queryOptions));
 
-            var cmd = scopedContext.CreateCommand(CommandText);
-            cmd.CommandType = CommandType;
-
-            for (int i = 0; i < map.Length; i++)
-            {
-                var m = map[i];
-                object paramValue;
-                if (m.Settings.DetermineNullByValue)
-                {
-                    var val = m.Settings.Getter(value);
-                    paramValue = val == null ? contextProvider.GetDbNull(m.Settings.FieldType) : val;
-                }
-                else
-                {
-                    paramValue = m.Settings.IsNullGetter(value) ? contextProvider.GetDbNull(m.Settings.FieldType) : m.Settings.Getter(value);
-                }
-
-                if (paramValue is DbParameter)
-                {
-                    cmd.Parameters.Add(paramValue);
-                }
-                else
-                {
-                    contextProvider.AddParamWithValue(cmd, m.ParameterName, paramValue);
-                }
-            }
-
-            contextProvider.ApplyQueryOptions(cmd, scopedContext.PrepareQueryOptions(queryOptions));
-
-            return cmd;
-        }
+        return cmd;
     }
 }

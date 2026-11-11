@@ -2,25 +2,24 @@
 using System.Data.Common;
 using Npgsql;
 
-namespace Gerakul.FastSql.PostgreSQL
+namespace Gerakul.FastSql.PostgreSQL;
+
+public class NpgsqlConnectionContext : ConnectionContext
 {
-    public class NpgsqlConnectionContext : ConnectionContext
+    public NpgsqlConnectionContext(NpgsqlContextProvider contextProvider, NpgsqlConnection connection)
+        : this(contextProvider, connection,
+              contextProvider.QueryOptions, contextProvider.BulkOptions, contextProvider.ReadOptions)
     {
-        public NpgsqlConnectionContext(NpgsqlContextProvider contextProvider, NpgsqlConnection connection)
-            : this(contextProvider, connection,
-                  contextProvider.QueryOptions, contextProvider.BulkOptions, contextProvider.ReadOptions)
-        {
-        }
+    }
 
-        protected internal NpgsqlConnectionContext(ContextProvider contextProvider, NpgsqlConnection connection,
-            QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
-            : base(contextProvider, connection, queryOptions, bulkOptions, readOptions)
-        {
-        }
+    protected internal NpgsqlConnectionContext(ContextProvider contextProvider, NpgsqlConnection connection,
+        QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
+        : base(contextProvider, connection, queryOptions, bulkOptions, readOptions)
+    {
+    }
 
-        public override DbCommand CreateCommand(string commandText)
-        {
-            return new NpgsqlCommand(commandText, (NpgsqlConnection)Connection);
-        }
+    public override DbCommand CreateCommand(string commandText)
+    {
+        return new NpgsqlCommand(commandText, (NpgsqlConnection)Connection);
     }
 }

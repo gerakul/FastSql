@@ -3,6 +3,8 @@
   <PropertyGroup>
     <Version>1.1.0</Version>
     <Description>Core functionality of FastSql: Light-weight, flexible and easy to use C# library to retrieve and manipulate (including bulk copy) data in SQL databases.</Description>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
 </Project>

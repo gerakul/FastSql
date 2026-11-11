@@ -1,0 +1,35 @@
+# The code style of the repository, for IDEs; the build does not enforce it
+root = true
+
+[*]
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{csproj,props,targets,slnx,xml,json,yml}]
+indent_size = 2
+
+[*.cs]
+indent_size = 4
+
+# braces on their own lines
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+
+# usings outside the namespace, sorted alphabetically
+csharp_using_directive_placement = outside_namespace:suggestion
+dotnet_sort_system_directives_first = false
+
+# file-scoped namespaces in the libraries; the tests keep block-scoped ones (see below)
+csharp_style_namespace_declarations = file_scoped:suggestion
+
+# block bodies for methods and constructors, expression bodies for trivial properties
+csharp_style_expression_bodied_methods = false:silent
+csharp_style_expression_bodied_constructors = false:silent
+csharp_style_expression_bodied_properties = when_on_single_line:silent
+csharp_style_expression_bodied_accessors = when_on_single_line:silent
+
+[tests/**.cs]
+csharp_style_namespace_declarations = block_scoped:suggestion

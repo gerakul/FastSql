@@ -1,18 +1,15 @@
-﻿using System;
+﻿namespace Gerakul.FastSql.Common;
 
-namespace Gerakul.FastSql.Common
+[Flags]
+public enum FromTypeOption : int
 {
-    [Flags]
-    public enum FromTypeOption : int
-    {
-        PublicField = 1,
-        PublicProperty = 2,
+    PublicField = 1,
+    PublicProperty = 2,
 
-        Default = 3,
-        Both = 3,
+    Default = 3,
+    Both = 3,
 
-        Collection = 4,
+    Collection = 4,
 
-        All = 7
-    }
+    All = 7
 }
