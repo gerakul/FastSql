@@ -180,25 +180,27 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         [Theory]
         [MemberData(nameof(AsyncMethods))]
-        [Trait("Quirk", "Q04")]
-        public async Task ReadAsync_CancelledTokenBeforeFirstRow_MoveNextReturnsFalseWithoutReadingAsync(AsyncMethod method)
+        [Trait("Fixed", "Q04")]
+        public async Task ReadAsync_CancelledTokenBeforeFirstRow_MoveNextThrowsWithoutReadingAsync(AsyncMethod method)
         {
             var reader = People().CreateInterfaceOnlyReader();
 
             using (var cursor = OpenCursor(method, reader, new CancellationToken(true)))
             {
-                (await cursor.MoveNextAsync()).Should().BeFalse();
+                Func<Task> moveNext = () => cursor.MoveNextAsync();
+
+                await moveNext.Should().ThrowExactlyAsync<OperationCanceledException>();
             }
 
             reader.ReadCalls.Should().Be(0);
         }
 
         // The built-in IAsyncEnumerator<T> gets its token once, when it is created, so a token cancelled after the first
-        // row stays cancelled: the legacy enumerator could go on with a live token on the next call, this one cannot.
+        // row stays cancelled: every later MoveNextAsync throws, and the reader is not moved again.
         [Theory]
         [MemberData(nameof(AsyncMethods))]
-        [Trait("Quirk", "Q04")]
-        public async Task ReadAsync_TokenCancelledAfterFirstRow_MoveNextReturnsFalseWithoutReadingAsync(AsyncMethod method)
+        [Trait("Fixed", "Q04")]
+        public async Task ReadAsync_TokenCancelledAfterFirstRow_MoveNextThrowsWithoutReadingAsync(AsyncMethod method)
         {
             var reader = People().CreateReader();
 
@@ -208,8 +210,10 @@ namespace Gerakul.FastSql.UnitTests.Common
                 (await cursor.MoveNextAsync()).Should().BeTrue();
                 cancellation.Cancel();
 
-                (await cursor.MoveNextAsync()).Should().BeFalse();
-                (await cursor.MoveNextAsync()).Should().BeFalse();
+                Func<Task> moveNext = () => cursor.MoveNextAsync();
+
+                await moveNext.Should().ThrowExactlyAsync<OperationCanceledException>();
+                await moveNext.Should().ThrowExactlyAsync<OperationCanceledException>();
             }
 
             reader.Read().Should().BeTrue();
@@ -667,15 +671,18 @@ namespace Gerakul.FastSql.UnitTests.Common
             }
         }
 
+        // the cancellation is checked before the mapping is built
         [Fact]
-        [Trait("Quirk", "Q04")]
-        public async Task ReadAllAsync_MappingErrorWithCancelledToken_MoveNextReturnsFalseAsync()
+        [Trait("Fixed", "Q04")]
+        public async Task ReadAllAsync_MappingErrorWithCancelledToken_MoveNextThrowsOperationCanceledExceptionAsync()
         {
             var reader = new ReaderTable().Column<int>("ID").Row(1).CreateReader();
 
             using (var enumerator = reader.ReadAllAsync<Person>().GetEnumeratorCompat(new CancellationToken(true)))
             {
-                (await enumerator.MoveNextAsync()).Should().BeFalse();
+                Func<Task> moveNext = () => enumerator.MoveNextAsync();
+
+                await moveNext.Should().ThrowExactlyAsync<OperationCanceledException>();
             }
         }
 

@@ -35,7 +35,8 @@ below are breaking, so to 2.0.0) is a release decision.
   or with `System.Linq.AsyncEnumerable` (part of .NET 10), for example `await query.ToArrayAsync()`
   instead of the Ix `await query.ToArray()`. The cancellation token of an enumeration is given once,
   with `WithCancellation(token)` / `GetAsyncEnumerator(token)`, instead of per `MoveNext` call.
-  A cancelled token still ends the enumeration without an exception (Q04).
+  A cancelled token still ends the enumeration without an exception (Q04); since phase 2 it throws
+  `OperationCanceledException` instead (see [bug-report.md](bug-report.md)).
 - **SQL Server:** the public API uses the Microsoft.Data.SqlClient types (`SqlConnection`,
   `SqlTransaction`, `SqlBulkCopyOptions` in `SqlBulkOptions`). Microsoft.Data.SqlClient encrypts
   connections by default, so a server without a trusted certificate needs `TrustServerCertificate=True`

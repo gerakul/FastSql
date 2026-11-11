@@ -57,10 +57,13 @@ namespace Gerakul.FastSql.PostgreSQL
             var allFields = keyFields.Union(fields).ToArray();
             var setClause = string.Join(", ", fields.Select(x => $"{Quote(x)} = excluded.{Quote(x)}"));
 
+            // with nothing to update an existing row stays as it is: insert if missing
+            var conflictAction = fields.Length == 0 ? "do nothing;" : $"do update set {setClause};";
+
             var cmd = $"insert into {tableName} ({ColumnList(allFields)}) "
                 + Environment.NewLine + $"values ({ParamList(allFields)}) "
                 + Environment.NewLine + $"on conflict ({ColumnList(keyFields.ToArray())}) "
-                + Environment.NewLine + $"do update set {setClause};";
+                + Environment.NewLine + conflictAction;
 
             return cmd;
         }

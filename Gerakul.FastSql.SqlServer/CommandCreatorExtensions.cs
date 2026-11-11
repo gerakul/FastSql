@@ -18,7 +18,12 @@ namespace Gerakul.FastSql.SqlServer
             // the text comes from the context's provider; a creator that is not a context gets the default one
             var provider = (creator as DbContext)?.ContextProvider ?? SqlContextProvider.DefaultInstance;
             var settings = FieldSettings.FromType<T>(FromTypeOption.Default);
-            var fields = settings.Select(x => x.Name).Except(ignoreFields ?? new string[0]).ToArray();
+            var names = settings.Select(x => x.Name).ToArray();
+
+            // ignored names match members case-insensitively and an exact match wins, as in CommandCompilator
+            var ignored = (ignoreFields ?? new string[0])
+                .Select(x => names.Contains(x) ? x : names.FirstOrDefault(y => string.Equals(y, x, StringComparison.OrdinalIgnoreCase)) ?? x);
+            var fields = names.Except(ignored).ToArray();
             string query = ((SqlCommandTextGenerator)provider.CommandTextGenerator).InsertAndGetID(tableName, fields);
             return creator.CreateMapped(query, fields, settings, value, queryOptions);
         }

@@ -134,6 +134,7 @@ namespace Gerakul.FastSql.UnitTests.SqlServer
                 .Be("update Employee set [Name] = @Name where [CompanyID] = @CompanyID and [ID] = @ID;");
         }
 
+        // the generator still returns the text; CompileUpdate (and so Update / CreateUpdate) throws ArgumentException first
         [Fact]
         [Trait("Quirk", "Q09")]
         public void Update_NoFields_ProducesEmptySetClause()
@@ -199,17 +200,16 @@ namespace Gerakul.FastSql.UnitTests.SqlServer
             generator.Merge("Employee", new[] { "ID" }, "ID", "Name").Should().Be(expected);
         }
 
+        // nothing to update: insert if missing
         [Fact]
-        [Trait("Quirk", "Q09")]
-        public void Merge_NoNonKeyFields_ProducesEmptySetClause()
+        [Trait("Fixed", "Q09")]
+        public void Merge_NoNonKeyFields_LeavesOutMatchedBranch()
         {
             var expected = Lines(
                 "merge Employee as target",
                 "using (select @ID)",
                 "as source ([ID])",
                 "on (target.[ID] = source.[ID])",
-                "when matched then",
-                "update set ",
                 "when not matched then",
                 "insert ([ID])",
                 "values (source.[ID]);");

@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using System.Threading.Tasks;
 using AwesomeAssertions;
 using Gerakul.FastSql.Common;
@@ -15,8 +17,7 @@ namespace Gerakul.FastSql.IntegrationTests.Common
         {
         }
 
-        // stable part of the server message for "update t set  where ..." (no non-key members, Q09)
-        protected abstract string EmptySetClauseMessage { get; }
+        private const string NothingToSetMessage = "Update has no fields to set: all fields are key fields or ignored*";
 
         // stable part of the server message for a key that is not a member: its parameter is never added
         protected abstract string UnmappedKeyParameterMessage { get; }
@@ -238,30 +239,47 @@ namespace Gerakul.FastSql.IntegrationTests.Common
             ReadPersons(table).Should().BeEquivalentTo(expected, o => o.WithStrictOrdering());
         }
 
+        // nothing to set: a clear error before anything reaches the server
         [Theory]
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
-        [Trait("Quirk", "Q09")]
-        public void Update_OnlyKeyMembers_ThrowsServerError(ContextKind kind)
+        [Trait("Fixed", "Q09")]
+        public void Update_OnlyKeyMembers_ThrowsArgumentException(ContextKind kind)
         {
             var table = CreatePersonTable();
             InsertPersons(table, ThreePersons);
 
-            ShouldThrowServerError(() => Database.Run(kind, x => x.Update(table, new { ID = 1 }, "ID")), EmptySetClauseMessage);
+            Action act = () => Database.Run(kind, x => x.Update(table, new { ID = 1 }, "ID"));
 
+            act.Should().Throw<ArgumentException>().WithMessage(NothingToSetMessage);
             ReadPersons(table).Should().BeEquivalentTo(ThreePersons, o => o.WithStrictOrdering());
         }
 
         [Theory]
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
-        [Trait("Quirk", "Q09")]
-        public async Task Update_OnlyKeyMembers_ThrowsServerErrorAsync(ContextKind kind)
+        [Trait("Fixed", "Q09")]
+        public async Task Update_OnlyKeyMembers_ThrowsArgumentExceptionAsync(ContextKind kind)
         {
             var table = CreatePersonTable();
             InsertPersons(table, ThreePersons);
 
-            await ShouldThrowServerErrorAsync(() => Database.RunAsync(kind, x => x.UpdateAsync(table, new { ID = 1 }, "ID")), EmptySetClauseMessage);
+            Func<Task> act = () => Database.RunAsync(kind, x => x.UpdateAsync(table, new { ID = 1 }, "ID"));
 
+            await act.Should().ThrowAsync<ArgumentException>().WithMessage(NothingToSetMessage);
             ReadPersons(table).Should().BeEquivalentTo(ThreePersons, o => o.WithStrictOrdering());
+        }
+
+        // a key in another case than the member: the key is not set, and the where clause uses the member's name
+        [Theory]
+        [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
+        [Trait("Fixed", "Q125")]
+        public void Update_KeyInOtherCase_UpdatesMatchingRow(ContextKind kind)
+        {
+            var table = CreatePersonTable();
+            InsertPersons(table, ThreePersons);
+
+            Database.Run(kind, x => x.Update(table, new Person() { ID = 2, GroupID = 1, Name = "Robert", Age = 41 }, "id"));
+
+            ReadPersons(table).Select(x => x.Name).Should().Equal("Alice", "Robert", "Carol");
         }
 
         // the key goes into the where clause, but only members become parameters

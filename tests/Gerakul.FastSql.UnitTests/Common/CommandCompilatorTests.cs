@@ -519,6 +519,49 @@ namespace Gerakul.FastSql.UnitTests.Common
             merge.CommandText.Should().Be(Generator.Merge("Person", new[] { "ID" }, "Name", "Age"));
         }
 
+        // ignore and key lists match members case-insensitively, like parameters, and the text uses the member's spelling
+        [Fact]
+        [Trait("Fixed", "Q90")]
+        public void CompileInsert_IgnoreListInOtherCase_IgnoresMember()
+        {
+            var compiled = Compilator.CompileInsert<Person>("Person", "id");
+            var withOutput = Compilator.CompileInsertWithOutput("Person", FieldSettings.FromType<Person>(), new[] { "id" }, "ID");
+
+            compiled.CommandText.Should().Be(Generator.Insert("Person", "Name", "Age"));
+            withOutput.CommandText.Should().Be(Generator.InsertWithOutput("Person", new[] { "Name", "Age" }, "ID"));
+        }
+
+        [Fact]
+        [Trait("Fixed", "Q125")]
+        public void CompileUpdateAndMerge_KeyInOtherCase_UsesMemberName()
+        {
+            var update = Compilator.CompileUpdate<Person>("Person", "id");
+            var merge = Compilator.CompileMerge<Person>("Person", "id");
+
+            update.CommandText.Should().Be(Generator.Update("Person", new[] { "ID" }, "Name", "Age"));
+            merge.CommandText.Should().Be(Generator.Merge("Person", new[] { "ID" }, "Name", "Age"));
+            ParametersOf(Create(update, person)).Should().Equal(("ID", 1), ("Name", "John"), ("Age", 30));
+        }
+
+        [Fact]
+        [Trait("Fixed", "Q09")]
+        public void CompileUpdate_NothingToSet_ThrowsArgumentException()
+        {
+            Action act = () => Compilator.CompileUpdate("Person", FieldSettings.FromType<Person>(), new[] { "ID" }, new[] { "Name", "Age" });
+
+            act.Should().Throw<ArgumentException>().WithMessage("Update has no fields to set*").WithParameterName("keyFields");
+        }
+
+        [Fact]
+        [Trait("Fixed", "Q09")]
+        public void CompileMerge_OnlyKeyFields_InsertsIfMissing()
+        {
+            var compiled = Compilator.CompileMerge("Person", FieldSettings.FromType<Person>(), new[] { "ID" }, new[] { "Name", "Age" });
+
+            compiled.CommandText.Should().Be(Generator.Merge("Person", new[] { "ID" }));
+            ParametersOf(Create(compiled, person)).Should().Equal(("ID", 1));
+        }
+
         [Fact]
         public void CompileInsertWithOutput_OutputField_InsertsMembersExceptIgnored()
         {
@@ -705,14 +748,23 @@ namespace Gerakul.FastSql.UnitTests.Common
             compiled.CommandText.Should().Be(Generator.Delete("Person", new[] { "ID", "Name", "Age" }));
         }
 
-        [Theory]
-        [InlineData("Missing")]
-        [InlineData("id")]
-        public void CompileDelete_KeyNotMatchingSettingsExactly_ThrowsArgumentException(string key)
+        [Fact]
+        public void CompileDelete_KeyNotInSettings_ThrowsArgumentException()
         {
-            Action act = () => Compilator.CompileDelete<Person>("Person", key);
+            Action act = () => Compilator.CompileDelete<Person>("Person", "Missing");
 
             act.Should().Throw<ArgumentException>().WithMessage(NotMappedMessage);
+        }
+
+        // key names match members case-insensitively, like parameters, and the member's spelling goes into the text
+        [Fact]
+        [Trait("Fixed", "Q125")]
+        public void CompileDelete_KeyInOtherCase_UsesMemberName()
+        {
+            var compiled = Compilator.CompileDelete<Person>("Person", "id");
+
+            compiled.CommandText.Should().Be(Generator.Delete("Person", new[] { "ID" }));
+            ParametersOf(Create(compiled, person)).Should().Equal(("ID", 1));
         }
 
         #endregion

@@ -68,12 +68,16 @@ namespace Gerakul.FastSql.SqlServer
             var setClause = string.Join(", ", fields.Select(x => $"{Quote(x)} = source.{Quote(x)}"));
             var valuesClause = string.Join(", ", allFields.Select(x => $"source.{Quote(x)}"));
 
+            // with nothing to update an existing row stays as it is: insert if missing
+            var matchedClause = fields.Length == 0 ? ""
+                : Environment.NewLine + $"when matched then"
+                + Environment.NewLine + $"update set {setClause}";
+
             var cmd = $"merge {tableName} as target"
                 + Environment.NewLine + $"using (select {usingList})"
                 + Environment.NewLine + $"as source ({sourceList})"
                 + Environment.NewLine + $"on ({onClause})"
-                + Environment.NewLine + $"when matched then"
-                + Environment.NewLine + $"update set {setClause}"
+                + matchedClause
                 + Environment.NewLine + $"when not matched then"
                 + Environment.NewLine + $"insert ({sourceList})"
                 + Environment.NewLine + $"values ({valuesClause});";

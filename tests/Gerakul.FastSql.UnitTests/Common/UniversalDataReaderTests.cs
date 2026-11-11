@@ -1039,36 +1039,30 @@ namespace Gerakul.FastSql.UnitTests.Common
         #region Not implemented and not supported
 
         [Fact]
-        [Trait("Quirk", "Q02")]
-        public void NextResult_ThrowsNotImplementedException()
+        [Trait("Fixed", "Q02")]
+        public void NextResult_ReturnsFalse()
         {
             var reader = CreateReader();
 
-            Action act = () => reader.NextResult();
-
-            act.Should().Throw<NotImplementedException>().WithMessage("The method or operation is not implemented.");
+            reader.NextResult().Should().BeFalse();
         }
 
         [Fact]
-        [Trait("Quirk", "Q02")]
-        public async Task NextResultAsync_ThrowsNotImplementedExceptionAsync()
+        [Trait("Fixed", "Q02")]
+        public async Task NextResultAsync_ReturnsFalseAsync()
         {
             var reader = CreateReader();
 
-            Func<Task> act = () => reader.NextResultAsync(TestContext.Current.CancellationToken);
-
-            await act.Should().ThrowAsync<NotImplementedException>();
+            (await reader.NextResultAsync(TestContext.Current.CancellationToken)).Should().BeFalse();
         }
 
         [Fact]
-        [Trait("Quirk", "Q02")]
-        public void RecordsAffected_ThrowsNotImplementedException()
+        [Trait("Fixed", "Q02")]
+        public void RecordsAffected_ReturnsMinusOne()
         {
             var reader = CreateReader();
 
-            Func<int> act = () => reader.RecordsAffected;
-
-            act.Should().Throw<NotImplementedException>().WithMessage("The method or operation is not implemented.");
+            reader.RecordsAffected.Should().Be(-1);
         }
 
         [Fact]

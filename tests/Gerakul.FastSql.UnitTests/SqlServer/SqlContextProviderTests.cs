@@ -19,6 +19,17 @@ namespace Gerakul.FastSql.UnitTests.SqlServer
             public object Blob { get; set; }
         }
 
+        // T-SQL quotes identifiers with brackets too, and a closing bracket is doubled inside them
+        [Theory]
+        [Trait("Fixed", "Q11")]
+        [InlineData("select [@x], @a")]
+        [InlineData("select [a]]@x], @a")]
+        [InlineData("select N'@x', @a")]
+        public void CreateMapped_AtSignInBracketsOrUnicodeLiteral_IsNotAParameter(string commandText)
+        {
+            DiscoveredNames(commandText, new { a = 1, x = 2 }).Should().Equal("@a");
+        }
+
         [Fact]
         public void CreateMapped_Parameters_AreSqlParameters()
         {

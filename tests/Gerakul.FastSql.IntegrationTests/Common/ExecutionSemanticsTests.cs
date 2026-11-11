@@ -647,64 +647,66 @@ namespace Gerakul.FastSql.IntegrationTests.Common
             actionCalled.Should().BeFalse();
         }
 
+        // a cancelled enumeration throws instead of passing an empty or partial result off as a complete one
         [Theory]
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
-        [Trait("Quirk", "Q04")]
-        public async Task MoveNext_CancelledToken_ReturnsFalseWithoutThrowingAsync(ContextKind kind)
+        [Trait("Fixed", "Q04")]
+        public async Task MoveNext_CancelledToken_ThrowsOperationCanceledExceptionAsync(ContextKind kind)
         {
             var cancelled = new CancellationToken(true);
 
-            var results = await Database.RunAsync(kind, async x =>
+            var exceptions = await Database.RunAsync(kind, async x => new[]
             {
-                var list = new List<object>();
-                list.Add(await x.CreateSimple(SelectEmployees()).ExecuteQueryAsync<Employee>(cancellationToken: Token).ToListCompat(cancelled));
-                list.Add(await x.CreateSimple(SelectEmployees()).ExecuteQueryAsync(Token).ToListCompat(cancelled));
-                list.Add(await x.CreateSimple(SelectEmployees()).ExecuteQueryAnonymousAsync(new { ID = 0 }, new ReadOptions(FieldsSelector.Common), Token)
-                    .ToListCompat(cancelled));
-                list.Add(await x.CreateSimple(SelectEmployees()).ExecuteQueryFirstColumnAsync(Token).ToListCompat(cancelled));
-                list.Add(await x.CreateSimple(SelectEmployees()).ExecuteQueryFirstColumnAsync<int>(Token).ToListCompat(cancelled));
-                return list;
+                await CatchAsync(() => x.CreateSimple(SelectEmployees()).ExecuteQueryAsync<Employee>(cancellationToken: Token).ToListCompat(cancelled)),
+                await CatchAsync(() => x.CreateSimple(SelectEmployees()).ExecuteQueryAsync(Token).ToListCompat(cancelled)),
+                await CatchAsync(() => x.CreateSimple(SelectEmployees()).ExecuteQueryAnonymousAsync(new { ID = 0 }, new ReadOptions(FieldsSelector.Common), Token)
+                    .ToListCompat(cancelled)),
+                await CatchAsync(() => x.CreateSimple(SelectEmployees()).ExecuteQueryFirstColumnAsync(Token).ToListCompat(cancelled)),
+                await CatchAsync(() => x.CreateSimple(SelectEmployees()).ExecuteQueryFirstColumnAsync<int>(Token).ToListCompat(cancelled))
             });
 
-            results.Should().AllSatisfy(x => ((System.Collections.ICollection)x).Count.Should().Be(0));
+            exceptions.Should().AllSatisfy(x => x.Should().BeOfType<OperationCanceledException>());
         }
 
         // The built-in IAsyncEnumerator<T> gets its token once, when it is created, so a token cancelled in the middle
-        // stays cancelled: the legacy enumerator could go on with a live token on the next call, this one cannot.
+        // stays cancelled: every later MoveNextAsync throws.
         [Theory]
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
-        [Trait("Quirk", "Q04")]
-        public async Task MoveNext_TokenCancelledInTheMiddle_ReturnsFalseAsync(ContextKind kind)
+        [Trait("Fixed", "Q04")]
+        public async Task MoveNext_TokenCancelledInTheMiddle_ThrowsOperationCanceledExceptionAsync(ContextKind kind)
         {
-            var ids = await Database.RunAsync(kind, async x =>
+            var result = await Database.RunAsync(kind, async x =>
             {
-                var result = new List<object>();
+                var list = new List<object>();
                 using (var cancellation = CancellationTokenSource.CreateLinkedTokenSource(Token))
                 using (var enumerator = x.CreateSimple(SelectEmployees()).ExecuteQueryFirstColumnAsync<int>(Token).GetEnumeratorCompat(cancellation.Token))
                 {
-                    result.Add(await enumerator.MoveNextAsync());
-                    result.Add(enumerator.Current);
+                    list.Add(await enumerator.MoveNextAsync());
+                    list.Add(enumerator.Current);
                     cancellation.Cancel();
-                    result.Add(await enumerator.MoveNextAsync());
-                    result.Add(await enumerator.MoveNextAsync());
+                    list.Add(await CatchAsync(() => enumerator.MoveNextAsync()));
+                    list.Add(await CatchAsync(() => enumerator.MoveNextAsync()));
                 }
 
-                return result;
+                return list;
             });
 
-            ids.Should().Equal(true, 1, false, false);
+            result.Take(2).Should().Equal(true, 1);
+            result.Skip(2).Should().AllSatisfy(x => x.Should().BeOfType<OperationCanceledException>());
         }
 
         [Fact]
-        [Trait("Quirk", "Q04")]
-        public async Task MoveNext_ConnectionStringContextCancelledToken_OpensNoSessionAsync()
+        [Trait("Fixed", "Q04")]
+        public async Task MoveNext_ConnectionStringContextCancelledToken_ThrowsAndOpensNoSessionAsync()
         {
             var applicationName = NewApplicationName();
             var context = CreateTrackedContext(applicationName);
 
             using (var enumerator = context.CreateSimple(SelectEmployees()).ExecuteQueryAsync<Employee>(cancellationToken: Token).GetEnumeratorCompat(new CancellationToken(true)))
             {
-                (await enumerator.MoveNextAsync()).Should().BeFalse();
+                Func<Task> moveNext = () => enumerator.MoveNextAsync();
+
+                await moveNext.Should().ThrowExactlyAsync<OperationCanceledException>();
                 Database.CountSessions(applicationName).Should().Be(0);
             }
         }

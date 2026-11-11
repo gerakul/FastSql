@@ -270,6 +270,18 @@ namespace Gerakul.FastSql.IntegrationTests.Common
             names.Should().Equal("Ivan Antonov", "Kate Donahue");
         }
 
+        // an @ in a literal or a comment is not taken for a parameter
+        [Theory]
+        [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
+        [Trait("Fixed", "Q11")]
+        public void CreateMapped_AtSignInLiteralAndComment_OnlyRealParameterIsMapped(ContextKind kind)
+        {
+            var row = Database.Run(kind, x => x.CreateMapped("select 'john@example.com' as Email, @ID as ID -- @Unused", new { ID = 5 })
+                .ExecuteQuery().Single());
+
+            row.Should().Equal("john@example.com", 5);
+        }
+
         [Theory]
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
         public async Task CreateMapped_AnonymousType_MapsMembersToParametersAsync(ContextKind kind)

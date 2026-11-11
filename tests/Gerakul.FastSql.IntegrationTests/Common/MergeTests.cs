@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading.Tasks;
 using AwesomeAssertions;
 using Gerakul.FastSql.Common;
@@ -14,9 +15,6 @@ namespace Gerakul.FastSql.IntegrationTests.Common
             : base(database)
         {
         }
-
-        // stable part of the server message for a merge whose update clause is empty (no non-key members, Q09)
-        protected abstract string EmptyUpdateClauseMessage { get; }
 
         private static Person[] TwoPersons => new[]
         {
@@ -190,30 +188,66 @@ namespace Gerakul.FastSql.IntegrationTests.Common
             ReadPersons(table).Should().BeEquivalentTo(new[] { merged, TwoPersons[1] }, o => o.WithStrictOrdering());
         }
 
+        // nothing to update: a missing row is inserted, an existing one stays as it is
         [Theory]
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
-        [Trait("Quirk", "Q09")]
-        public void Merge_OnlyKeyMembers_ThrowsServerError(ContextKind kind)
+        [Trait("Fixed", "Q09")]
+        public void Merge_OnlyKeyMembers_InsertsIfMissing(ContextKind kind)
         {
-            var table = CreatePersonTable();
-            InsertPersons(table, TwoPersons);
+            var table = CreateKeyAndNameTable();
 
-            ShouldThrowServerError(() => Database.Run(kind, x => x.Merge(table, new { ID = 3 }, "ID")), EmptyUpdateClauseMessage);
+            var affected = Database.Run(kind, x => new[]
+            {
+                x.CreateMerge(table, new { ID = 1 }, "ID").ExecuteNonQuery(),
+                x.CreateMerge(table, new { ID = 2 }, "ID").ExecuteNonQuery()
+            });
 
-            ReadPersons(table).Should().BeEquivalentTo(TwoPersons, o => o.WithStrictOrdering());
+            affected.Should().Equal(0, 1);
+            ReadKeysAndNames(table).Should().Equal("1:one", "2:");
         }
 
         [Theory]
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
-        [Trait("Quirk", "Q09")]
-        public async Task Merge_OnlyKeyMembers_ThrowsServerErrorAsync(ContextKind kind)
+        [Trait("Fixed", "Q09")]
+        public async Task Merge_OnlyKeyMembers_InsertsIfMissingAsync(ContextKind kind)
+        {
+            var table = CreateKeyAndNameTable();
+
+            await Database.RunAsync(kind, async x =>
+            {
+                await x.MergeAsync(table, new { ID = 1 }, "ID");
+                await x.MergeAsync(table, new { ID = 2 }, "ID");
+            });
+
+            ReadKeysAndNames(table).Should().Equal("1:one", "2:");
+        }
+
+        // a key in another case than the member matches it, and the text uses the member's name
+        [Theory]
+        [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
+        [Trait("Fixed", "Q125")]
+        public void Merge_KeyInOtherCase_UpdatesMatchingRow(ContextKind kind)
         {
             var table = CreatePersonTable();
             InsertPersons(table, TwoPersons);
 
-            await ShouldThrowServerErrorAsync(() => Database.RunAsync(kind, x => x.MergeAsync(table, new { ID = 3 }, "ID")), EmptyUpdateClauseMessage);
+            Database.Run(kind, x => x.Merge(table, new Person() { ID = 2, GroupID = 1, Name = "Robert", Age = 41 }, "id"));
 
-            ReadPersons(table).Should().BeEquivalentTo(TwoPersons, o => o.WithStrictOrdering());
+            ReadPersons(table).Select(x => x.Name).Should().Equal("Alice", "Robert");
+        }
+
+        // a key column and a nullable column with one row (1, 'one')
+        private string CreateKeyAndNameTable()
+        {
+            var table = Database.CreateScratchTable($"{Q("ID")} int not null primary key, {Q("Name")} varchar(50) null");
+            Database.Execute($"insert into {table} ({Q("ID")}, {Q("Name")}) values (1, 'one')");
+            return table;
+        }
+
+        private string[] ReadKeysAndNames(string table)
+        {
+            return Database.Run(ContextKind.ConnectionString, x => x.CreateSimple($"select {Q("ID")}, {Q("Name")} from {table} order by {Q("ID")}")
+                .ExecuteQueryAnonymous(new { ID = 0, Name = "" }).Select(y => $"{y.ID}:{y.Name}").ToArray());
         }
     }
 }

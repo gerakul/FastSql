@@ -106,16 +106,17 @@ namespace Gerakul.FastSql.IntegrationTests.Common
             ReadPersons(table).Should().BeEmpty();
         }
 
-        // the ignore list is compared with member names case-sensitively, so "id" does not ignore the ID member
+        // the ignore list matches member names case-insensitively, like parameters, so "id" ignores the ID member
         [Theory]
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
-        [Trait("Quirk", "Q90")]
-        public void Insert_IgnoredFieldInOtherCase_IsNotIgnored(ContextKind kind)
+        [Trait("Fixed", "Q90")]
+        public void Insert_IgnoredFieldInOtherCase_IsIgnored(ContextKind kind)
         {
             var table = CreatePersonTableWithIdentity();
 
-            ShouldThrowServerError(() => Database.Run(kind, x => x.Insert(table, new Person() { ID = 100, GroupID = 1, Name = "Alice" }, "id")),
-                ExplicitIdentityValueMessage(table));
+            Database.Run(kind, x => x.Insert(table, new Person() { ID = 100, GroupID = 1, Name = "Alice", Age = 30 }, "id"));
+
+            ReadPersons(table).Should().BeEquivalentTo(new[] { new Person() { ID = 1, GroupID = 1, Name = "Alice", Age = 30 } });
         }
 
         [Theory]

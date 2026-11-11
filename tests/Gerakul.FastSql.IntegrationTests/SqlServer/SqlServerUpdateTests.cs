@@ -18,8 +18,6 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
 
         protected override Type ServerExceptionType => typeof(SqlException);
 
-        protected override string EmptySetClauseMessage => "Incorrect syntax near the keyword 'where'.";
-
         protected override string UnmappedKeyParameterMessage => "Must declare the scalar variable \"@ID\".";
     }
 }
