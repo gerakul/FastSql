@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/Gerakul.FastSql.Benchmarks/Gerakul.FastSql.Benchmarks.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Gerakul.FastSql.IntegrationTests/Gerakul.FastSql.IntegrationTests.csproj" />
     <Project Path="tests/Gerakul.FastSql.UnitTests/Gerakul.FastSql.UnitTests.csproj" />
