@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Data.Common;
+﻿using System.Data.Common;
 using System.Runtime.CompilerServices;
 
 namespace Gerakul.FastSql.Common;
@@ -76,7 +75,7 @@ internal sealed class WrappedCommandWithContext : ICommandCreator, IWrappedComma
 
     public Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken = default)
     {
-        return context.UsingConnectionAsync(x => commandGetter(x).ExecuteNonQueryAsync(cancellationToken), cancellationToken);
+        return context.UsingConnectionCoreAsync(x => commandGetter(x).ExecuteNonQueryAsync(cancellationToken), cancellationToken);
     }
 
     public object? ExecuteScalar()
@@ -86,7 +85,7 @@ internal sealed class WrappedCommandWithContext : ICommandCreator, IWrappedComma
 
     public Task<object?> ExecuteScalarAsync(CancellationToken cancellationToken = default)
     {
-        return context.UsingConnectionAsync(x => commandGetter(x).ExecuteScalarAsync(cancellationToken), cancellationToken);
+        return context.UsingConnectionCoreAsync(x => commandGetter(x).ExecuteScalarAsync(cancellationToken), cancellationToken);
     }
 
     public IEnumerable<object[]> ExecuteQuery()
@@ -99,14 +98,14 @@ internal sealed class WrappedCommandWithContext : ICommandCreator, IWrappedComma
         return QueryAsync(r => ReadInfoFactory.CreateObjects(r), cancellationToken);
     }
 
-    public IEnumerable<T> ExecuteQuery<T>(ReadOptions? readOptions = null) where T : new()
+    public IEnumerable<T> ExecuteQuery<T>(ReadOptions? readOptions = null)
     {
         return Query(x => x.ExecuteQuery<T>(context.PrepareReadOptions(readOptions)));
     }
 
-    public IAsyncEnumerable<T> ExecuteQueryAsync<T>(ReadOptions? readOptions = null, CancellationToken cancellationToken = default) where T : new()
+    public IAsyncEnumerable<T> ExecuteQueryAsync<T>(ReadOptions? readOptions = null, CancellationToken cancellationToken = default)
     {
-        return QueryAsync(r => ReadInfoFactory.CreateByType<T>(r, context.PrepareReadOptions(readOptions)), cancellationToken);
+        return QueryAsync(r => ReadInfoFactory.Create<T>(r, context.PrepareReadOptions(readOptions)), cancellationToken);
     }
 
     public IEnumerable<T> ExecuteQueryAnonymous<T>(T proto, ReadOptions? readOptions = null)
@@ -119,9 +118,9 @@ internal sealed class WrappedCommandWithContext : ICommandCreator, IWrappedComma
         return QueryAsync(r => ReadInfoFactory.CreateAnonymous(r, proto, context.PrepareReadOptions(readOptions)), cancellationToken);
     }
 
-    public IEnumerable ExecuteQueryFirstColumn()
+    public IEnumerable<object?> ExecuteQueryFirstColumn()
     {
-        return Query(x => x.ExecuteQueryFirstColumn().Cast<object>());
+        return Query(x => x.ExecuteQueryFirstColumn());
     }
 
     public IAsyncEnumerable<object?> ExecuteQueryFirstColumnAsync(CancellationToken cancellationToken = default)
@@ -141,6 +140,8 @@ internal sealed class WrappedCommandWithContext : ICommandCreator, IWrappedComma
 
     public void UseReader(Action<DbDataReader> action)
     {
+        ArgumentNullException.ThrowIfNull(action);
+
         context.UsingConnection(x =>
         {
             using var reader = commandGetter(x).ExecuteReader();
@@ -148,14 +149,16 @@ internal sealed class WrappedCommandWithContext : ICommandCreator, IWrappedComma
         });
     }
 
-    public async Task UseReaderAsync(CancellationToken cancellationToken, Func<DbDataReader, Task> action)
+    public Task UseReaderAsync(CancellationToken cancellationToken, Func<DbDataReader, Task> action)
     {
-        await context.UsingConnectionAsync(async x =>
+        ArgumentNullException.ThrowIfNull(action);
+
+        return context.UsingConnectionCoreAsync(async x =>
         {
             var reader = await commandGetter(x).ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             await using var readerScope = reader.ConfigureAwait(false);
             await action(reader).ConfigureAwait(false);
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
     }
 
     #endregion

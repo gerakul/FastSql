@@ -18,9 +18,9 @@ namespace Gerakul.FastSql.IntegrationTests.Common
     // Provider-specific behavior is in SqlServerBulkCopyOptionsTests and PostgreSqlBulkCopyTests.
     public abstract class BulkCopyTests<TDatabase> : IClassFixture<TDatabase> where TDatabase : DatabaseFixture
     {
-        private const string SourceSelectorError = "FieldsSelector has value FieldsSelector.Source, but source has fields which are not presented in destination";
-        private const string DestinationSelectorError = "FieldsSelector has value FieldsSelector.Destination, but destination has fields which are not presented in source";
-        private const string BothSelectorError = "FieldsSelector has value FieldsSelector.Both, but source fields do not match with destination fields";
+        private const string SourceSelectorError = "FieldsSelector.Source: *";
+        private const string DestinationSelectorError = "FieldsSelector.Destination: *";
+        private const string BothSelectorError = "FieldsSelector.Both: *";
 
         protected BulkCopyTests(TDatabase database)
         {

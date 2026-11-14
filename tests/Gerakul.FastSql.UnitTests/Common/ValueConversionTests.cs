@@ -102,7 +102,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             Func<Task> act = () => Read<int>(method, typeof(long), (long)int.MaxValue + 1);
 
             await act.Should().ThrowExactlyAsync<OverflowException>()
-                .WithMessage("Value was either too large or too small for an Int32.");
+                .WithMessage("Cannot read field '*' (*) into *: Value was either too large or too small for an Int32.");
         }
 
         [Theory]
@@ -159,7 +159,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             Func<Task> act = () => Read<int>(method, typeof(string), "abc");
 
             await act.Should().ThrowExactlyAsync<FormatException>()
-                .WithMessage("The input string 'abc' was not in a correct format.");
+                .WithMessage("Cannot read field '*' (*) into *: The input string 'abc' was not in a correct format.");
         }
 
         [Theory]
@@ -235,7 +235,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             Func<Task> act = () => Read<string>(method, typeof(Guid), new Guid("0f8fad5b-d9cb-469f-a165-70867728950e"));
 
             await act.Should().ThrowExactlyAsync<InvalidCastException>()
-                .WithMessage("Object must implement IConvertible.");
+                .WithMessage("Cannot read field '*' (*) into *: Object must implement IConvertible.");
         }
 
         [Theory]
@@ -245,7 +245,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             Func<Task> act = () => Read<Guid>(method, typeof(string), "0f8fad5b-d9cb-469f-a165-70867728950e");
 
             await act.Should().ThrowExactlyAsync<InvalidCastException>()
-                .WithMessage("Invalid cast from 'System.String' to 'System.Guid'.");
+                .WithMessage("Cannot read field '*' (*) into *: Invalid cast from 'System.String' to 'System.Guid'.");
         }
 
         [Theory]
@@ -315,7 +315,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             Func<Task> act = () => Read<DateTimeOffset>(method, typeof(DateTime), new DateTime(2020, 1, 2, 3, 4, 5));
 
             await act.Should().ThrowExactlyAsync<InvalidCastException>()
-                .WithMessage("Invalid cast from 'System.DateTime' to 'System.DateTimeOffset'.");
+                .WithMessage("Cannot read field '*' (*) into *: Invalid cast from 'System.DateTime' to 'System.DateTimeOffset'.");
         }
 
         [Theory]
@@ -338,7 +338,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             Func<Task> act = () => Read<DateTime>(method, typeof(DateTimeOffset), new DateTimeOffset(2020, 1, 2, 3, 4, 5, TimeSpan.Zero));
 
             await act.Should().ThrowExactlyAsync<InvalidCastException>()
-                .WithMessage("Object must implement IConvertible.");
+                .WithMessage("Cannot read field '*' (*) into *: Object must implement IConvertible.");
         }
 
         [Theory]
@@ -357,7 +357,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             Func<Task> act = () => Read<TimeSpan>(method, typeof(string), "01:02:03");
 
             await act.Should().ThrowExactlyAsync<InvalidCastException>()
-                .WithMessage("Invalid cast from 'System.String' to 'System.TimeSpan'.");
+                .WithMessage("Cannot read field '*' (*) into *: Invalid cast from 'System.String' to 'System.TimeSpan'.");
         }
 
         // DateOnly and TimeOnly (what Npgsql 10 returns for date and time) are converted for DateTime and TimeSpan members
@@ -408,7 +408,81 @@ namespace Gerakul.FastSql.UnitTests.Common
             Func<Task> act = () => Read<string>(method, typeof(DateOnly), new DateOnly(2020, 2, 29));
 
             await act.Should().ThrowExactlyAsync<InvalidCastException>()
-                .WithMessage("Object must implement IConvertible.");
+                .WithMessage("Cannot read field '*' (*) into *: Object must implement IConvertible.");
+        }
+
+        // The other direction (I7, phase 4): Microsoft.Data.SqlClient returns DateTime and TimeSpan for date and time
+        // columns, and DateOnly and TimeOnly members take them. Until phase 4 these threw InvalidCastException
+
+        [Theory]
+        [MemberData(nameof(Methods))]
+        [Trait("Fixed", "I7")]
+        public async Task Read_DateTimeIntoDateOnly_DropsTheTime(MappingReadMethod method)
+        {
+            var midnight = await Read<DateOnly>(method, typeof(DateTime), new DateTime(2020, 2, 29));
+            var withTime = await Read<DateOnly>(method, typeof(DateTime), new DateTime(2020, 2, 29, 23, 59, 59, 999));
+
+            midnight.Should().Be(new DateOnly(2020, 2, 29));
+            withTime.Should().Be(new DateOnly(2020, 2, 29));
+        }
+
+        [Theory]
+        [MemberData(nameof(Methods))]
+        [Trait("Fixed", "I7")]
+        public async Task Read_DateTimeIntoNullableDateOnly_ReturnsTheDate(MappingReadMethod method)
+        {
+            var value = await Read<DateOnly?>(method, typeof(DateTime), new DateTime(2020, 2, 29, 13, 14, 15));
+
+            value.Should().Be(new DateOnly(2020, 2, 29));
+        }
+
+        [Theory]
+        [MemberData(nameof(Methods))]
+        [Trait("Fixed", "I7")]
+        public async Task Read_TimeSpanIntoTimeOnly_ReturnsTheTimeOfDay(MappingReadMethod method)
+        {
+            var value = await Read<TimeOnly>(method, typeof(TimeSpan), new TimeSpan(0, 13, 14, 15, 123));
+            var nullable = await Read<TimeOnly?>(method, typeof(TimeSpan), TimeSpan.Zero);
+
+            value.Should().Be(new TimeOnly(13, 14, 15, 123));
+            nullable.Should().Be(TimeOnly.MinValue);
+        }
+
+        // a TimeSpan is a duration: one of a day or more, or a negative one, is not a time of day
+        [Theory]
+        [MemberData(nameof(Methods))]
+        public async Task Read_TimeSpanOutsideOfADayIntoTimeOnly_ThrowsArgumentOutOfRangeException(MappingReadMethod method)
+        {
+            Func<Task> day = () => Read<TimeOnly>(method, typeof(TimeSpan), TimeSpan.FromDays(1));
+            Func<Task> negative = () => Read<TimeOnly>(method, typeof(TimeSpan), TimeSpan.FromSeconds(-1));
+
+            await day.Should().ThrowExactlyAsync<ArgumentOutOfRangeException>().WithMessage("Cannot read field 'Value' (TimeSpan) into TimeOnly: *");
+            await negative.Should().ThrowExactlyAsync<ArgumentOutOfRangeException>().WithMessage("Cannot read field 'Value' (TimeSpan) into TimeOnly: *");
+        }
+
+        [Theory]
+        [MemberData(nameof(Methods))]
+        public async Task Read_TimeOnlyIntoTimeOnlyAndTimeSpanIntoTimeSpan_KeepTheValue(MappingReadMethod method)
+        {
+            var timeOnly = await Read<TimeOnly>(method, typeof(TimeOnly), new TimeOnly(13, 14, 15));
+            var timeSpan = await Read<TimeSpan>(method, typeof(TimeSpan), TimeSpan.FromDays(2));
+            var dateTime = await Read<DateTime>(method, typeof(DateTime), new DateTime(2020, 2, 29, 13, 14, 15));
+
+            timeOnly.Should().Be(new TimeOnly(13, 14, 15));
+            timeSpan.Should().Be(TimeSpan.FromDays(2));
+            dateTime.Should().Be(new DateTime(2020, 2, 29, 13, 14, 15));
+        }
+
+        // the two pairs are not mixed: a date is not a time
+        [Theory]
+        [MemberData(nameof(Methods))]
+        public async Task Read_DateTimeIntoTimeOnlyAndTimeSpanIntoDateOnly_ThrowInvalidCastException(MappingReadMethod method)
+        {
+            Func<Task> dateTime = () => Read<TimeOnly>(method, typeof(DateTime), new DateTime(2020, 2, 29, 13, 14, 15));
+            Func<Task> timeSpan = () => Read<DateOnly>(method, typeof(TimeSpan), new TimeSpan(13, 14, 15));
+
+            await dateTime.Should().ThrowExactlyAsync<InvalidCastException>().WithMessage("Cannot read field 'Value' (DateTime) into TimeOnly: *");
+            await timeSpan.Should().ThrowExactlyAsync<InvalidCastException>().WithMessage("Cannot read field 'Value' (TimeSpan) into DateOnly: *");
         }
 
         [Theory]
@@ -419,7 +493,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             Func<Task> act = () => Read<DateTime>(method, typeof(TimeOnly), new TimeOnly(13, 14, 15));
 
             await act.Should().ThrowExactlyAsync<InvalidCastException>()
-                .WithMessage("Object must implement IConvertible.");
+                .WithMessage("Cannot read field '*' (*) into *: Object must implement IConvertible.");
         }
 
         #endregion
@@ -511,7 +585,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             Func<Task> act = () => Read<Color>(method, typeof(string), "green");
 
             await act.Should().ThrowExactlyAsync<ArgumentException>()
-                .WithMessage("Requested value 'green' was not found.");
+                .WithMessage("Cannot read field '*' (*) into *: Requested value 'green' was not found.");
         }
 
         [Theory]
@@ -521,7 +595,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             Func<Task> act = () => Read<Color>(method, typeof(string), "Purple");
 
             await act.Should().ThrowExactlyAsync<ArgumentException>()
-                .WithMessage("Requested value 'Purple' was not found.");
+                .WithMessage("Cannot read field '*' (*) into *: Requested value 'Purple' was not found.");
         }
 
         [Theory]
@@ -550,7 +624,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             Func<Task> act = () => Read<Color>(method, typeof(int), null);
 
             await act.Should().ThrowExactlyAsync<ArgumentException>()
-                .WithMessage("The value passed in must be an enum base or an underlying type for an enum, such as an Int32. (Parameter 'value')");
+                .WithMessage("Cannot read field '*' (*) into *: The value passed in must be an enum base or an underlying type for an enum, such as an Int32. (Parameter 'value')");
         }
 
         #endregion
@@ -565,7 +639,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             Func<Task> act = () => Read<int>(method, typeof(int), null);
 
             await act.Should().ThrowExactlyAsync<InvalidCastException>()
-                .WithMessage("Object cannot be cast from DBNull to other types.");
+                .WithMessage("Cannot read field '*' (*) into *: Object cannot be cast from DBNull to other types.");
         }
 
         [Theory]

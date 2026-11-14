@@ -281,7 +281,7 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
 
             Action act = () => ReadValue<string>(table);
 
-            act.Should().ThrowExactly<InvalidCastException>().WithMessage("Object must implement IConvertible.");
+            act.Should().ThrowExactly<InvalidCastException>().WithMessage("Cannot read field '*' (*) into *: Object must implement IConvertible.");
         }
 
         [Theory]
@@ -364,7 +364,7 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
                 ? (Action)(() => CreateContext().CreateSimple($"select \"Id\", \"Value\" from {table}").ExecuteQuery<ValueRow<DateTimeOffset>>().ToList())
                 : () => ReadValue<DateTimeOffset>(table);
 
-            act.Should().ThrowExactly<InvalidCastException>().WithMessage("Invalid cast from 'System.DateTime' to 'System.DateTimeOffset'.");
+            act.Should().ThrowExactly<InvalidCastException>().WithMessage("Cannot read field '*' (*) into *: Invalid cast from 'System.DateTime' to 'System.DateTimeOffset'.");
         }
 
         [Theory]

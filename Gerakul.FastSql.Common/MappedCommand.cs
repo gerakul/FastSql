@@ -16,6 +16,9 @@ public class MappedCommand<T>
     internal MappedCommand(ContextProvider contextProvider, string commandText, IList<string>? parameters,
         IList<FieldSettings<T>> settings, bool caseSensitiveParamsMatching, CommandType commandType = CommandType.Text)
     {
+        ArgumentNullException.ThrowIfNull(commandText);
+        ArgumentNullException.ThrowIfNull(settings);
+
         this.contextProvider = contextProvider;
         this.CommandText = commandText;
         this.CommandType = commandType;
@@ -33,9 +36,9 @@ public class MappedCommand<T>
             names[i] = contextProvider.GetSqlParameterName(parameters[i]);
         }
 
-        if (Helpers.HasDuplicates(names, comparer))
+        if (Helpers.TryFindDuplicate(names, comparer, out var duplicate))
         {
-            throw new ArgumentException("Parameter names has been duplicated");
+            throw new ArgumentException($"Parameter '{duplicate}' is listed more than once{Messages.ComparedIgnoringCase(caseSensitiveParamsMatching)}");
         }
 
         var settingsByName = new Dictionary<string, FieldSettings<T>>(settings.Count, comparer);
@@ -44,20 +47,29 @@ public class MappedCommand<T>
         {
             if (!settingsByName.TryAdd(item.Name, item))
             {
-                throw new ArgumentException("Setting names has been duplicated");
+                throw new ArgumentException($"More than one field of {Messages.TypeName(typeof(T))} is named '{item.Name}'"
+                    + Messages.ComparedIgnoringCase(caseSensitiveParamsMatching));
             }
         }
 
         map = new ParMap[names.Length];
+        List<string?>? unknown = null;
 
         for (int i = 0; i < names.Length; i++)
         {
-            if (!settingsByName.TryGetValue(names[i], out var item))
+            if (settingsByName.TryGetValue(names[i], out var item))
             {
-                throw new ArgumentException("Not all parameters has been mapped on settings", nameof(parameters));
+                map[i] = new ParMap(parameters[i], item);
             }
+            else
+            {
+                (unknown ??= []).Add(parameters[i]);
+            }
+        }
 
-            map[i] = new ParMap(parameters[i], item);
+        if (unknown != null)
+        {
+            throw new ArgumentException($"No field of {Messages.TypeName(typeof(T))} matches the {Messages.Named("parameter", unknown)}", nameof(parameters));
         }
     }
 
@@ -71,9 +83,7 @@ public class MappedCommand<T>
     {
         if (scopedContext.ContextProvider != contextProvider)
         {
-            throw new ArgumentException($"{nameof(scopedContext.ContextProvider)} presented in received {nameof(ScopedContext)} does not match "
-                + $"stored in given {nameof(MappedCommand<T>)}",
-                nameof(scopedContext));
+            throw new ArgumentException(Messages.OtherProvider, nameof(scopedContext));
         }
 
         var cmd = scopedContext.CreateCommand(CommandText);

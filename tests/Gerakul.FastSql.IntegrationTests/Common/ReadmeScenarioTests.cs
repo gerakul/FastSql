@@ -9,6 +9,9 @@ using Gerakul.FastSql.IntegrationTests.Infrastructure;
 using Gerakul.FastSql.Tests.Shared;
 using Xunit;
 
+// the overloads without a CancellationToken are used here on purpose: they are part of what is tested
+#pragma warning disable xUnit1051
+
 namespace Gerakul.FastSql.IntegrationTests.Common
 {
     // I10: the README snippets in README order, against the seed data (which follows Examples/InitQuery.sql).

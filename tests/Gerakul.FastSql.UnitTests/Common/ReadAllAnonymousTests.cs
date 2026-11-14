@@ -14,7 +14,7 @@ namespace Gerakul.FastSql.UnitTests.Common
     // methods is in FieldsSelectorTests, value conversions in ValueConversionTests.
     public class ReadAllAnonymousTests
     {
-        private const string DestinationMessage = "FieldsSelector has value FieldsSelector.Destination, but destination has fields which are not presented in source";
+        private const string DestinationMessage = "FieldsSelector.Destination: *";
 
         public class TwoConstructors
         {
@@ -254,7 +254,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
             Action act = () => reader.ReadAllAnonymous(new { ID = 0, Name = "" }, new ReadOptions(caseSensitiveFieldsMatching: caseSensitive)).ToList();
 
-            act.Should().ThrowExactly<ArgumentException>().WithMessage("Reader field names has been duplicated");
+            act.Should().ThrowExactly<ArgumentException>().WithMessage("The reader has more than one field named '*'*");
         }
 
         [Theory]
@@ -268,7 +268,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             Func<Task> act = () => reader.ReadAllAnonymousAsync(new { ID = 0, Name = "" }, new ReadOptions(caseSensitiveFieldsMatching: caseSensitive))
                 .ToListCompat(TestContext.Current.CancellationToken);
 
-            await act.Should().ThrowExactlyAsync<ArgumentException>().WithMessage("Reader field names has been duplicated");
+            await act.Should().ThrowExactlyAsync<ArgumentException>().WithMessage("The reader has more than one field named '*'*");
         }
 
         [Fact]
@@ -278,7 +278,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
             Action act = () => reader.ReadAllAnonymous(new CaseConflictConstructor(0, 0)).ToList();
 
-            act.Should().ThrowExactly<ArgumentException>().WithMessage("Destination object field names has been duplicated");
+            act.Should().ThrowExactly<ArgumentException>().WithMessage("The * of * differ only by case (names are compared case-insensitively)");
         }
 
         [Fact]
@@ -288,7 +288,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
             Func<Task> act = () => reader.ReadAllAnonymousAsync(new CaseConflictConstructor(0, 0)).ToListCompat(TestContext.Current.CancellationToken);
 
-            await act.Should().ThrowExactlyAsync<ArgumentException>().WithMessage("Destination object field names has been duplicated");
+            await act.Should().ThrowExactlyAsync<ArgumentException>().WithMessage("The * of * differ only by case (names are compared case-insensitively)");
         }
 
         [Fact]
@@ -353,7 +353,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
             Action act = () => reader.ReadAllAnonymous(new { ID = 0, Name = "" }).ToList();
 
-            act.Should().ThrowExactly<InvalidCastException>().WithMessage("Object cannot be cast from DBNull to other types.");
+            act.Should().ThrowExactly<InvalidCastException>().WithMessage("Cannot read field '*' (*) into *: Object cannot be cast from DBNull to other types.");
         }
 
         [Fact]
@@ -364,7 +364,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
             Func<Task> act = () => reader.ReadAllAnonymousAsync(new { ID = 0, Name = "" }).ToListCompat(TestContext.Current.CancellationToken);
 
-            await act.Should().ThrowExactlyAsync<InvalidCastException>().WithMessage("Object cannot be cast from DBNull to other types.");
+            await act.Should().ThrowExactlyAsync<InvalidCastException>().WithMessage("Cannot read field '*' (*) into *: Object cannot be cast from DBNull to other types.");
         }
 
         #endregion

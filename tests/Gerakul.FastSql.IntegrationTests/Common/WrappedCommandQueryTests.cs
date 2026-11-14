@@ -18,7 +18,7 @@ namespace Gerakul.FastSql.IntegrationTests.Common
     public abstract class WrappedCommandQueryTests<TDatabase> : IClassFixture<TDatabase> where TDatabase : DatabaseFixture
     {
         private const string DestinationSelectorMessage =
-            "FieldsSelector has value FieldsSelector.Destination, but destination has fields which are not presented in source";
+            "FieldsSelector.Destination: *";
 
         protected WrappedCommandQueryTests(TDatabase database)
         {
@@ -634,7 +634,7 @@ namespace Gerakul.FastSql.IntegrationTests.Common
             var exception = await CatchQueryExceptionAsync(Spec.DefaultProvider, kind, x => x.CreateSimple(SelectCompanyIdAndName())
                 .ExecuteQueryAsync<Company>(cancellationToken: Token).ToListCompat(Token));
 
-            exception.Should().BeOfType<InvalidOperationException>().Which.Message.Should().Be(DestinationSelectorMessage);
+            exception.Should().BeOfType<InvalidOperationException>().Which.Message.Should().Match(DestinationSelectorMessage);
         }
 
         [Theory]
@@ -691,7 +691,7 @@ namespace Gerakul.FastSql.IntegrationTests.Common
                 return x.CreateSimple(SelectCompanyIdAndName()).ExecuteQueryAsync<Company>(cancellationToken: Token).ToListCompat(Token);
             });
 
-            exception.Should().BeOfType<InvalidOperationException>().Which.Message.Should().Be(DestinationSelectorMessage);
+            exception.Should().BeOfType<InvalidOperationException>().Which.Message.Should().Match(DestinationSelectorMessage);
         }
 
         [Theory]

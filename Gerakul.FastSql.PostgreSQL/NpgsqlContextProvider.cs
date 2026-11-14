@@ -58,8 +58,8 @@ public partial class NpgsqlContextProvider : ContextProvider
         return name[0] == '@' ? name[1..] : name;
     }
 
-    // generated at compile time
-    [GeneratedRegex("(([^@]@)|(^@))(?<Name>([a-z]|[A-Z]|[0-9]|[$#_])+)", RegexOptions.Multiline)]
+    // Generated at compile time. A name is made of letters of any alphabet, digits, _, $ and #
+    [GeneratedRegex(@"(([^@]@)|(^@))(?<Name>[\p{L}\p{Nd}$#_]+)", RegexOptions.Multiline)]
     private static partial Regex ParameterNameRegex();
 
     protected override string[] ParamsFromCommandText(string commandText)

@@ -28,6 +28,8 @@ public class UniversalDataReader<T> : DbDataReader
 
     private UniversalDataReader(IEnumerable<FieldSettings<T>> settings, bool caseSensitive)
     {
+        ArgumentNullException.ThrowIfNull(settings);
+
         this.settings = settings.ToArray();
         this.fieldCount = this.settings.Length;
 
@@ -46,19 +48,27 @@ public class UniversalDataReader<T> : DbDataReader
             this.dataTypeNames[i] = item.DataTypeName;
             this.types[i] = item.FieldType;
             this.names[i] = item.Name;
-            this.ordinals.Add(item.Name, i);
+
+            if (!this.ordinals.TryAdd(item.Name, i))
+            {
+                throw new ArgumentException($"Field '{item.Name}' is defined more than once{Messages.ComparedIgnoringCase(caseSensitive)}", nameof(settings));
+            }
         }
     }
 
     public UniversalDataReader(IEnumerable<T> values, IEnumerable<FieldSettings<T>> settings, bool caseSensitive)
       : this(settings, caseSensitive)
     {
+        ArgumentNullException.ThrowIfNull(values);
+
         this.enumerator = values.GetEnumerator();
     }
 
     public UniversalDataReader(IAsyncEnumerable<T> values, IEnumerable<FieldSettings<T>> settings, bool caseSensitive)
        : this(settings, caseSensitive)
     {
+        ArgumentNullException.ThrowIfNull(values);
+
         this.asyncEnumerator = values.GetAsyncEnumerator();
     }
 
@@ -99,27 +109,16 @@ public class UniversalDataReader<T> : DbDataReader
 
     #region DbDataReader
 
-    // hides DbDataReader.Close instead of overriding it (Q01): closing through a DbDataReader reference does nothing
-    public new void Close()
+    // Closes the reader and disposes the source, which can hold resources: a FastSql query keeps its reader and its
+    // connection. Dispose, DisposeAsync and CloseAsync of the base class all come here, whatever the type of the
+    // reference they are called through
+    public override void Close()
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        base.Dispose(disposing);
-
-        if (disposing)
+        if (!isClosed)
         {
-            if (!isClosed)
-            {
-                isClosed = true;
-
-                // the source can hold resources, for example a FastSql query keeps its reader and connection
-                enumerator?.Dispose();
-                asyncEnumerator?.DisposeAsync().AsTask().GetAwaiter().GetResult();
-            }
+            isClosed = true;
+            enumerator?.Dispose();
+            asyncEnumerator?.DisposeAsync().AsTask().GetAwaiter().GetResult();
         }
     }
 

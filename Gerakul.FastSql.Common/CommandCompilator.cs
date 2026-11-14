@@ -38,6 +38,8 @@ public class CommandCompilator
 
     public MappedCommand<T> CompileMapped<T>(string commandText, IList<FieldSettings<T>> settings, bool caseSensitiveParamsMatching = false)
     {
+        ArgumentNullException.ThrowIfNull(commandText);
+
         return new MappedCommand<T>(contextProvider, commandText, contextProvider.ParamsFromCommandText(commandText), settings, caseSensitiveParamsMatching);
     }
 
@@ -59,6 +61,8 @@ public class CommandCompilator
 
     public MappedCommand<T> CompileMapped<T>(string commandText, FromTypeOption fromTypeOption = FromTypeOption.Default, bool caseSensitiveParamsMatching = false)
     {
+        ArgumentNullException.ThrowIfNull(commandText);
+
         if (Find(CommandCache<T>.Mapped, commandText, fromTypeOption, caseSensitiveParamsMatching, null, null) is { } last)
         {
             return last;
@@ -142,6 +146,9 @@ public class CommandCompilator
 
     public MappedCommand<T> CompileInsert<T>(string tableName, IList<FieldSettings<T>> settings, params string[] ignoreFields)
     {
+        ArgumentNullException.ThrowIfNull(tableName);
+        ArgumentNullException.ThrowIfNull(settings);
+
         var fields = settings.Select(x => x.Name).Except(ToMemberNames(ignoreFields, settings)).ToArray();
         string query = contextProvider.CommandTextGenerator.Insert(tableName, fields);
         return new MappedCommand<T>(contextProvider, query, fields, settings, true);
@@ -179,6 +186,10 @@ public class CommandCompilator
     public MappedCommand<T> CompileInsertWithOutput<T>(string tableName, IList<FieldSettings<T>> settings,
         IList<string>? ignoreFields, params string[] outputFields)
     {
+        ArgumentNullException.ThrowIfNull(tableName);
+        ArgumentNullException.ThrowIfNull(settings);
+        ArgumentNullException.ThrowIfNull(outputFields);
+
         var ignFields = ignoreFields?.ToArray() ?? [];
 
         if (outputFields.Length == 0)
@@ -212,6 +223,9 @@ public class CommandCompilator
 
     public MappedCommand<T> CompileUpdate<T>(string tableName, IList<FieldSettings<T>> settings, IList<string> keyFields, IList<string>? notKeyIgnoreFields)
     {
+        ArgumentNullException.ThrowIfNull(tableName);
+        ArgumentNullException.ThrowIfNull(settings);
+
         CheckKeyFields(keyFields);
         var keys = ToMemberNames(keyFields, settings);
         var fields = settings.Select(x => x.Name).Except(ToMemberNames(notKeyIgnoreFields, settings)).ToArray();
@@ -285,6 +299,9 @@ public class CommandCompilator
 
     public MappedCommand<T> CompileDelete<T>(string tableName, IList<FieldSettings<T>> settings, params string[] keyFields)
     {
+        ArgumentNullException.ThrowIfNull(tableName);
+        ArgumentNullException.ThrowIfNull(settings);
+
         var keys = keyFields == null || keyFields.Length == 0 ? settings.GetNames() : ToMemberNames(keyFields, settings);
         string query = contextProvider.CommandTextGenerator.Delete(tableName, keys);
         return new MappedCommand<T>(contextProvider, query, keys, settings, true);
@@ -326,6 +343,9 @@ public class CommandCompilator
 
     public MappedCommand<T> CompileMerge<T>(string tableName, IList<FieldSettings<T>> settings, IList<string> keyFields, IList<string>? notKeyIgnoreFields)
     {
+        ArgumentNullException.ThrowIfNull(tableName);
+        ArgumentNullException.ThrowIfNull(settings);
+
         CheckKeyFields(keyFields);
         var keys = ToMemberNames(keyFields, settings);
         var fields = settings.Select(x => x.Name).Except(ToMemberNames(notKeyIgnoreFields, settings)).ToArray();

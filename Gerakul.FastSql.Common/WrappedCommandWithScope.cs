@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Data.Common;
+﻿using System.Data.Common;
 
 namespace Gerakul.FastSql.Common;
 
@@ -56,12 +55,12 @@ internal sealed class WrappedCommandWithScope : ICommandCreator, IWrappedCommand
         return command.ExecuteQueryAsync(cancellationToken);
     }
 
-    public IEnumerable<T> ExecuteQuery<T>(ReadOptions? readOptions = null) where T : new()
+    public IEnumerable<T> ExecuteQuery<T>(ReadOptions? readOptions = null)
     {
         return command.ExecuteQuery<T>(scopedContext.PrepareReadOptions(readOptions));
     }
 
-    public IAsyncEnumerable<T> ExecuteQueryAsync<T>(ReadOptions? readOptions = null, CancellationToken cancellationToken = default) where T : new()
+    public IAsyncEnumerable<T> ExecuteQueryAsync<T>(ReadOptions? readOptions = null, CancellationToken cancellationToken = default)
     {
         return command.ExecuteQueryAsync<T>(scopedContext.PrepareReadOptions(readOptions), cancellationToken);
     }
@@ -76,7 +75,7 @@ internal sealed class WrappedCommandWithScope : ICommandCreator, IWrappedCommand
         return command.ExecuteQueryAnonymousAsync(proto, scopedContext.PrepareReadOptions(readOptions), cancellationToken);
     }
 
-    public IEnumerable ExecuteQueryFirstColumn()
+    public IEnumerable<object?> ExecuteQueryFirstColumn()
     {
         return command.ExecuteQueryFirstColumn();
     }
@@ -98,11 +97,20 @@ internal sealed class WrappedCommandWithScope : ICommandCreator, IWrappedCommand
 
     public void UseReader(Action<DbDataReader> action)
     {
+        ArgumentNullException.ThrowIfNull(action);
+
         using var reader = command.ExecuteReader();
         action(reader);
     }
 
-    public async Task UseReaderAsync(CancellationToken cancellationToken, Func<DbDataReader, Task> action)
+    public Task UseReaderAsync(CancellationToken cancellationToken, Func<DbDataReader, Task> action)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+
+        return UseReaderCoreAsync(cancellationToken, action);
+    }
+
+    private async Task UseReaderCoreAsync(CancellationToken cancellationToken, Func<DbDataReader, Task> action)
     {
         var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
         await using var readerScope = reader.ConfigureAwait(false);

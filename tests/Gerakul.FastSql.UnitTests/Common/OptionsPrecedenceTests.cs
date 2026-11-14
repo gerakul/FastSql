@@ -126,7 +126,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         private static void ShouldThrowUnmapped(Action act)
         {
-            act.Should().Throw<ArgumentException>().WithMessage("Not all parameters has been mapped on settings (Parameter 'parameters')");
+            act.Should().Throw<ArgumentException>().WithMessage("No field of * matches the parameter '*' (Parameter 'parameters')");
         }
 
         private ContextProvider ProviderFrom(bool defaultInstance)

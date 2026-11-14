@@ -49,8 +49,8 @@ internal static class Helpers
         return null;
     }
 
-    // a missing name (null) equals another missing name
-    internal static bool HasDuplicates(string?[] names, StringComparer comparer)
+    // true when a name is there more than once; a missing name (null) equals another missing name
+    internal static bool TryFindDuplicate(string?[] names, StringComparer comparer, out string? duplicate)
     {
         // a few names are compared with each other, which needs no memory
         if (names.Length <= 16)
@@ -61,24 +61,27 @@ internal static class Helpers
                 {
                     if (comparer.Equals(names[i], names[j]))
                     {
+                        duplicate = names[i];
                         return true;
                     }
                 }
             }
-
-            return false;
         }
-
-        var seen = new HashSet<string?>(names.Length, comparer);
-
-        foreach (var name in names)
+        else
         {
-            if (!seen.Add(name))
+            var seen = new HashSet<string?>(names.Length, comparer);
+
+            foreach (var name in names)
             {
-                return true;
+                if (!seen.Add(name))
+                {
+                    duplicate = name;
+                    return true;
+                }
             }
         }
 
+        duplicate = null;
         return false;
     }
 

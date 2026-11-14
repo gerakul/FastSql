@@ -209,8 +209,8 @@ namespace Gerakul.FastSql.UnitTests.Common
             Action before = () => NullInLastRow(5).CreateReader().ReadAll<NotNullable>().Count();
             Action after = () => WaitingAtTheThreshold(NullInLastRow(Rows).CreateReader().ReadAll<NotNullable>(), WaitForSetters<NotNullable>).Count();
 
-            before.Should().Throw<InvalidCastException>().WithMessage("Object cannot be cast from DBNull to other types.");
-            after.Should().Throw<InvalidCastException>().WithMessage("Object cannot be cast from DBNull to other types.");
+            before.Should().Throw<InvalidCastException>().WithMessage("Cannot read field '*' (*) into *: Object cannot be cast from DBNull to other types.");
+            after.Should().Throw<InvalidCastException>().WithMessage("Cannot read field '*' (*) into *: Object cannot be cast from DBNull to other types.");
         }
 
         public class NullableSource

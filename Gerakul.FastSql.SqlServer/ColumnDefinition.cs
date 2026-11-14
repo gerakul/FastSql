@@ -62,6 +62,10 @@ internal sealed class ColumnDefinition
         [typeof(decimal)] = "decimal",
         [typeof(Guid)] = "uniqueidentifier",
         [typeof(DateTime)] = "datetime2",
+        [typeof(DateTimeOffset)] = "datetimeoffset",
+        [typeof(DateOnly)] = "date",
+        [typeof(TimeOnly)] = "time",
+        [typeof(TimeSpan)] = "time",
         [typeof(string)] = "nvarchar",
         [typeof(byte[])] = "varbinary"
     };
@@ -88,7 +92,7 @@ internal sealed class ColumnDefinition
         return typeName switch
         {
             "decimal" => new ColumnDefinition(name, typeName, isPrimaryKey, 0, opt.Precision, opt.Scale, isNullable),
-            "datetime2" => new ColumnDefinition(name, typeName, isPrimaryKey, 0, 0, opt.DateTimeScale, isNullable),
+            "datetime2" or "datetimeoffset" or "time" => new ColumnDefinition(name, typeName, isPrimaryKey, 0, 0, opt.DateTimeScale, isNullable),
             "nvarchar" => new ColumnDefinition(name, typeName, isPrimaryKey, opt.StringMaxLength, 0, 0, isNullable),
             "varbinary" => new ColumnDefinition(name, typeName, isPrimaryKey, opt.BytesMaxLength, 0, 0, isNullable),
             _ => new ColumnDefinition(name, typeName, isPrimaryKey, 0, 0, 0, isNullable)

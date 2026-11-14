@@ -26,6 +26,7 @@ namespace Gerakul.FastSql.Common
         protected string[] fields;
         protected System.Data.Common.DbDataReader reader;
         protected BulkCopy(Gerakul.FastSql.Common.ScopedContext context, System.Data.Common.DbDataReader reader, string destinationTable, Gerakul.FastSql.Common.BulkOptions bulkOptions, params string[] fields) { }
+        protected void CheckFieldSelection(Gerakul.FastSql.Common.FieldsSelector fieldSelector, System.Collections.Generic.IReadOnlyCollection<string> sourceFields, System.Collections.Generic.IReadOnlyCollection<string> destinationFields, System.StringComparer comparer) { }
         protected void CheckFieldSelection(Gerakul.FastSql.Common.FieldsSelector fieldSelector, int sourceNum, int destinationNum, int commonNum) { }
         protected abstract void WriteToServer();
         protected abstract System.Threading.Tasks.Task WriteToServerAsync(System.Threading.CancellationToken cancellationToken = default);
@@ -122,22 +123,22 @@ namespace Gerakul.FastSql.Common
         public static Gerakul.FastSql.Common.IWrappedCommand CreateSimple(this Gerakul.FastSql.Common.ICommandCreator creator, Gerakul.FastSql.Common.QueryOptions? queryOptions, string commandText, params object?[] parameters) { }
         public static Gerakul.FastSql.Common.IWrappedCommand CreateUpdate<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, params string[] keyFields) { }
         public static Gerakul.FastSql.Common.IWrappedCommand CreateUpdate<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, Gerakul.FastSql.Common.QueryOptions? queryOptions, params string[] keyFields) { }
-        public static void Delete<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, params string[] keyFields) { }
-        public static void Delete<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, Gerakul.FastSql.Common.QueryOptions? queryOptions, params string[] keyFields) { }
-        public static System.Threading.Tasks.Task DeleteAsync<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, params string[] keyFields) { }
-        public static System.Threading.Tasks.Task DeleteAsync<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, Gerakul.FastSql.Common.QueryOptions? queryOptions, params string[] keyFields) { }
-        public static void Insert<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, params string[] ignoreFields) { }
-        public static void Insert<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, Gerakul.FastSql.Common.QueryOptions? queryOptions, params string[] ignoreFields) { }
-        public static System.Threading.Tasks.Task InsertAsync<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, params string[] ignoreFields) { }
-        public static System.Threading.Tasks.Task InsertAsync<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, Gerakul.FastSql.Common.QueryOptions? queryOptions, params string[] ignoreFields) { }
-        public static void Merge<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, params string[] keyFields) { }
-        public static void Merge<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, Gerakul.FastSql.Common.QueryOptions? queryOptions, params string[] keyFields) { }
-        public static System.Threading.Tasks.Task MergeAsync<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, params string[] keyFields) { }
-        public static System.Threading.Tasks.Task MergeAsync<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, Gerakul.FastSql.Common.QueryOptions? queryOptions, params string[] keyFields) { }
-        public static void Update<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, params string[] keyFields) { }
-        public static void Update<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, Gerakul.FastSql.Common.QueryOptions? queryOptions, params string[] keyFields) { }
-        public static System.Threading.Tasks.Task UpdateAsync<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, params string[] keyFields) { }
-        public static System.Threading.Tasks.Task UpdateAsync<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, Gerakul.FastSql.Common.QueryOptions? queryOptions, params string[] keyFields) { }
+        public static int Delete<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, params string[] keyFields) { }
+        public static int Delete<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, Gerakul.FastSql.Common.QueryOptions? queryOptions, params string[] keyFields) { }
+        public static System.Threading.Tasks.Task<int> DeleteAsync<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, params string[] keyFields) { }
+        public static System.Threading.Tasks.Task<int> DeleteAsync<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, Gerakul.FastSql.Common.QueryOptions? queryOptions, params string[] keyFields) { }
+        public static int Insert<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, params string[] ignoreFields) { }
+        public static int Insert<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, Gerakul.FastSql.Common.QueryOptions? queryOptions, params string[] ignoreFields) { }
+        public static System.Threading.Tasks.Task<int> InsertAsync<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, params string[] ignoreFields) { }
+        public static System.Threading.Tasks.Task<int> InsertAsync<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, Gerakul.FastSql.Common.QueryOptions? queryOptions, params string[] ignoreFields) { }
+        public static int Merge<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, params string[] keyFields) { }
+        public static int Merge<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, Gerakul.FastSql.Common.QueryOptions? queryOptions, params string[] keyFields) { }
+        public static System.Threading.Tasks.Task<int> MergeAsync<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, params string[] keyFields) { }
+        public static System.Threading.Tasks.Task<int> MergeAsync<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, Gerakul.FastSql.Common.QueryOptions? queryOptions, params string[] keyFields) { }
+        public static int Update<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, params string[] keyFields) { }
+        public static int Update<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, Gerakul.FastSql.Common.QueryOptions? queryOptions, params string[] keyFields) { }
+        public static System.Threading.Tasks.Task<int> UpdateAsync<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, params string[] keyFields) { }
+        public static System.Threading.Tasks.Task<int> UpdateAsync<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, Gerakul.FastSql.Common.QueryOptions? queryOptions, params string[] keyFields) { }
     }
     public abstract class ConnectionContext : Gerakul.FastSql.Common.ScopedContext
     {
@@ -145,8 +146,14 @@ namespace Gerakul.FastSql.Common
         public System.Data.Common.DbConnection Connection { get; }
         public void UsingTransaction(System.Action<Gerakul.FastSql.Common.TransactionContext> action) { }
         public void UsingTransaction(System.Data.IsolationLevel isolationLevel, System.Action<Gerakul.FastSql.Common.TransactionContext> action) { }
+        public TResult UsingTransaction<TResult>(System.Func<Gerakul.FastSql.Common.TransactionContext, TResult> func) { }
+        public TResult UsingTransaction<TResult>(System.Data.IsolationLevel isolationLevel, System.Func<Gerakul.FastSql.Common.TransactionContext, TResult> func) { }
         public System.Threading.Tasks.Task UsingTransactionAsync(System.Func<Gerakul.FastSql.Common.TransactionContext, System.Threading.Tasks.Task> action) { }
         public System.Threading.Tasks.Task UsingTransactionAsync(System.Data.IsolationLevel isolationLevel, System.Func<Gerakul.FastSql.Common.TransactionContext, System.Threading.Tasks.Task> action) { }
+        public System.Threading.Tasks.Task UsingTransactionAsync(System.Func<Gerakul.FastSql.Common.TransactionContext, System.Threading.Tasks.Task> action, System.Threading.CancellationToken cancellationToken) { }
+        public System.Threading.Tasks.Task UsingTransactionAsync(System.Data.IsolationLevel isolationLevel, System.Func<Gerakul.FastSql.Common.TransactionContext, System.Threading.Tasks.Task> action, System.Threading.CancellationToken cancellationToken) { }
+        public System.Threading.Tasks.Task<TResult> UsingTransactionAsync<TResult>(System.Func<Gerakul.FastSql.Common.TransactionContext, System.Threading.Tasks.Task<TResult>> func, System.Threading.CancellationToken cancellationToken = default) { }
+        public System.Threading.Tasks.Task<TResult> UsingTransactionAsync<TResult>(System.Data.IsolationLevel isolationLevel, System.Func<Gerakul.FastSql.Common.TransactionContext, System.Threading.Tasks.Task<TResult>> func, System.Threading.CancellationToken cancellationToken = default) { }
     }
     public abstract class ConnectionStringContext : Gerakul.FastSql.Common.DbContext
     {
@@ -154,11 +161,20 @@ namespace Gerakul.FastSql.Common
         public string ConnectionString { get; }
         protected abstract System.Data.Common.DbConnection CreateConnection();
         public void UsingConnection(System.Action<Gerakul.FastSql.Common.ConnectionContext> action) { }
+        public TResult UsingConnection<TResult>(System.Func<Gerakul.FastSql.Common.ConnectionContext, TResult> func) { }
         public System.Threading.Tasks.Task UsingConnectionAsync(System.Func<Gerakul.FastSql.Common.ConnectionContext, System.Threading.Tasks.Task> action) { }
+        public System.Threading.Tasks.Task UsingConnectionAsync(System.Func<Gerakul.FastSql.Common.ConnectionContext, System.Threading.Tasks.Task> action, System.Threading.CancellationToken cancellationToken) { }
+        public System.Threading.Tasks.Task<TResult> UsingConnectionAsync<TResult>(System.Func<Gerakul.FastSql.Common.ConnectionContext, System.Threading.Tasks.Task<TResult>> func, System.Threading.CancellationToken cancellationToken = default) { }
         public void UsingTransaction(System.Action<Gerakul.FastSql.Common.TransactionContext> action) { }
         public void UsingTransaction(System.Data.IsolationLevel isolationLevel, System.Action<Gerakul.FastSql.Common.TransactionContext> action) { }
+        public TResult UsingTransaction<TResult>(System.Func<Gerakul.FastSql.Common.TransactionContext, TResult> func) { }
+        public TResult UsingTransaction<TResult>(System.Data.IsolationLevel isolationLevel, System.Func<Gerakul.FastSql.Common.TransactionContext, TResult> func) { }
         public System.Threading.Tasks.Task UsingTransactionAsync(System.Func<Gerakul.FastSql.Common.TransactionContext, System.Threading.Tasks.Task> action) { }
         public System.Threading.Tasks.Task UsingTransactionAsync(System.Data.IsolationLevel isolationLevel, System.Func<Gerakul.FastSql.Common.TransactionContext, System.Threading.Tasks.Task> action) { }
+        public System.Threading.Tasks.Task UsingTransactionAsync(System.Func<Gerakul.FastSql.Common.TransactionContext, System.Threading.Tasks.Task> action, System.Threading.CancellationToken cancellationToken) { }
+        public System.Threading.Tasks.Task UsingTransactionAsync(System.Data.IsolationLevel isolationLevel, System.Func<Gerakul.FastSql.Common.TransactionContext, System.Threading.Tasks.Task> action, System.Threading.CancellationToken cancellationToken) { }
+        public System.Threading.Tasks.Task<TResult> UsingTransactionAsync<TResult>(System.Func<Gerakul.FastSql.Common.TransactionContext, System.Threading.Tasks.Task<TResult>> func, System.Threading.CancellationToken cancellationToken = default) { }
+        public System.Threading.Tasks.Task<TResult> UsingTransactionAsync<TResult>(System.Data.IsolationLevel isolationLevel, System.Func<Gerakul.FastSql.Common.TransactionContext, System.Threading.Tasks.Task<TResult>> func, System.Threading.CancellationToken cancellationToken = default) { }
     }
     public abstract class ContextProvider
     {
@@ -188,20 +204,16 @@ namespace Gerakul.FastSql.Common
     {
         public static System.Collections.Generic.IEnumerable<string> GetColumnNames(this System.Data.IDataReader reader) { }
         public static System.Collections.Generic.IEnumerable<object[]> ReadAll(this System.Data.IDataReader reader) { }
-        public static System.Collections.Generic.IEnumerable<T> ReadAll<T>(this System.Data.IDataReader reader)
-            where T : new() { }
-        public static System.Collections.Generic.IEnumerable<T> ReadAll<T>(this System.Data.IDataReader reader, Gerakul.FastSql.Common.ReadOptions? readOptions)
-            where T : new() { }
+        public static System.Collections.Generic.IEnumerable<T> ReadAll<T>(this System.Data.IDataReader reader) { }
+        public static System.Collections.Generic.IEnumerable<T> ReadAll<T>(this System.Data.IDataReader reader, Gerakul.FastSql.Common.ReadOptions? readOptions) { }
         public static System.Collections.Generic.IEnumerable<T> ReadAllAnonymous<T>(this System.Data.IDataReader reader, T proto) { }
         public static System.Collections.Generic.IEnumerable<T> ReadAllAnonymous<T>(this System.Data.IDataReader reader, T proto, Gerakul.FastSql.Common.ReadOptions? readOptions) { }
         public static System.Collections.Generic.IAsyncEnumerable<T> ReadAllAnonymousAsync<T>(this System.Data.IDataReader reader, T proto) { }
         public static System.Collections.Generic.IAsyncEnumerable<T> ReadAllAnonymousAsync<T>(this System.Data.IDataReader reader, T proto, Gerakul.FastSql.Common.ReadOptions? readOptions) { }
         public static System.Collections.Generic.IAsyncEnumerable<object[]> ReadAllAsync(this System.Data.IDataReader reader) { }
-        public static System.Collections.Generic.IAsyncEnumerable<T> ReadAllAsync<T>(this System.Data.IDataReader reader)
-            where T : new() { }
-        public static System.Collections.Generic.IAsyncEnumerable<T> ReadAllAsync<T>(this System.Data.IDataReader reader, Gerakul.FastSql.Common.ReadOptions? readOptions)
-            where T : new() { }
-        public static System.Collections.IEnumerable ReadAllFirstColumn(this System.Data.IDataReader reader) { }
+        public static System.Collections.Generic.IAsyncEnumerable<T> ReadAllAsync<T>(this System.Data.IDataReader reader) { }
+        public static System.Collections.Generic.IAsyncEnumerable<T> ReadAllAsync<T>(this System.Data.IDataReader reader, Gerakul.FastSql.Common.ReadOptions? readOptions) { }
+        public static System.Collections.Generic.IEnumerable<object?> ReadAllFirstColumn(this System.Data.IDataReader reader) { }
         public static System.Collections.Generic.IEnumerable<T> ReadAllFirstColumn<T>(this System.Data.IDataReader reader) { }
         public static System.Collections.Generic.IAsyncEnumerable<object?> ReadAllFirstColumnAsync(this System.Data.IDataReader reader) { }
         public static System.Collections.Generic.IAsyncEnumerable<T> ReadAllFirstColumnAsync<T>(this System.Data.IDataReader reader) { }
@@ -215,14 +227,12 @@ namespace Gerakul.FastSql.Common
     public static class DbCommandExtensions
     {
         public static System.Collections.Generic.IEnumerable<object[]> ExecuteQuery(this System.Data.Common.DbCommand cmd) { }
-        public static System.Collections.Generic.IEnumerable<T> ExecuteQuery<T>(this System.Data.Common.DbCommand cmd, Gerakul.FastSql.Common.ReadOptions? readOptions = null)
-            where T : new() { }
+        public static System.Collections.Generic.IEnumerable<T> ExecuteQuery<T>(this System.Data.Common.DbCommand cmd, Gerakul.FastSql.Common.ReadOptions? readOptions = null) { }
         public static System.Collections.Generic.IEnumerable<T> ExecuteQueryAnonymous<T>(this System.Data.Common.DbCommand cmd, T proto, Gerakul.FastSql.Common.ReadOptions? readOptions = null) { }
         public static System.Collections.Generic.IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(this System.Data.Common.DbCommand cmd, T proto, Gerakul.FastSql.Common.ReadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public static System.Collections.Generic.IAsyncEnumerable<object[]> ExecuteQueryAsync(this System.Data.Common.DbCommand cmd, System.Threading.CancellationToken cancellationToken = default) { }
-        public static System.Collections.Generic.IAsyncEnumerable<T> ExecuteQueryAsync<T>(this System.Data.Common.DbCommand cmd, Gerakul.FastSql.Common.ReadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default)
-            where T : new() { }
-        public static System.Collections.IEnumerable ExecuteQueryFirstColumn(this System.Data.Common.DbCommand cmd) { }
+        public static System.Collections.Generic.IAsyncEnumerable<T> ExecuteQueryAsync<T>(this System.Data.Common.DbCommand cmd, Gerakul.FastSql.Common.ReadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Collections.Generic.IEnumerable<object?> ExecuteQueryFirstColumn(this System.Data.Common.DbCommand cmd) { }
         public static System.Collections.Generic.IEnumerable<T> ExecuteQueryFirstColumn<T>(this System.Data.Common.DbCommand cmd) { }
         public static System.Collections.Generic.IAsyncEnumerable<object?> ExecuteQueryFirstColumnAsync(this System.Data.Common.DbCommand cmd, System.Threading.CancellationToken cancellationToken = default) { }
         public static System.Collections.Generic.IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(this System.Data.Common.DbCommand cmd, System.Threading.CancellationToken cancellationToken = default) { }
@@ -250,9 +260,13 @@ namespace Gerakul.FastSql.Common
         public static Gerakul.FastSql.Common.UniversalDataReader<T> ToDataReader<T>(this System.Collections.Generic.IEnumerable<T> values, System.Collections.Generic.IEnumerable<Gerakul.FastSql.Common.FieldSettings<T>> settings, bool caseSensitive = true) { }
         public static void WriteToServer<T>(this System.Collections.Generic.IEnumerable<T> values, Gerakul.FastSql.Common.DbContext context, string destinationTable, params string[] fields) { }
         public static void WriteToServer<T>(this System.Collections.Generic.IEnumerable<T> values, Gerakul.FastSql.Common.DbContext context, string destinationTable, Gerakul.FastSql.Common.BulkOptions? bulkOptions, params string[] fields) { }
+        public static System.Threading.Tasks.Task WriteToServerAsync<T>(this System.Collections.Generic.IAsyncEnumerable<T> values, Gerakul.FastSql.Common.DbContext context, string destinationTable, params string[] fields) { }
         public static System.Threading.Tasks.Task WriteToServerAsync<T>(this System.Collections.Generic.IEnumerable<T> values, Gerakul.FastSql.Common.DbContext context, string destinationTable, params string[] fields) { }
+        public static System.Threading.Tasks.Task WriteToServerAsync<T>(this System.Collections.Generic.IAsyncEnumerable<T> values, Gerakul.FastSql.Common.DbContext context, string destinationTable, Gerakul.FastSql.Common.BulkOptions? bulkOptions, params string[] fields) { }
+        public static System.Threading.Tasks.Task WriteToServerAsync<T>(this System.Collections.Generic.IAsyncEnumerable<T> values, Gerakul.FastSql.Common.DbContext context, string destinationTable, System.Threading.CancellationToken cancellationToken, params string[] fields) { }
         public static System.Threading.Tasks.Task WriteToServerAsync<T>(this System.Collections.Generic.IEnumerable<T> values, Gerakul.FastSql.Common.DbContext context, string destinationTable, Gerakul.FastSql.Common.BulkOptions? bulkOptions, params string[] fields) { }
         public static System.Threading.Tasks.Task WriteToServerAsync<T>(this System.Collections.Generic.IEnumerable<T> values, Gerakul.FastSql.Common.DbContext context, string destinationTable, System.Threading.CancellationToken cancellationToken, params string[] fields) { }
+        public static System.Threading.Tasks.Task WriteToServerAsync<T>(this System.Collections.Generic.IAsyncEnumerable<T> values, Gerakul.FastSql.Common.DbContext context, string destinationTable, Gerakul.FastSql.Common.BulkOptions? bulkOptions, System.Threading.CancellationToken cancellationToken, params string[] fields) { }
         public static System.Threading.Tasks.Task WriteToServerAsync<T>(this System.Collections.Generic.IEnumerable<T> values, Gerakul.FastSql.Common.DbContext context, string destinationTable, Gerakul.FastSql.Common.BulkOptions? bulkOptions, System.Threading.CancellationToken cancellationToken, params string[] fields) { }
     }
     public static class FieldSettings
@@ -306,14 +320,12 @@ namespace Gerakul.FastSql.Common
         int ExecuteNonQuery();
         System.Threading.Tasks.Task<int> ExecuteNonQueryAsync(System.Threading.CancellationToken cancellationToken = default);
         System.Collections.Generic.IEnumerable<object[]> ExecuteQuery();
-        System.Collections.Generic.IEnumerable<T> ExecuteQuery<T>(Gerakul.FastSql.Common.ReadOptions? readOptions = null)
-            where T : new();
+        System.Collections.Generic.IEnumerable<T> ExecuteQuery<T>(Gerakul.FastSql.Common.ReadOptions? readOptions = null);
         System.Collections.Generic.IEnumerable<T> ExecuteQueryAnonymous<T>(T proto, Gerakul.FastSql.Common.ReadOptions? readOptions = null);
         System.Collections.Generic.IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(T proto, Gerakul.FastSql.Common.ReadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default);
         System.Collections.Generic.IAsyncEnumerable<object[]> ExecuteQueryAsync(System.Threading.CancellationToken cancellationToken = default);
-        System.Collections.Generic.IAsyncEnumerable<T> ExecuteQueryAsync<T>(Gerakul.FastSql.Common.ReadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default)
-            where T : new();
-        System.Collections.IEnumerable ExecuteQueryFirstColumn();
+        System.Collections.Generic.IAsyncEnumerable<T> ExecuteQueryAsync<T>(Gerakul.FastSql.Common.ReadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default);
+        System.Collections.Generic.IEnumerable<object?> ExecuteQueryFirstColumn();
         System.Collections.Generic.IEnumerable<T> ExecuteQueryFirstColumn<T>();
         System.Collections.Generic.IAsyncEnumerable<object?> ExecuteQueryFirstColumnAsync(System.Threading.CancellationToken cancellationToken = default);
         System.Collections.Generic.IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(System.Threading.CancellationToken cancellationToken = default);
@@ -374,8 +386,7 @@ namespace Gerakul.FastSql.Common
         public override object this[int i] { get; }
         public override int RecordsAffected { get; }
         public System.Collections.ObjectModel.ReadOnlyCollection<Gerakul.FastSql.Common.FieldSettings<T>> Settings { get; }
-        public new void Close() { }
-        protected override void Dispose(bool disposing) { }
+        public override void Close() { }
         public override System.Threading.Tasks.ValueTask DisposeAsync() { }
         public override bool GetBoolean(int i) { }
         public override byte GetByte(int i) { }
@@ -405,6 +416,8 @@ namespace Gerakul.FastSql.Common
     }
     public static class WrappedCommandExtensions
     {
+        public static T ExecuteScalar<T>(this Gerakul.FastSql.Common.IWrappedCommand cmd) { }
+        public static System.Threading.Tasks.Task<T> ExecuteScalarAsync<T>(this Gerakul.FastSql.Common.IWrappedCommand cmd, System.Threading.CancellationToken cancellationToken = default) { }
         public static System.Threading.Tasks.Task UseReaderAsync(this Gerakul.FastSql.Common.IWrappedCommand cmd, System.Func<System.Data.Common.DbDataReader, System.Threading.Tasks.Task> action) { }
         public static void WriteToServer(this Gerakul.FastSql.Common.IWrappedCommand cmd, Gerakul.FastSql.Common.DbContext context, string destinationTable, params string[] fields) { }
         public static void WriteToServer(this Gerakul.FastSql.Common.IWrappedCommand cmd, Gerakul.FastSql.Common.DbContext context, string destinationTable, Gerakul.FastSql.Common.BulkOptions? bulkOptions, params string[] fields) { }

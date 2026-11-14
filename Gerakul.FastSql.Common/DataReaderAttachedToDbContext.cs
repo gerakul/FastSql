@@ -27,7 +27,7 @@ internal sealed class DataReaderAttachedToConnectionStringContext : IBulkWriter
 
     public async Task WriteToServerAsync(string destinationTable, BulkOptions? bulkOptions, CancellationToken cancellationToken, params string[] fields)
     {
-        await connectionStringContext.UsingConnectionAsync(async x =>
+        await connectionStringContext.UsingConnectionCoreAsync(async x =>
         {
             await reader.GetBulkWriter(x).WriteToServerAsync(destinationTable, bulkOptions, cancellationToken, fields).ConfigureAwait(false);
         }, cancellationToken).ConfigureAwait(false);

@@ -16,6 +16,8 @@ public class SimpleCommand
     internal SimpleCommand(ContextProvider contextProvider, string commandText,
         CommandType commandType = CommandType.Text)
     {
+        ArgumentNullException.ThrowIfNull(commandText);
+
         this.contextProvider = contextProvider;
         this.CommandText = commandText;
         this.CommandType = commandType;
@@ -25,9 +27,7 @@ public class SimpleCommand
     {
         if (scopedContext.ContextProvider != contextProvider)
         {
-            throw new ArgumentException($"{nameof(scopedContext.ContextProvider)} presented in received {nameof(ScopedContext)} does not match "
-                + $"stored in given {nameof(SimpleCommand)}",
-                nameof(scopedContext));
+            throw new ArgumentException(Messages.OtherProvider, nameof(scopedContext));
         }
 
         var cmd = scopedContext.CreateCommand(CommandText);

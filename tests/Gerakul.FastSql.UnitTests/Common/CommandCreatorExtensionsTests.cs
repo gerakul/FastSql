@@ -43,7 +43,7 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         private const int Timeout = 123;
-        private const string NotMappedMessage = "Not all parameters has been mapped on settings (Parameter 'parameters')";
+        private const string NotMappedMessage = "No field of * matches the parameter '*' (Parameter 'parameters')";
 
         private readonly ContextProvider provider;
         private readonly ICapturingContext context;
