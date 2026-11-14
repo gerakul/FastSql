@@ -9,18 +9,6 @@ public class ReadBenchmarks
 {
     private static readonly RowRecord recordProto = null!; // ReadAllAnonymous takes the type from it, not the value
 
-    private static readonly object anonymousProto = new
-    {
-        Id = 0,
-        Name = "",
-        Amount = 0m,
-        Created = default(DateTime),
-        Age = (int?)null,
-        Active = false,
-        Total = 0L,
-        Key = default(Guid)
-    };
-
     private object?[][] values = null!;
 
     [Params(1, 1000)]
@@ -97,7 +85,18 @@ public class ReadBenchmarks
     [Benchmark]
     public int ReadAllAnonymous_AnonymousType()
     {
-        return Count(TestData.CreateReader(values), anonymousProto);
+        // the prototype is created here, so that the method is called with the anonymous type, not with object
+        return Count(TestData.CreateReader(values), new
+        {
+            Id = 0,
+            Name = "",
+            Amount = 0m,
+            Created = default(DateTime),
+            Age = (int?)null,
+            Active = false,
+            Total = 0L,
+            Key = default(Guid)
+        });
     }
 
     private static int Count<T>(ArrayDataReader reader, T proto)
