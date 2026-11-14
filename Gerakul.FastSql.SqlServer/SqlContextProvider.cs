@@ -8,6 +8,10 @@ namespace Gerakul.FastSql.SqlServer;
 
 public partial class SqlContextProvider : ContextProvider
 {
+    // the largest sizes of nvarchar(n) and varbinary(n)
+    private const int MaxStringSize = 4000;
+    private const int MaxBinarySize = 8000;
+
     public static SqlContextProvider DefaultInstance { get; } = new SqlContextProvider();
 
     public SqlContextProvider()
@@ -40,7 +44,21 @@ public partial class SqlContextProvider : ContextProvider
 
     protected override DbParameter AddParamWithValue(DbCommand cmd, string paramName, object? value)
     {
-        return ((SqlCommand)cmd).Parameters.AddWithValue(paramName, value);
+        var parameter = ((SqlCommand)cmd).Parameters.AddWithValue(paramName, value);
+
+        // The driver declares a string as nvarchar(n) and an array as varbinary(n), n being the length of this value,
+        // so the server keeps a plan for every length a statement is run with. One declaration for all the values
+        // that fit in it gives one plan; a longer value is sent as max, as the driver does
+        if (value is string text)
+        {
+            parameter.Size = text.Length <= MaxStringSize ? MaxStringSize : -1;
+        }
+        else if (value is byte[] bytes)
+        {
+            parameter.Size = bytes.Length <= MaxBinarySize ? MaxBinarySize : -1;
+        }
+
+        return parameter;
     }
 
     protected override object GetDbNull(Type type)
