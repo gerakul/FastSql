@@ -11,16 +11,20 @@ public class UniversalDataReader<T> : DbDataReader
     private bool isClosed;
     private T curRow = default!;
     private readonly int fieldCount;
-    private readonly Func<T, object?>[] getters;
-    private readonly Func<T, bool>[] isNullGetters;
+    private Func<T, object?>[] getters;
+    private Func<T, bool>[] isNullGetters;
     private readonly string[] dataTypeNames;
     private readonly Type[] types;
     private readonly string[] names;
     private readonly Dictionary<string, int> ordinals;
 
     private readonly FieldSettings<T>[] settings;
+    private ReadOnlyCollection<FieldSettings<T>>? settingsCollection;
 
-    public ReadOnlyCollection<FieldSettings<T>> Settings => new ReadOnlyCollection<FieldSettings<T>>(settings);
+    // set when the settings are the ones FastSql keeps for the type, until their getters are the compiled ones
+    private WriteMembers<T>? typeMembers;
+
+    public ReadOnlyCollection<FieldSettings<T>> Settings => settingsCollection ??= new ReadOnlyCollection<FieldSettings<T>>(settings);
 
     private UniversalDataReader(IEnumerable<FieldSettings<T>> settings, bool caseSensitive)
     {
@@ -56,6 +60,41 @@ public class UniversalDataReader<T> : DbDataReader
        : this(settings, caseSensitive)
     {
         this.asyncEnumerator = values.GetAsyncEnumerator();
+    }
+
+    // With the settings FastSql keeps for the type. Their getters go through reflection until many rows of the
+    // type have been written; this reader counts its rows for that and takes the compiled getters when they are there
+    internal UniversalDataReader(IEnumerable<T> values, WriteMembers<T> typeMembers, bool caseSensitive)
+      : this(values, typeMembers.Settings, caseSensitive)
+    {
+        this.typeMembers = typeMembers.IsFast ? null : typeMembers;
+    }
+
+    internal UniversalDataReader(IAsyncEnumerable<T> values, WriteMembers<T> typeMembers, bool caseSensitive)
+       : this(values, typeMembers.Settings, caseSensitive)
+    {
+        this.typeMembers = typeMembers.IsFast ? null : typeMembers;
+    }
+
+    private void CountRow()
+    {
+        if (typeMembers != null && typeMembers.CountRow())
+        {
+            // the same members in the same order, with compiled getters
+            var fastSettings = typeMembers.Settings;
+            var fastGetters = new Func<T, object?>[fieldCount];
+            var fastIsNullGetters = new Func<T, bool>[fieldCount];
+
+            for (int i = 0; i < fieldCount; i++)
+            {
+                fastGetters[i] = fastSettings[i].Getter;
+                fastIsNullGetters[i] = fastSettings[i].IsNullGetter;
+            }
+
+            getters = fastGetters;
+            isNullGetters = fastIsNullGetters;
+            typeMembers = null;
+        }
     }
 
     #region DbDataReader
@@ -126,6 +165,7 @@ public class UniversalDataReader<T> : DbDataReader
             if (move.IsCompletedSuccessfully ? move.Result : move.AsTask().GetAwaiter().GetResult())
             {
                 curRow = asyncEnumerator.Current;
+                CountRow();
                 return true;
             }
         }
@@ -134,6 +174,7 @@ public class UniversalDataReader<T> : DbDataReader
             if (enumerator!.MoveNext())
             {
                 curRow = enumerator.Current;
+                CountRow();
                 return true;
             }
         }
@@ -156,6 +197,7 @@ public class UniversalDataReader<T> : DbDataReader
             if (await asyncEnumerator.MoveNextAsync().ConfigureAwait(false))
             {
                 curRow = asyncEnumerator.Current;
+                CountRow();
                 return true;
             }
         }
@@ -164,6 +206,7 @@ public class UniversalDataReader<T> : DbDataReader
             if (enumerator!.MoveNext())
             {
                 curRow = enumerator.Current;
+                CountRow();
                 return true;
             }
         }

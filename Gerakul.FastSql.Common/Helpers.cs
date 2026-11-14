@@ -49,6 +49,40 @@ internal static class Helpers
         return null;
     }
 
+    // a missing name (null) equals another missing name
+    internal static bool HasDuplicates(string?[] names, StringComparer comparer)
+    {
+        // a few names are compared with each other, which needs no memory
+        if (names.Length <= 16)
+        {
+            for (int i = 1; i < names.Length; i++)
+            {
+                for (int j = 0; j < i; j++)
+                {
+                    if (comparer.Equals(names[i], names[j]))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        var seen = new HashSet<string?>(names.Length, comparer);
+
+        foreach (var name in names)
+        {
+            if (!seen.Add(name))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // the members of a type are found once and kept: see TypeMembers
     internal static void GetMembers(Type type, FromTypeOption fromTypeOption, bool forReading, out FieldInfo[] fields, out PropertyInfo[] properties)
     {
         var allFields = type.GetFields(BindingFlags.Instance | BindingFlags.Public);

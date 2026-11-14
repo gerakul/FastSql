@@ -40,7 +40,7 @@ public static partial class CommandCreatorExtensions
         return creator.Set(x =>
         {
             var o = x.PrepareQueryOptions(queryOptions);
-            return x.CommandCompilator.CompileMapped<T>(commandText, fromTypeOption, o.CaseSensitiveParamsMatching!.Value).Create(x, value, o);
+            return x.CommandCompilator.CompileMapped<T>(commandText, fromTypeOption, o.CaseSensitiveParamsMatching!.Value).CreatePrepared(x, value, o);
         });
     }
 
@@ -54,7 +54,7 @@ public static partial class CommandCreatorExtensions
         return creator.Set(x =>
         {
             var o = x.PrepareQueryOptions(queryOptions);
-            return x.CommandCompilator.CompileMapped<T>(commandText, paramNames, fromTypeOption, o.CaseSensitiveParamsMatching!.Value).Create(x, value, o);
+            return x.CommandCompilator.CompileMapped<T>(commandText, paramNames, fromTypeOption, o.CaseSensitiveParamsMatching!.Value).CreatePrepared(x, value, o);
         });
     }
 
@@ -63,7 +63,7 @@ public static partial class CommandCreatorExtensions
         return creator.Set(x =>
         {
             var o = x.PrepareQueryOptions(queryOptions);
-            return x.CommandCompilator.CompileMapped(commandText, settings, o.CaseSensitiveParamsMatching!.Value).Create(x, value, o);
+            return x.CommandCompilator.CompileMapped(commandText, settings, o.CaseSensitiveParamsMatching!.Value).CreatePrepared(x, value, o);
         });
     }
 
@@ -72,7 +72,7 @@ public static partial class CommandCreatorExtensions
         return creator.Set(x =>
         {
             var o = x.PrepareQueryOptions(queryOptions);
-            return x.CommandCompilator.CompileMapped(commandText, paramNames, settings, o.CaseSensitiveParamsMatching!.Value).Create(x, value, o);
+            return x.CommandCompilator.CompileMapped(commandText, paramNames, settings, o.CaseSensitiveParamsMatching!.Value).CreatePrepared(x, value, o);
         });
     }
 
@@ -81,7 +81,7 @@ public static partial class CommandCreatorExtensions
         return creator.Set(x =>
         {
             var o = x.PrepareQueryOptions(queryOptions);
-            return x.CommandCompilator.CompileProcedure<T>(name, fromTypeOption, o.CaseSensitiveParamsMatching!.Value).Create(x, value, o);
+            return x.CommandCompilator.CompileProcedure<T>(name, fromTypeOption, o.CaseSensitiveParamsMatching!.Value).CreatePrepared(x, value, o);
         });
     }
 
@@ -90,7 +90,7 @@ public static partial class CommandCreatorExtensions
         return creator.Set(x =>
         {
             var o = x.PrepareQueryOptions(queryOptions);
-            return x.CommandCompilator.CompileProcedure<T>(name, paramNames, fromTypeOption, o.CaseSensitiveParamsMatching!.Value).Create(x, value, o);
+            return x.CommandCompilator.CompileProcedure<T>(name, paramNames, fromTypeOption, o.CaseSensitiveParamsMatching!.Value).CreatePrepared(x, value, o);
         });
     }
 
@@ -99,7 +99,7 @@ public static partial class CommandCreatorExtensions
         return creator.Set(x =>
         {
             var o = x.PrepareQueryOptions(queryOptions);
-            return x.CommandCompilator.CompileProcedure(name, settings, o.CaseSensitiveParamsMatching!.Value).Create(x, value, o);
+            return x.CommandCompilator.CompileProcedure(name, settings, o.CaseSensitiveParamsMatching!.Value).CreatePrepared(x, value, o);
         });
     }
 
@@ -108,7 +108,7 @@ public static partial class CommandCreatorExtensions
         return creator.Set(x =>
         {
             var o = x.PrepareQueryOptions(queryOptions);
-            return x.CommandCompilator.CompileProcedure(name, paramNames, settings, o.CaseSensitiveParamsMatching!.Value).Create(x, value, o);
+            return x.CommandCompilator.CompileProcedure(name, paramNames, settings, o.CaseSensitiveParamsMatching!.Value).CreatePrepared(x, value, o);
         });
     }
 
@@ -139,7 +139,7 @@ public static partial class CommandCreatorExtensions
 
     public static IWrappedCommand CreateInsertWithOutput<T>(this ICommandCreator creator, string tableName, T value, QueryOptions? queryOptions, IList<string>? ignoreFields, params string[] outputFields)
     {
-        return creator.Set(x => x.CommandCompilator.CompileInsertWithOutput<T>(tableName, FieldSettings.FromType<T>(FromTypeOption.Default), ignoreFields, outputFields).Create(x, value, queryOptions));
+        return creator.Set(x => x.CommandCompilator.CompileInsertWithOutput<T>(tableName, FromTypeOption.Default, ignoreFields, outputFields).Create(x, value, queryOptions));
     }
 
     public static IWrappedCommand CreateUpdate<T>(this ICommandCreator creator, string tableName, T value, params string[] keyFields)

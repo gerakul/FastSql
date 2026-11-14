@@ -410,6 +410,44 @@ namespace Gerakul.FastSql.UnitTests.Common
                 "PropB:String:String:True");
         }
 
+        // the settings of a type are built once and kept; every caller gets an array of its own
+        [Fact]
+        public void FromType_CalledTwice_ReturnsNewArraysWithTheSameSettings()
+        {
+            var first = FieldSettings.FromType<Mixed>();
+            var second = FieldSettings.FromType<Mixed>();
+            var withProto = FieldSettings.FromType(new Mixed());
+            var fieldsOnly = FieldSettings.FromType<Mixed>(FromTypeOption.PublicField);
+
+            second.Should().NotBeSameAs(first);
+            second.Should().Equal(first, (x, y) => ReferenceEquals(x, y));
+            withProto.Should().Equal(first, (x, y) => ReferenceEquals(x, y));
+
+            // every FromTypeOption has settings of its own
+            Describe(fieldsOnly).Should().Equal(Describe(new[] { first[0], first[1] }));
+        }
+
+        [Fact]
+        public void FromType_ArrayChangedByTheCaller_DoesNotChangeLaterResults()
+        {
+            var changed = FieldSettings.FromType<Mixed>();
+            changed[0] = new FieldSettings<Mixed>("Replaced", typeof(int), x => 0);
+            Array.Reverse(changed);
+
+            FieldSettings.FromType<Mixed>().GetNames().Should().Equal("FieldA", "FieldB", "PropA", "PropB");
+            FieldSettings.GetFields<Mixed>().Should().Equal("FieldA", "FieldB", "PropA", "PropB");
+            new[] { new Mixed() }.ToDataReader().GetName(0).Should().Be("FieldA");
+        }
+
+        [Fact]
+        public void GetFields_ReturnsANewArrayEveryTime()
+        {
+            var first = FieldSettings.GetFields<Mixed>();
+            first[0] = "Changed";
+
+            FieldSettings.GetFields<Mixed>().Should().Equal("FieldA", "FieldB", "PropA", "PropB");
+        }
+
         [Fact]
         public void FromType_Getters_ReadCurrentMemberValues()
         {
@@ -557,14 +595,15 @@ namespace Gerakul.FastSql.UnitTests.Common
             settings.Select(x => x.Getter(item)).Should().Equal(1, 2);
         }
 
+        // until phase 4 every call built new settings; now they are built once per type and option
         [Fact]
-        public void FromType_EachCall_ReturnsNewInstances()
+        public void FromType_EachCall_ReturnsANewArrayOfTheSettingsKeptForTheType()
         {
             var first = FieldSettings.FromType<Item>();
             var second = FieldSettings.FromType<Item>();
 
             second.Should().NotBeSameAs(first);
-            second[0].Should().NotBeSameAs(first[0]);
+            second[0].Should().BeSameAs(first[0]);
         }
 
         [Fact]
