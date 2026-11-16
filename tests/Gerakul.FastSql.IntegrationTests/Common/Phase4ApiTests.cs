@@ -262,6 +262,50 @@ namespace Gerakul.FastSql.IntegrationTests.Common
             ReadPersons(table).Should().BeEmpty();
         }
 
+        // An async lambda binds to the sync overloads with a result. The scope would end at its first await, so the
+        // result is refused: the transaction is rolled back, and the message names the async method
+        [Fact]
+        public void UsingTransaction_AsyncDelegate_ThrowsAndRollsBack()
+        {
+            var table = CreatePersonTable();
+
+            Action fromString = () => Context.UsingTransaction(async t =>
+            {
+                t.Insert(table, new Person() { ID = 1, GroupID = 1, Name = "Alice" });
+                await Task.Yield();
+                return 1;
+            });
+            Action fromConnection = () => Context.UsingConnection(c => c.UsingTransaction(async t =>
+            {
+                t.Insert(table, new Person() { ID = 2, GroupID = 1, Name = "Bob" });
+                await Task.Yield();
+            }));
+            Action valueTask = () => Context.UsingTransaction(t =>
+            {
+                t.Insert(table, new Person() { ID = 3, GroupID = 1, Name = "Carol" });
+                return new ValueTask<int>(1);
+            });
+
+            fromString.Should().Throw<InvalidOperationException>().WithMessage("UsingTransaction cannot run a delegate that returns a task*Use UsingTransactionAsync*");
+            fromConnection.Should().Throw<InvalidOperationException>().WithMessage("UsingTransaction cannot run a delegate that returns a task*");
+            valueTask.Should().Throw<InvalidOperationException>().WithMessage("UsingTransaction cannot run a delegate that returns a task*");
+            ReadPersons(table).Should().BeEmpty();
+        }
+
+        [Fact]
+        public void UsingConnection_AsyncDelegate_Throws()
+        {
+            Action asyncLambda = () => Context.UsingConnection(async c =>
+            {
+                await Task.Yield();
+                return (int)c.Connection.State;
+            });
+            Action returnsATask = () => Context.UsingConnection(c => c.CreateSimple("select 1").ExecuteScalarAsync(Token));
+
+            asyncLambda.Should().Throw<InvalidOperationException>().WithMessage("UsingConnection cannot run a delegate that returns a task*Use UsingConnectionAsync*");
+            returnsATask.Should().Throw<InvalidOperationException>().WithMessage("UsingConnection cannot run a delegate that returns a task*");
+        }
+
         [Fact]
         public async Task UsingConnectionAsync_CancelledToken_DoesNotRunTheActionAsync()
         {

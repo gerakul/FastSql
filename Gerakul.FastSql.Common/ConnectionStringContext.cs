@@ -35,14 +35,17 @@ public abstract class ConnectionStringContext : DbContext
     }
 
     // The connection is closed when the function returns. A query that is returned must have been read
-    // (ToArray, ToList): enumerating it later fails, because its connection is closed
+    // (ToArray, ToList; an async one, ExecuteQueryAsync, too): enumerating it later fails, because its connection
+    // is closed. A function that returns a task is refused (see Helpers)
     public TResult UsingConnection<TResult>(Func<ConnectionContext, TResult> func)
     {
         ArgumentNullException.ThrowIfNull(func);
 
         using var conn = CreateConnection();
         conn.Open();
-        return func(ContextProvider.GetConnectionContext(conn, QueryOptions, BulkOptions, ReadOptions));
+        var result = func(ContextProvider.GetConnectionContext(conn, QueryOptions, BulkOptions, ReadOptions));
+        Helpers.ThrowIfAsyncResult(result, nameof(UsingConnection), "the connection would be closed");
+        return result;
     }
 
     public Task UsingConnectionAsync(Func<ConnectionContext, Task> action)

@@ -35,7 +35,8 @@ public abstract class ConnectionContext : ScopedContext
     }
 
     // The transaction is committed when the function returns and rolled back when it throws. A query that is
-    // returned must have been read (ToArray, ToList): after the commit its command cannot be used anymore
+    // returned must have been read (ToArray, ToList; an async one, ExecuteQueryAsync, too): after the commit its
+    // command cannot be used anymore. A function that returns a task is refused and rolled back (see Helpers)
     public TResult UsingTransaction<TResult>(IsolationLevel isolationLevel, Func<TransactionContext, TResult> func)
     {
         ArgumentNullException.ThrowIfNull(func);
@@ -46,6 +47,7 @@ public abstract class ConnectionContext : ScopedContext
         try
         {
             result = func(ContextProvider.GetTransactionContext(tran, QueryOptions, BulkOptions, ReadOptions));
+            Helpers.ThrowIfAsyncResult(result, nameof(UsingTransaction), "the transaction would be committed");
         }
         catch
         {

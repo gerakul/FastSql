@@ -581,6 +581,7 @@ Found by the bug analysis of phase 2 ([bug-report.md](bug-report.md)), and all f
 | Q127 | `IWrappedCommand.WriteToServerAsync` ran the source query without the token, SQL Server `CreateTable` and the column lookups of both bulk copies ignored it, and connection string contexts opened the copy's connection without it. | I9 | fixed in phase 2 | – (code review) |
 | Q128 | SQL Server `CreateTable`: a reader that reports `IsKey = false` (opened with `KeyInfo`) overrode `ColumnDefinitionOptions.PrimaryKey`. | I9 | fixed in phase 2 | `SqlServerBulkCopyOptionsTests` |
 | Q129 | `UniversalDataReader.GetOrdinal` and the name indexer threw `KeyNotFoundException` for an unknown name instead of `IndexOutOfRangeException`; `SqlBulkCopy` now reports it as its own column mapping error. | U6, I9 | fixed in phase 2 | `UniversalDataReaderTests`, `ToDataReaderTests`, `SqlServerBulkCopyOptionsTests`, `PostgreSqlBulkCopyTests` |
+| Q130 | SQL Server `CreateTable` compares the field list with the names of the source case-sensitively, while the matching of names elsewhere ignores case by default: a field list `id` against a source field `ID` cannot create the table. Since phase 4 the message says so, and names a field listed twice (I8). | I9 | confirmed | `SqlServerBulkCopyOptionsTests`, `SqlCreateTableMessageTests` |
 
 Observed but not pinned: a failed async SQL Server bulk copy (a client-side null check failing in the
 middle of the copy) once returned its pooled connection in the middle of the bulk load, and the next
