@@ -74,27 +74,50 @@ internal sealed class NameLookup
 internal sealed class ReadMember
 {
     private readonly ValueSource source;
+    private readonly FieldInfo? field;
+    private readonly PropertyInfo? property;
 
     public MemberInfo Member { get; }
     public string Name => Member.Name;
 
-    // goes through reflection until the type has been read a lot, then it is compiled (see ReadMembers.CountRow)
-    public Action<object, object?> Setter;
+    // the compiled setter, once the type has been read a lot (see ReadMembers.CountRow); null until then, and for
+    // a member whose setter can't be compiled
+    public Action<object, object?>? Compiled;
 
     public ReadMember(FieldInfo field)
     {
         this.Member = field;
+        this.field = field;
         this.source = ValueSource.For(-1, field.FieldType);
-        this.Setter = field.SetValue;
     }
 
     public ReadMember(PropertyInfo property)
     {
         this.Member = property;
+        this.property = property;
         this.source = ValueSource.For(-1, property.PropertyType);
+    }
 
-        // an exception of the setter reaches the caller as it is, not inside a TargetInvocationException
-        this.Setter = (obj, value) => property.SetValue(obj, value, BindingFlags.DoNotWrapExceptions, null, null, null);
+    // Reflection is called here directly, not through a delegate: on the first rows of a type, before the code is
+    // optimized, one more delegate per value made reading slower than calling reflection the way FastSql always did
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public void SetValue(object obj, object? value)
+    {
+        var compiled = Compiled;
+
+        if (compiled != null)
+        {
+            compiled(obj, value);
+        }
+        else if (property != null)
+        {
+            // an exception of the setter reaches the caller as it is, not inside a TargetInvocationException
+            property.SetValue(obj, value, BindingFlags.DoNotWrapExceptions, null, null, null);
+        }
+        else
+        {
+            field!.SetValue(obj, value);
+        }
     }
 
     public ValueSource SourceAt(int ordinal)
@@ -129,6 +152,7 @@ internal sealed class ReadMembers
 
     // Called for every row that is read into the type. When several threads read the type the count is not
     // exact, which only moves the moment the setters are compiled
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void CountRow()
     {
         if (rowsUntilFast > 0 && --rowsUntilFast == 0 && !fast)
@@ -138,7 +162,7 @@ internal sealed class ReadMembers
             {
                 foreach (var member in All)
                 {
-                    member.Setter = FastAccessors.CompileSetter(type, member.Member) ?? member.Setter;
+                    member.Compiled = FastAccessors.CompileSetter(type, member.Member);
                 }
             });
         }
@@ -165,8 +189,8 @@ internal sealed class ConstructorMembers
     public ReadParameter[] Parameters { get; }
     public NameLookup Names { get; }
 
-    // goes through reflection until the type has been read a lot, then it is compiled (see CountRow)
-    public Func<object?[], object> Create;
+    // the compiled constructor, once the type has been read a lot (see CountRow); null until then
+    public Func<object?[], object>? Compiled;
 
     // the compile of the constructor, from the moment the threshold is reached
     public Task? Compiling { get; private set; }
@@ -179,18 +203,26 @@ internal sealed class ConstructorMembers
         this.Parameters = constructor == null ? []
             : constructor.GetParameters().Select(x => new ReadParameter(x.Name, x.Position, ValueSource.For(-1, x.ParameterType))).ToArray();
         this.Names = new NameLookup(this.Parameters.Select(x => x.Name).ToArray());
+    }
+
+    // as ReadMember.SetValue: reflection directly until the constructor is compiled
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public object Create(object?[] args)
+    {
+        var compiled = Compiled;
 
         // an exception of the constructor reaches the caller as it is, not inside a TargetInvocationException
-        this.Create = args => constructor!.Invoke(BindingFlags.DoNotWrapExceptions, null, args, null);
+        return compiled != null ? compiled(args) : Constructor!.Invoke(BindingFlags.DoNotWrapExceptions, null, args, null);
     }
 
     // as ReadMembers.CountRow
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void CountRow()
     {
         if (rowsUntilFast > 0 && --rowsUntilFast == 0 && !fast)
         {
             fast = true;
-            Compiling = FastAccessors.InBackground(() => Create = FastAccessors.CompileConstructor(Constructor!) ?? Create);
+            Compiling = FastAccessors.InBackground(() => Compiled = FastAccessors.CompileConstructor(Constructor!));
         }
     }
 }

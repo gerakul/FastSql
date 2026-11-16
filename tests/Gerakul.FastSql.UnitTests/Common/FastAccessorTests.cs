@@ -559,8 +559,9 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         private static bool IsCompiled(Delegate accessor)
         {
-            // a delegate compiled from an expression tree has a closure of the expression compiler as its target
-            return accessor.Target?.GetType().FullName == "System.Runtime.CompilerServices.Closure";
+            // a delegate compiled from an expression tree has a closure of the expression compiler as its target;
+            // null is reflection
+            return accessor?.Target?.GetType().FullName == "System.Runtime.CompilerServices.Closure";
         }
 
         private static Type TypeMembers<T>()
@@ -575,13 +576,13 @@ namespace Gerakul.FastSql.UnitTests.Common
 
             return all.Cast<object>().ToDictionary(
                 x => (string)x.GetType().GetProperty("Name").GetValue(x),
-                x => (Delegate)x.GetType().GetField("Setter").GetValue(x));
+                x => (Delegate)x.GetType().GetField("Compiled").GetValue(x));
         }
 
         private static Delegate Constructor<T>()
         {
             var constructor = TypeMembers<T>().GetProperty("Constructor").GetValue(null);
-            return (Delegate)constructor.GetType().GetField("Create").GetValue(constructor);
+            return (Delegate)constructor.GetType().GetField("Compiled").GetValue(constructor);
         }
 
         // The accessors of a type are compiled on the thread pool once it reaches the threshold, and reflection goes

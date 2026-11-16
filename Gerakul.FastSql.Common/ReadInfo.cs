@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 
 namespace Gerakul.FastSql.Common;
 
@@ -223,6 +224,10 @@ internal sealed class ReadInfoByType<T> : ReadInfo<T> where T : new()
     public required ReadMembers members;
     public required (ReadMember Member, ValueSource Source)[] values;
 
+    // Optimized from the first call, as the other code that runs for every row: the first reads of a type in a new
+    // process run before the runtime optimizes the code, and unoptimized calls made them slower than before the
+    // members were kept per type
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public override T GetValue()
     {
         // boxed once, so the members of a struct are set on the instance that is returned
@@ -230,7 +235,7 @@ internal sealed class ReadInfoByType<T> : ReadInfo<T> where T : new()
 
         for (int i = 0; i < values.Length; i++)
         {
-            values[i].Member.Setter(obj, GetValueFromReader(in values[i].Source));
+            values[i].Member.SetValue(obj, GetValueFromReader(in values[i].Source));
         }
 
         members.CountRow();
@@ -256,6 +261,7 @@ internal sealed class ReadInfoAnonymous<T> : ReadInfo<T>
     public required ConstructorMembers constructor;
     public required (int Position, ValueSource Source)[] parameters;
 
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public override T GetValue()
     {
         // a parameter without a reader field gets null, which is the default value for a value type
