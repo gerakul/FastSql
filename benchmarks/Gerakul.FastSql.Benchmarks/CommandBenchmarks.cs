@@ -8,33 +8,48 @@ using Npgsql;
 namespace Gerakul.FastSql.Benchmarks;
 
 // Command creation: everything up to the DbCommand with its parameters. Nothing is executed, so the
-// connections are never opened
+// connections are never opened. Validation checks the commands the benchmarks create
 [MemoryDiagnoser]
 public class CommandBenchmarks
 {
-    private const string Text = "select * from Employee where CompanyID = @Id and Age > @Age and Name like @Name";
+    internal const string Text = "select * from Employee where CompanyID = @Id and Age > @Age and Name like @Name";
 
-    private readonly Row row = TestData.CreateRows(2)[1];
+    // a null Age, so the commands carry a DBNull parameter, as real rows often do
+    internal readonly Row row = TestData.CreateRows(4)[3];
 
+    private SqlConnection sqlConnection = null!;
     private ConnectionContext sqlContext = null!;
     private ConnectionContext npgsqlContext = null!;
     private MappedCommand<Row> precompiledInsert = null!;
     private MappedCommand<Row> precompiledMapped = null!;
 
+    // what the commands are created on: the contexts, or for Validation creators that keep the command
+    private ICommandCreator sql = null!;
+    private ICommandCreator npgsql = null!;
+
     [GlobalSetup]
     public void Setup()
     {
-        sqlContext = SqlContextProvider.DefaultInstance.CreateContext(new SqlConnection());
+        sqlConnection = new SqlConnection();
+        sqlContext = SqlContextProvider.DefaultInstance.CreateContext(sqlConnection);
         npgsqlContext = NpgsqlContextProvider.DefaultInstance.CreateContext(new NpgsqlConnection());
         precompiledInsert = sqlContext.CommandCompilator.CompileInsert<Row>("Employee", "Id");
         precompiledMapped = sqlContext.CommandCompilator.CompileMapped<Row>(Text);
+        sql = sqlContext;
+        npgsql = npgsqlContext;
     }
 
-    // the floor: the same command written by hand
-    [Benchmark(Baseline = true)]
-    public int AdoNet_Insert()
+    internal void UseCreators(Func<ScopedContext, ICommandCreator> creatorFor)
     {
-        var cmd = new SqlCommand(precompiledInsert.CommandText);
+        sql = creatorFor(sqlContext);
+        npgsql = creatorFor(npgsqlContext);
+    }
+
+    // the floor: the command of CreateInsert written by hand, on the same connection
+    [Benchmark(Baseline = true)]
+    public SqlCommand AdoNet_Insert()
+    {
+        var cmd = new SqlCommand(precompiledInsert.CommandText, sqlConnection);
         cmd.Parameters.AddWithValue("Name", row.Name);
         cmd.Parameters.AddWithValue("Amount", row.Amount);
         cmd.Parameters.AddWithValue("Created", row.Created);
@@ -42,73 +57,73 @@ public class CommandBenchmarks
         cmd.Parameters.AddWithValue("Active", row.Active);
         cmd.Parameters.AddWithValue("Total", row.Total);
         cmd.Parameters.AddWithValue("Key", row.Key);
-        return cmd.Parameters.Count;
+        return cmd;
     }
 
     [Benchmark]
     public IWrappedCommand CreateInsert()
     {
-        return sqlContext.CreateInsert("Employee", row, "Id");
+        return sql.CreateInsert("Employee", row, "Id");
     }
 
     [Benchmark]
     public IWrappedCommand CreateInsert_Precompiled()
     {
-        return sqlContext.CreateMapped(precompiledInsert, row);
+        return sql.CreateMapped(precompiledInsert, row);
     }
 
     [Benchmark]
     public IWrappedCommand CreateUpdate()
     {
-        return sqlContext.CreateUpdate("Employee", row, "Id");
+        return sql.CreateUpdate("Employee", row, "Id");
     }
 
     [Benchmark]
     public IWrappedCommand CreateDelete()
     {
-        return sqlContext.CreateDelete("Employee", row, "Id");
+        return sql.CreateDelete("Employee", row, "Id");
     }
 
     [Benchmark]
     public IWrappedCommand CreateMerge()
     {
-        return sqlContext.CreateMerge("Employee", row, "Id");
+        return sql.CreateMerge("Employee", row, "Id");
     }
 
     [Benchmark]
     public IWrappedCommand CreateMapped_Text()
     {
-        return sqlContext.CreateMapped(Text, row);
+        return sql.CreateMapped(Text, row);
     }
 
     [Benchmark]
     public IWrappedCommand CreateMapped_Text_AnonymousType()
     {
-        return sqlContext.CreateMapped(Text, new { row.Id, row.Age, row.Name });
+        return sql.CreateMapped(Text, new { row.Id, row.Age, row.Name });
     }
 
     [Benchmark]
     public IWrappedCommand CreateMapped_Precompiled()
     {
-        return sqlContext.CreateMapped(precompiledMapped, row);
+        return sql.CreateMapped(precompiledMapped, row);
     }
 
     [Benchmark]
     public IWrappedCommand CreateMapped_Text_PostgreSql()
     {
-        return npgsqlContext.CreateMapped(Text, row);
+        return npgsql.CreateMapped(Text, row);
     }
 
     [Benchmark]
     public IWrappedCommand CreateProcedure()
     {
-        return sqlContext.CreateProcedure("SaveEmployee", row);
+        return sql.CreateProcedure("SaveEmployee", row);
     }
 
     [Benchmark]
     public IWrappedCommand CreateSimple()
     {
-        return sqlContext.CreateSimple("select * from Employee where CompanyID = @p0 and Age > @p1 and Name like @p2", 1, 40, "A%");
+        return sql.CreateSimple("select * from Employee where CompanyID = @p0 and Age > @p1 and Name like @p2", 1, 40, "A%");
     }
 
     [Benchmark]

@@ -4,7 +4,8 @@ using Gerakul.FastSql.Common;
 namespace Gerakul.FastSql.Benchmarks;
 
 // Writing: the source of a bulk copy. SqlBulkCopy and the PostgreSQL copy read every cell with GetValue;
-// SqlBulkCopy with EnableStreaming asks IsDBNull first
+// SqlBulkCopy with EnableStreaming asks IsDBNull first. As in ReadBenchmarks, the warm-up of a steady-state run
+// writes far more rows of the type than any threshold of the library; Validation checks the values the reader returns
 [MemoryDiagnoser]
 public class WriteBenchmarks
 {
@@ -16,6 +17,12 @@ public class WriteBenchmarks
         rows = TestData.CreateRows(1000);
     }
 
+    // the reader of the benchmarks, for Validation too
+    internal UniversalDataReader<Row> CreateDataReader()
+    {
+        return rows.ToDataReader();
+    }
+
     [Benchmark]
     public int FromType()
     {
@@ -25,7 +32,7 @@ public class WriteBenchmarks
     [Benchmark]
     public int ToDataReader_GetValue()
     {
-        using var reader = rows.ToDataReader();
+        using var reader = CreateDataReader();
         int count = 0;
 
         while (reader.Read())
@@ -44,7 +51,7 @@ public class WriteBenchmarks
     [Benchmark]
     public int ToDataReader_IsDBNullAndGetValue()
     {
-        using var reader = rows.ToDataReader();
+        using var reader = CreateDataReader();
         int count = 0;
 
         while (reader.Read())

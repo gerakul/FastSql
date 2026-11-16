@@ -41,6 +41,10 @@ jobs:
       - name: Build
         run: dotnet build FastSql.slnx --configuration Release
 
+      # the benchmarks read and create what they should (values, commands); the timings themselves stay local
+      - name: Validate benchmarks
+        run: dotnet run --project benchmarks/Gerakul.FastSql.Benchmarks --configuration Release --no-build -- --validate
+
   test:
     name: ${{ matrix.name }}
     runs-on: ubuntu-latest
