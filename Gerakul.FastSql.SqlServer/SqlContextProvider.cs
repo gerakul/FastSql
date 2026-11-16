@@ -6,37 +6,55 @@ using System.Text.RegularExpressions;
 
 namespace Gerakul.FastSql.SqlServer;
 
+/// <summary>
+/// The provider of SQL Server, over Microsoft.Data.SqlClient.
+/// </summary>
 public partial class SqlContextProvider : ContextProvider
 {
     // the largest sizes of nvarchar(n) and varbinary(n)
     private const int MaxStringSize = 4000;
     private const int MaxBinarySize = 8000;
 
+    /// <summary>
+    /// The shared instance of the provider.
+    /// </summary>
     public static SqlContextProvider DefaultInstance { get; } = new SqlContextProvider();
 
+    /// <summary>
+    /// Creates a provider with default options of its own.
+    /// </summary>
     public SqlContextProvider()
     {
     }
 
+    /// <inheritdoc />
     public override CommandTextGenerator CommandTextGenerator { get; } = new SqlCommandTextGenerator();
+
+    /// <inheritdoc />
     public override QueryOptions QueryOptions { get; } = new SqlQueryOptions();
+
+    /// <inheritdoc />
     public override BulkOptions BulkOptions { get; } = new SqlBulkOptions();
 
+    /// <inheritdoc />
     protected override ConnectionStringContext GetConnectionStringContext(string connectionString, QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
     {
         return new SqlConnectionStringContext(this, connectionString, queryOptions, bulkOptions, readOptions);
     }
 
+    /// <inheritdoc />
     protected override ConnectionContext GetConnectionContext(DbConnection connection, QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
     {
         return new SqlConnectionContext(this, (SqlConnection)connection, queryOptions, bulkOptions, readOptions);
     }
 
+    /// <inheritdoc />
     protected override TransactionContext GetTransactionContext(DbTransaction transaction, QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
     {
         return new SqlTransactionContext(this, (SqlTransaction)transaction, queryOptions, bulkOptions, readOptions);
     }
 
+    /// <inheritdoc />
     protected override DbParameter AddParamWithValue(DbCommand cmd, string paramName, object? value)
     {
         var parameter = ((SqlCommand)cmd).Parameters.AddWithValue(paramName, value);
@@ -56,6 +74,7 @@ public partial class SqlContextProvider : ContextProvider
         return parameter;
     }
 
+    /// <inheritdoc />
     protected override object GetDbNull(Type type)
     {
         if (type == typeof(byte[]))
@@ -66,6 +85,7 @@ public partial class SqlContextProvider : ContextProvider
         return DBNull.Value;
     }
 
+    /// <inheritdoc />
     protected override string GetSqlParameterName(string name)
     {
         if (string.IsNullOrEmpty(name))
@@ -80,6 +100,7 @@ public partial class SqlContextProvider : ContextProvider
     [GeneratedRegex(@"(([^@]@)|(^@))(?<Name>[\p{L}\p{Nd}$#_]+)", RegexOptions.Multiline)]
     private static partial Regex ParameterNameRegex();
 
+    /// <inheritdoc />
     protected override string[] ParamsFromCommandText(string commandText)
     {
         return ParameterNameRegex().Matches(RemoveLiteralsAndComments(commandText))
@@ -178,22 +199,26 @@ public partial class SqlContextProvider : ContextProvider
         return i;
     }
 
+    /// <inheritdoc />
     protected override string[] ParamsFromSettings<T>(IEnumerable<FieldSettings<T>> settings)
     {
         return settings.Select(x => "@" + x.Name).ToArray();
     }
 
+    /// <inheritdoc />
     protected override BulkCopy GetBulkCopy(ScopedContext context, DbDataReader reader, string destinationTable, BulkOptions bulkOptions, params string[] fields)
     {
         return new MsSqlBulkCopy(context, reader, destinationTable, (SqlBulkOptions)bulkOptions, fields);
     }
 
+    /// <inheritdoc />
     protected override QueryOptions GetTyped(QueryOptions options, out bool needClone)
     {
         needClone = false;
         return new SqlQueryOptions(options);
     }
 
+    /// <inheritdoc />
     protected override BulkOptions GetTyped(BulkOptions options, out bool needClone)
     {
         needClone = false;

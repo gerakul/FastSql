@@ -3,6 +3,10 @@ using System.Data.Common;
 
 namespace Gerakul.FastSql.Common;
 
+/// <summary>
+/// A compiled command whose parameters are passed by position. Compile it once with <c>CommandCompilator</c> and
+/// give it to <c>CreateSimple</c>.
+/// </summary>
 public class SimpleCommand
 {
     // the names of the first parameters, kept so that they are not formatted for every command
@@ -10,7 +14,14 @@ public class SimpleCommand
 
     private readonly ContextProvider contextProvider;
 
+    /// <summary>
+    /// The text of the command, or the name of the stored procedure.
+    /// </summary>
     public string CommandText { get; }
+
+    /// <summary>
+    /// Text or stored procedure.
+    /// </summary>
     public CommandType CommandType { get; }
 
     internal SimpleCommand(ContextProvider contextProvider, string commandText,

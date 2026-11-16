@@ -1,5 +1,8 @@
 ﻿namespace Gerakul.FastSql.PostgreSQL;
 
+/// <summary>
+/// Generates the text of commands for PostgreSQL.
+/// </summary>
 public class NpgsqlCommandTextGenerator : CommandTextGenerator
 {
     // a double quote inside a name is written twice
@@ -8,46 +11,55 @@ public class NpgsqlCommandTextGenerator : CommandTextGenerator
         return $"\"{name.Replace("\"", "\"\"")}\"";
     }
 
+    /// <inheritdoc />
     public override string ColumnList(params string[] fields)
     {
         return string.Join(", ", fields.Select(x => Quote(x)));
     }
 
+    /// <inheritdoc />
     public override string ParamList(params string[] fields)
     {
         return string.Join(", ", fields.Select(x => $"@{x}"));
     }
 
+    /// <inheritdoc />
     public override string WhereClause(params string[] fields)
     {
         return string.Join(" and ", fields.Select(x => $"{Quote(x)} = @{x}"));
     }
 
+    /// <inheritdoc />
     public override string SetClause(params string[] fields)
     {
         return string.Join(", ", fields.Select(x => $"{Quote(x)} = @{x}"));
     }
 
+    /// <inheritdoc />
     public override string Insert(string tableName, params string[] fields)
     {
         return $"insert into {tableName} ({ColumnList(fields)}) values ({ParamList(fields)});";
     }
 
+    /// <inheritdoc />
     public override string InsertWithOutput(string tableName, string[] fields, params string[] outputFields)
     {
         return $"insert into {tableName} ({ColumnList(fields)}) values ({ParamList(fields)}) returning {ColumnList(outputFields)};";
     }
 
+    /// <inheritdoc />
     public override string Update(string tableName, string whereClause, params string[] fields)
     {
         return $"update {tableName} set {SetClause(fields)} where {whereClause};";
     }
 
+    /// <inheritdoc />
     public override string Delete(string tableName, string whereClause)
     {
         return $"delete from {tableName} where {whereClause};";
     }
 
+    /// <inheritdoc />
     public override string Merge(string tableName, IEnumerable<string> keyFields, params string[] fields)
     {
         var allFields = keyFields.Union(fields).ToArray();

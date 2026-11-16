@@ -6,43 +6,63 @@ using System.Text.RegularExpressions;
 
 namespace Gerakul.FastSql.PostgreSQL;
 
+/// <summary>
+/// The provider of PostgreSQL, over Npgsql.
+/// </summary>
 public partial class NpgsqlContextProvider : ContextProvider
 {
+    /// <summary>
+    /// The shared instance of the provider.
+    /// </summary>
     public static NpgsqlContextProvider DefaultInstance { get; } = new NpgsqlContextProvider();
 
+    /// <summary>
+    /// Creates a provider with default options of its own.
+    /// </summary>
     public NpgsqlContextProvider()
     {
     }
 
+    /// <inheritdoc />
     public override CommandTextGenerator CommandTextGenerator { get; } = new NpgsqlCommandTextGenerator();
+
+    /// <inheritdoc />
     public override QueryOptions QueryOptions { get; } = new NpgsqlQueryOptions();
+
+    /// <inheritdoc />
     public override BulkOptions BulkOptions { get; } = new NpgsqlBulkOptions();
 
+    /// <inheritdoc />
     protected override ConnectionStringContext GetConnectionStringContext(string connectionString, QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
     {
         return new NpgsqlConnectionStringContext(this, connectionString, queryOptions, bulkOptions, readOptions);
     }
 
+    /// <inheritdoc />
     protected override ConnectionContext GetConnectionContext(DbConnection connection, QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
     {
         return new NpgsqlConnectionContext(this, (NpgsqlConnection)connection, queryOptions, bulkOptions, readOptions);
     }
 
+    /// <inheritdoc />
     protected override TransactionContext GetTransactionContext(DbTransaction transaction, QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
     {
         return new NpgsqlTransactionContext(this, (NpgsqlTransaction)transaction, queryOptions, bulkOptions, readOptions);
     }
 
+    /// <inheritdoc />
     protected override DbParameter AddParamWithValue(DbCommand cmd, string paramName, object? value)
     {
         return ((NpgsqlCommand)cmd).Parameters.AddWithValue(paramName, value!);
     }
 
+    /// <inheritdoc />
     protected override object GetDbNull(Type type)
     {
         return DBNull.Value;
     }
 
+    /// <inheritdoc />
     protected override string GetSqlParameterName(string name)
     {
         if (string.IsNullOrEmpty(name))
@@ -57,6 +77,7 @@ public partial class NpgsqlContextProvider : ContextProvider
     [GeneratedRegex(@"(([^@]@)|(^@))(?<Name>[\p{L}\p{Nd}$#_]+)", RegexOptions.Multiline)]
     private static partial Regex ParameterNameRegex();
 
+    /// <inheritdoc />
     protected override string[] ParamsFromCommandText(string commandText)
     {
         return ParameterNameRegex().Matches(RemoveLiteralsAndComments(commandText))
@@ -233,22 +254,26 @@ public partial class NpgsqlContextProvider : ContextProvider
         return i;
     }
 
+    /// <inheritdoc />
     protected override string[] ParamsFromSettings<T>(IEnumerable<FieldSettings<T>> settings)
     {
         return settings.Select(x => "@" + x.Name).ToArray();
     }
 
+    /// <inheritdoc />
     protected override BulkCopy GetBulkCopy(ScopedContext context, DbDataReader reader, string destinationTable, BulkOptions bulkOptions, params string[] fields)
     {
         return new NpgsqlBulkCopy(context, reader, destinationTable, (NpgsqlBulkOptions)bulkOptions, fields);
     }
 
+    /// <inheritdoc />
     protected override QueryOptions GetTyped(QueryOptions options, out bool needClone)
     {
         needClone = false;
         return new NpgsqlQueryOptions(options);
     }
 
+    /// <inheritdoc />
     protected override BulkOptions GetTyped(BulkOptions options, out bool needClone)
     {
         needClone = false;

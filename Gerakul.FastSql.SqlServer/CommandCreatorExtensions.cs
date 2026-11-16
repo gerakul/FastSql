@@ -2,13 +2,26 @@
 
 namespace Gerakul.FastSql.SqlServer;
 
+/// <summary>
+/// Commands that only SQL Server has.
+/// </summary>
 public static partial class CommandCreatorExtensions
 {
+    /// <summary>
+    /// Creates an insert of <c>value</c> that returns the identity value of the inserted row
+    /// (<c>scope_identity()</c>, a <c>decimal</c>); read it with <c>ExecuteScalar&lt;int&gt;</c> or
+    /// <c>ExecuteScalar&lt;long&gt;</c>.
+    /// </summary>
     public static IWrappedCommand CreateInsertAndGetID<T>(this ISqlCommandCreator creator, string tableName, T value, params string[] ignoreFields)
     {
         return creator.CreateInsertAndGetID(tableName, value, null, ignoreFields);
     }
 
+    /// <summary>
+    /// Creates an insert of <c>value</c> that returns the identity value of the inserted row
+    /// (<c>scope_identity()</c>, a <c>decimal</c>); read it with <c>ExecuteScalar&lt;int&gt;</c> or
+    /// <c>ExecuteScalar&lt;long&gt;</c>.
+    /// </summary>
     public static IWrappedCommand CreateInsertAndGetID<T>(this ISqlCommandCreator creator, string tableName, T value, QueryOptions? queryOptions, params string[] ignoreFields)
     {
         // the text comes from the context's provider; a creator that is not a context gets the default one

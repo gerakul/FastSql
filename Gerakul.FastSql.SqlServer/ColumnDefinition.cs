@@ -100,16 +100,52 @@ internal sealed class ColumnDefinition
 
 }
 
+/// <summary>
+/// How the columns are declared when a bulk copy creates the table (see <c>CreateTable</c> of the bulk copy
+/// options).
+/// </summary>
 public class ColumnDefinitionOptions
 {
+    /// <summary>
+    /// The names of the columns of the primary key; null or empty for a table without one.
+    /// </summary>
     public List<string>? PrimaryKey { get; set; }
+
+    /// <summary>
+    /// The length of the columns created for strings: <c>nvarchar(n)</c>, or <c>nvarchar(max)</c> with -1.
+    /// </summary>
     public short StringMaxLength { get; set; }
+
+    /// <summary>
+    /// The length of the columns created for byte arrays: <c>varbinary(n)</c>, or <c>varbinary(max)</c> with -1.
+    /// </summary>
     public short BytesMaxLength { get; set; }
+
+    /// <summary>
+    /// The precision of the columns created for decimals.
+    /// </summary>
     public byte Precision { get; set; }
+
+    /// <summary>
+    /// The scale of the columns created for decimals.
+    /// </summary>
     public byte Scale { get; set; }
+
+    /// <summary>
+    /// The scale of the columns created for <c>DateTime</c>, <c>DateTimeOffset</c>, <c>TimeOnly</c> and
+    /// <c>TimeSpan</c>.
+    /// </summary>
     public byte DateTimeScale { get; set; }
+
+    /// <summary>
+    /// Whether a field whose type has no column type throws <c>ArgumentOutOfRangeException</c> as soon as it is
+    /// met. Otherwise the table is not created either, and the exception names all such fields.
+    /// </summary>
     public bool ThrowIfUnsupportedType { get; set; } = false;
 
+    /// <summary>
+    /// Creates a copy of the options.
+    /// </summary>
     public ColumnDefinitionOptions Clone()
     {
         return new ColumnDefinitionOptions()
@@ -124,6 +160,9 @@ public class ColumnDefinitionOptions
         };
     }
 
+    /// <summary>
+    /// <c>nvarchar(4000)</c>, <c>varbinary(8000)</c>, <c>decimal(38, 18)</c>, a date and time scale of 7.
+    /// </summary>
     public static readonly ColumnDefinitionOptions Default = new ColumnDefinitionOptions()
     {
         StringMaxLength = 4000,
@@ -133,6 +172,9 @@ public class ColumnDefinitionOptions
         DateTimeScale = 7
     };
 
+    /// <summary>
+    /// <c>nvarchar(max)</c>, <c>varbinary(max)</c>, <c>decimal(38, 18)</c>, a date and time scale of 7.
+    /// </summary>
     public static readonly ColumnDefinitionOptions Max = new ColumnDefinitionOptions()
     {
         StringMaxLength = -1,
@@ -142,6 +184,9 @@ public class ColumnDefinitionOptions
         DateTimeScale = 7
     };
 
+    /// <summary>
+    /// <c>nvarchar(255)</c>, <c>varbinary(255)</c>, <c>decimal(19, 9)</c>, a date and time scale of 3.
+    /// </summary>
     public static readonly ColumnDefinitionOptions Small = new ColumnDefinitionOptions()
     {
         StringMaxLength = 255,
@@ -151,6 +196,9 @@ public class ColumnDefinitionOptions
         DateTimeScale = 3
     };
 
+    /// <summary>
+    /// A copy of the options with the given primary key.
+    /// </summary>
     public static ColumnDefinitionOptions FromOption(ColumnDefinitionOptions option, params string[] primaryKey)
     {
         var o = option.Clone();
@@ -158,16 +206,25 @@ public class ColumnDefinitionOptions
         return o;
     }
 
+    /// <summary>
+    /// A copy of <c>Default</c> with the given primary key.
+    /// </summary>
     public static ColumnDefinitionOptions FromDefault(params string[] primaryKey)
     {
         return FromOption(Default, primaryKey);
     }
 
+    /// <summary>
+    /// A copy of <c>Max</c> with the given primary key.
+    /// </summary>
     public static ColumnDefinitionOptions FromMax(params string[] primaryKey)
     {
         return FromOption(Max, primaryKey);
     }
 
+    /// <summary>
+    /// A copy of <c>Small</c> with the given primary key.
+    /// </summary>
     public static ColumnDefinitionOptions FromSmall(params string[] primaryKey)
     {
         return FromOption(Small, primaryKey);

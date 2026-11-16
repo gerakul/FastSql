@@ -4,6 +4,10 @@ using System.Data.Common;
 
 namespace Gerakul.FastSql.Common;
 
+/// <summary>
+/// A forward-only data reader over a sequence of objects: every object is a row, every field setting is a field.
+/// <c>ToDataReader</c> creates it, and a bulk copy reads it.
+/// </summary>
 public class UniversalDataReader<T> : DbDataReader
 {
     private readonly IEnumerator<T>? enumerator;
@@ -24,6 +28,9 @@ public class UniversalDataReader<T> : DbDataReader
     // set when the settings are the ones FastSql keeps for the type, until their getters are the compiled ones
     private WriteMembers<T>? typeMembers;
 
+    /// <summary>
+    /// The fields of the reader, in their order.
+    /// </summary>
     public ReadOnlyCollection<FieldSettings<T>> Settings => settingsCollection ??= new ReadOnlyCollection<FieldSettings<T>>(settings);
 
     private UniversalDataReader(IEnumerable<FieldSettings<T>> settings, bool caseSensitive)
@@ -56,6 +63,10 @@ public class UniversalDataReader<T> : DbDataReader
         }
     }
 
+    /// <summary>
+    /// Creates a reader over the sequence with the given fields. <c>caseSensitive</c> is about finding a field by
+    /// its name; two fields of one name are an <c>ArgumentException</c>.
+    /// </summary>
     public UniversalDataReader(IEnumerable<T> values, IEnumerable<FieldSettings<T>> settings, bool caseSensitive)
       : this(settings, caseSensitive)
     {
@@ -64,6 +75,10 @@ public class UniversalDataReader<T> : DbDataReader
         this.enumerator = values.GetEnumerator();
     }
 
+    /// <summary>
+    /// Creates a reader over the sequence with the given fields. <c>caseSensitive</c> is about finding a field by
+    /// its name; two fields of one name are an <c>ArgumentException</c>.
+    /// </summary>
     public UniversalDataReader(IAsyncEnumerable<T> values, IEnumerable<FieldSettings<T>> settings, bool caseSensitive)
        : this(settings, caseSensitive)
     {
@@ -112,6 +127,7 @@ public class UniversalDataReader<T> : DbDataReader
     // Closes the reader and disposes the source, which can hold resources: a FastSql query keeps its reader and its
     // connection. Dispose, DisposeAsync and CloseAsync of the base class all come here, whatever the type of the
     // reference they are called through
+    /// <inheritdoc />
     public override void Close()
     {
         if (!isClosed)
@@ -123,6 +139,7 @@ public class UniversalDataReader<T> : DbDataReader
     }
 
     // disposes an async source without blocking on it, unlike Dispose
+    /// <inheritdoc />
     public override async ValueTask DisposeAsync()
     {
         if (!isClosed)
@@ -139,16 +156,20 @@ public class UniversalDataReader<T> : DbDataReader
         await base.DisposeAsync().ConfigureAwait(false);
     }
 
+    /// <inheritdoc />
     public override int Depth => 0;
 
+    /// <inheritdoc />
     public override bool IsClosed => isClosed;
 
     // there is only one result set
+    /// <inheritdoc />
     public override bool NextResult()
     {
         return false;
     }
 
+    /// <inheritdoc />
     public override bool Read()
     {
         if (isClosed)
@@ -181,6 +202,7 @@ public class UniversalDataReader<T> : DbDataReader
         return false;
     }
 
+    /// <inheritdoc />
     public override async Task<bool> ReadAsync(CancellationToken cancellationToken)
     {
         if (isClosed)
@@ -214,22 +236,28 @@ public class UniversalDataReader<T> : DbDataReader
     }
 
     // -1, as for a select statement
+    /// <inheritdoc />
     public override int RecordsAffected => -1;
 
+    /// <inheritdoc />
     public override int FieldCount => fieldCount;
 
+    /// <inheritdoc />
     public override bool HasRows => throw new NotImplementedException();
 
+    /// <inheritdoc />
     public override bool GetBoolean(int i)
     {
         return (bool)Value(i);
     }
 
+    /// <inheritdoc />
     public override byte GetByte(int i)
     {
         return (byte)Value(i);
     }
 
+    /// <inheritdoc />
     public override long GetBytes(int i, long fieldOffset, byte[]? buffer, int bufferOffset, int length)
     {
         byte[] bytes = (byte[])Value(i);
@@ -253,11 +281,13 @@ public class UniversalDataReader<T> : DbDataReader
         return len;
     }
 
+    /// <inheritdoc />
     public override char GetChar(int i)
     {
         return (char)Value(i);
     }
 
+    /// <inheritdoc />
     public override long GetChars(int i, long fieldOffset, char[]? buffer, int bufferOffset, int length)
     {
         var value = Value(i);
@@ -284,61 +314,73 @@ public class UniversalDataReader<T> : DbDataReader
         return len;
     }
 
+    /// <inheritdoc />
     public override string GetDataTypeName(int i)
     {
         return dataTypeNames[i];
     }
 
+    /// <inheritdoc />
     public override DateTime GetDateTime(int i)
     {
         return (DateTime)Value(i);
     }
 
+    /// <inheritdoc />
     public override decimal GetDecimal(int i)
     {
         return (decimal)Value(i);
     }
 
+    /// <inheritdoc />
     public override double GetDouble(int i)
     {
         return (double)Value(i);
     }
 
+    /// <inheritdoc />
     public override Type GetFieldType(int i)
     {
         return types[i];
     }
 
+    /// <inheritdoc />
     public override float GetFloat(int i)
     {
         return (float)Value(i);
     }
 
+    /// <inheritdoc />
     public override Guid GetGuid(int i)
     {
         return (Guid)Value(i);
     }
 
+    /// <inheritdoc />
     public override short GetInt16(int i)
     {
         return (short)Value(i);
     }
 
+    /// <inheritdoc />
     public override int GetInt32(int i)
     {
         return (int)Value(i);
     }
 
+    /// <inheritdoc />
     public override long GetInt64(int i)
     {
         return (long)Value(i);
     }
 
+    /// <inheritdoc />
     public override string GetName(int i)
     {
         return names[i];
     }
 
+    /// <inheritdoc />
     public override int GetOrdinal(string name)
     {
         // IDataRecord documents IndexOutOfRangeException for an unknown name
@@ -350,11 +392,13 @@ public class UniversalDataReader<T> : DbDataReader
         return ordinal;
     }
 
+    /// <inheritdoc />
     public override string GetString(int i)
     {
         return (string)Value(i);
     }
 
+    /// <inheritdoc />
     public override object GetValue(int i)
     {
         return Value(i);
@@ -366,6 +410,7 @@ public class UniversalDataReader<T> : DbDataReader
         return getters[i](curRow)!;
     }
 
+    /// <inheritdoc />
     public override int GetValues(object[] values)
     {
         int res = Math.Min(values.Length, fieldCount);
@@ -377,18 +422,22 @@ public class UniversalDataReader<T> : DbDataReader
         return res;
     }
 
+    /// <inheritdoc />
     public override bool IsDBNull(int i)
     {
         return isNullGetters[i](curRow);
     }
 
+    /// <inheritdoc />
     public override IEnumerator GetEnumerator()
     {
         return enumerator!; // null for an async source, as before
     }
 
+    /// <inheritdoc />
     public override object this[string name] => Value(GetOrdinal(name));
 
+    /// <inheritdoc />
     public override object this[int i] => Value(i);
 
     #endregion

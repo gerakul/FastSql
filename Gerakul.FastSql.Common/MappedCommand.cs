@@ -3,6 +3,10 @@ using System.Data.Common;
 
 namespace Gerakul.FastSql.Common;
 
+/// <summary>
+/// A compiled command whose parameters are filled from a <c>T</c>. Compile it once with <c>CommandCompilator</c>
+/// and give it to <c>CreateMapped</c> with every value.
+/// </summary>
 public class MappedCommand<T>
 {
     private readonly record struct ParMap(string ParameterName, FieldSettings<T> Settings);
@@ -10,7 +14,14 @@ public class MappedCommand<T>
     private readonly ContextProvider contextProvider;
     private readonly ParMap[] map;
 
+    /// <summary>
+    /// The text of the command, or the name of the stored procedure.
+    /// </summary>
     public string CommandText { get; }
+
+    /// <summary>
+    /// Text or stored procedure.
+    /// </summary>
     public CommandType CommandType { get; }
 
     internal MappedCommand(ContextProvider contextProvider, string commandText, IList<string>? parameters,
