@@ -72,7 +72,7 @@ What is different from the first version:
 | I9 | Argument checks at the public entry points | clear, early errors | exception type and time of failing calls | none | Do |
 | I10 | Parameter discovery accepts non-ASCII letters | `@Größe` works in `CreateMapped` | a call that fails today works | none | Do |
 | I11 | `CancellationToken` for `UsingConnectionAsync` / `UsingTransactionAsync` | open, begin and commit can be cancelled | none | 5 new overloads | Do |
-| I12 | `UsingConnection` / `UsingTransaction` that return a result | no captured variables | none | 10 new methods | Do |
+| I12 | `UsingConnection` / `UsingTransaction` that return a result | no captured variables | none for existing code; a lazy query returned from the delegate fails when enumerated (to document, see I12) | 10 new methods | Do |
 | I13 | `ExecuteScalar<T>` | typed scalar results | none | 2 new extension methods | Do |
 | I14 | `Insert` / `Update` / `Delete` / `Merge` return the affected rows | "was a row updated?" without dropping to `Create...` | none | return type of 16 methods | Do |
 | I15 | `UniversalDataReader.Close()` overrides `DbDataReader.Close()` | closing through a base reference works (Q01) | such a close now closes | `new` becomes `override` | Do |
@@ -207,6 +207,12 @@ what a one-row query pays today: 4.4 µs and 8.1 KB.
   `TargetException` through an explicit check.
 - **Size:** about 100 lines. If you would rather not have this machinery, I2 to I4 and I26 stand on their
   own: they give all of the allocation gains and none of the per-row ones.
+- **As implemented** (changed after the first-use benchmark showed that compiling at 1,000 rows on the reading
+  thread made the first read of a type slower; the measurements are in `docs/improvement-notes.md`): the rows of
+  a type are counted over the whole process, and after its 10,000th row the accessors are compiled on a
+  thread-pool thread. The read that crosses the threshold does not wait for them: it, and every read until the
+  compiled accessors are there, goes on through reflection, which is called directly. The compiled accessors
+  replace the reflection ones for the rows read after that.
 - Not part of this item: typed reader calls (`GetInt32` instead of `GetValue`). They would save the boxing
   per value, but the drivers return different things from typed and untyped calls (Npgsql: `DateOnly`
   from `GetValue`, `DateTime` from `GetDateTime`), so the results could change.
