@@ -114,6 +114,9 @@ internal sealed class ReadMembers
     public ReadMember[] All { get; }
     public NameLookup Names { get; }
 
+    // the compile of the setters, from the moment the threshold is reached
+    public Task? Compiling { get; private set; }
+
     public ReadMembers(Type type, FromTypeOption fromTypeOption)
     {
         this.type = type;
@@ -131,11 +134,13 @@ internal sealed class ReadMembers
         if (rowsUntilFast > 0 && --rowsUntilFast == 0 && !fast)
         {
             fast = true;
-
-            foreach (var member in All)
+            Compiling = FastAccessors.InBackground(() =>
             {
-                member.Setter = FastAccessors.CompileSetter(type, member.Member) ?? member.Setter;
-            }
+                foreach (var member in All)
+                {
+                    member.Setter = FastAccessors.CompileSetter(type, member.Member) ?? member.Setter;
+                }
+            });
         }
     }
 }
@@ -163,6 +168,9 @@ internal sealed class ConstructorMembers
     // goes through reflection until the type has been read a lot, then it is compiled (see CountRow)
     public Func<object?[], object> Create;
 
+    // the compile of the constructor, from the moment the threshold is reached
+    public Task? Compiling { get; private set; }
+
     public ConstructorMembers(Type type)
     {
         var constructor = type.GetConstructors().FirstOrDefault();
@@ -182,7 +190,7 @@ internal sealed class ConstructorMembers
         if (rowsUntilFast > 0 && --rowsUntilFast == 0 && !fast)
         {
             fast = true;
-            Create = FastAccessors.CompileConstructor(Constructor!) ?? Create;
+            Compiling = FastAccessors.InBackground(() => Create = FastAccessors.CompileConstructor(Constructor!) ?? Create);
         }
     }
 }
@@ -193,12 +201,20 @@ internal sealed class WriteMembers<T>
     private readonly MemberInfo[] members;
     private int rowsUntilFast = FastAccessors.RowsBefore;
 
+    // written by the compile on the thread pool: the settings first, then the flag, so a reader that sees the
+    // flag sees the compiled settings
+    private volatile FieldSettings<T>[] settings;
+    private volatile bool isFast;
+
     // Shared by all callers, so it must not be changed. The getters go through reflection until a bulk copy has
     // taken many rows of the type, then they are compiled (see CountRow)
-    public FieldSettings<T>[] Settings { get; private set; }
+    public FieldSettings<T>[] Settings => settings;
 
     // the getters are compiled, or can't be
-    public bool IsFast { get; private set; }
+    public bool IsFast => isFast;
+
+    // the compile of the getters, from the moment the threshold is reached
+    public Task? Compiling { get; private set; }
 
     public WriteMembers(FromTypeOption fromTypeOption)
     {
@@ -206,34 +222,38 @@ internal sealed class WriteMembers<T>
 
         // an exception of a property getter reaches the caller as it is, not inside a TargetInvocationException
         this.members = [.. fields, .. properties];
-        this.Settings =
+        this.settings =
         [
             .. fields.Select(x => new FieldSettings<T>(x.Name, x.FieldType, y => x.GetValue(y))),
             .. properties.Select(x => new FieldSettings<T>(x.Name, x.PropertyType,
                 y => x.GetValue(y, BindingFlags.DoNotWrapExceptions, null, null, null)))
         ];
-        this.IsFast = !FastAccessors.IsSupported;
+        this.isFast = !FastAccessors.IsSupported;
     }
 
     // Called for every row a reader takes values from; true when the settings have their final getters.
     // As for reading, the count is not exact with several threads
     public bool CountRow()
     {
-        if (!IsFast && rowsUntilFast > 0 && --rowsUntilFast == 0)
+        if (!isFast && rowsUntilFast > 0 && --rowsUntilFast == 0)
         {
-            var settings = new FieldSettings<T>[Settings.Length];
-
-            for (int i = 0; i < settings.Length; i++)
+            Compiling = FastAccessors.InBackground(() =>
             {
-                var getter = FastAccessors.CompileGetter<T>(members[i]);
-                settings[i] = getter == null ? Settings[i] : new FieldSettings<T>(Settings[i].Name, Settings[i].FieldType, getter);
-            }
+                var current = settings;
+                var compiled = new FieldSettings<T>[current.Length];
 
-            Settings = settings;
-            IsFast = true;
+                for (int i = 0; i < compiled.Length; i++)
+                {
+                    var getter = FastAccessors.CompileGetter<T>(members[i]);
+                    compiled[i] = getter == null ? current[i] : new FieldSettings<T>(current[i].Name, current[i].FieldType, getter);
+                }
+
+                settings = compiled;
+                isFast = true;
+            });
         }
 
-        return IsFast;
+        return isFast;
     }
 }
 
@@ -249,6 +269,14 @@ internal static class FastAccessors
 
     // without a compiler for dynamic code, expression trees are interpreted, which is slower than reflection
     public static bool IsSupported => RuntimeFeature.IsDynamicCodeCompiled;
+
+    // Building the accessors of a type takes a millisecond or more, which the read or the bulk copy that reached
+    // the threshold would wait for. They are built on the thread pool instead, and reflection goes on until they
+    // are there. The compile methods catch their own exceptions, so the task does not fail
+    public static Task InBackground(Action compile)
+    {
+        return Task.Run(compile);
+    }
 
     // null when the setter can't be compiled (a readonly field, for example): reflection stays
     public static Action<object, object?>? CompileSetter(Type type, MemberInfo member)
