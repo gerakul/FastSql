@@ -37,9 +37,21 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/Directory.Build.props', '**/*.csproj') }}
           restore-keys: nuget-${{ runner.os }}-
 
-      # the whole solution, so build breaks in Examples are caught too
+      # the whole solution, so build breaks in Examples are caught too; a warning fails the build (there are none),
+      # also a NuGet audit warning about a package with a known vulnerability
       - name: Build
-        run: dotnet build FastSql.slnx --configuration Release
+        run: dotnet build FastSql.slnx --configuration Release -p:TreatWarningsAsErrors=true
+
+      # the packages of the three libraries, so a broken package is noticed; kept as an artifact, not published
+      - name: Pack
+        run: dotnet pack FastSql.slnx --configuration Release --no-build --output packages
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: packages
+          path: packages
+          if-no-files-found: error
 
       # the benchmarks read and create what they should (values, commands); the timings themselves stay local
       - name: Validate benchmarks
