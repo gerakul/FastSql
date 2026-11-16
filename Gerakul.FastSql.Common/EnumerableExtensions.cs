@@ -28,22 +28,22 @@ public static partial class EnumerableExtensions
 
     public static UniversalDataReader<T> ToDataReader<T>(this IEnumerable<T> values, FromTypeOption fromTypeOption, bool caseSensitive = defaultReaderCaseSensitive)
     {
-        return new UniversalDataReader<T>(values, FieldSettings.FromType<T>(fromTypeOption), caseSensitive);
+        return new UniversalDataReader<T>(values, TypeMembers<T>.ForWriting(fromTypeOption), caseSensitive);
     }
 
     public static UniversalDataReader<T> ToDataReader<T>(this IAsyncEnumerable<T> values, FromTypeOption fromTypeOption, bool caseSensitive = defaultReaderCaseSensitive)
     {
-        return new UniversalDataReader<T>(values, FieldSettings.FromType<T>(fromTypeOption), caseSensitive);
+        return new UniversalDataReader<T>(values, TypeMembers<T>.ForWriting(fromTypeOption), caseSensitive);
     }
 
     public static UniversalDataReader<T> ToDataReader<T>(this IEnumerable<T> values, bool caseSensitive = defaultReaderCaseSensitive)
     {
-        return new UniversalDataReader<T>(values, FieldSettings.FromType<T>(), caseSensitive);
+        return new UniversalDataReader<T>(values, TypeMembers<T>.ForWriting(FromTypeOption.Default), caseSensitive);
     }
 
     public static UniversalDataReader<T> ToDataReader<T>(this IAsyncEnumerable<T> values, bool caseSensitive = defaultReaderCaseSensitive)
     {
-        return new UniversalDataReader<T>(values, FieldSettings.FromType<T>(), caseSensitive);
+        return new UniversalDataReader<T>(values, TypeMembers<T>.ForWriting(FromTypeOption.Default), caseSensitive);
     }
 
     #endregion

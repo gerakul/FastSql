@@ -258,16 +258,16 @@ namespace Gerakul.FastSql.UnitTests.Common
             act.Should().Throw<ArgumentNullException>().WithParameterName("source");
         }
 
+        // until phase 4 every access created a new collection
         [Fact]
-        public void Settings_ReturnsNewReadOnlyCollectionOverSameSettings()
+        public void Settings_ReturnsTheSameReadOnlyCollectionEveryTime()
         {
             var reader = CreateReader();
 
             var first = reader.Settings;
             var second = reader.Settings;
 
-            second.Should().NotBeSameAs(first);
-            second.Should().Equal(first);
+            second.Should().BeSameAs(first);
         }
 
         [Theory]

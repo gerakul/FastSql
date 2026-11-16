@@ -25,30 +25,49 @@ public class MappedCommand<T>
 
         var comparer = caseSensitiveParamsMatching ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
 
-        if (parameters.GroupBy(x => contextProvider.GetSqlParameterName(x), comparer).Any(x => x.Count() > 1))
+        // the names the settings are found by: without the prefix of a parameter
+        var names = new string[parameters.Count];
+
+        for (int i = 0; i < names.Length; i++)
+        {
+            names[i] = contextProvider.GetSqlParameterName(parameters[i]);
+        }
+
+        if (Helpers.HasDuplicates(names, comparer))
         {
             throw new ArgumentException("Parameter names has been duplicated");
         }
 
-        if (settings.GroupBy(x => x.Name, comparer).Any(x => x.Count() > 1))
+        var settingsByName = new Dictionary<string, FieldSettings<T>>(settings.Count, comparer);
+
+        foreach (var item in settings)
         {
-            throw new ArgumentException("Setting names has been duplicated");
+            if (!settingsByName.TryAdd(item.Name, item))
+            {
+                throw new ArgumentException("Setting names has been duplicated");
+            }
         }
 
-        map = parameters
-          .Join(settings,
-            x => contextProvider.GetSqlParameterName(x),
-            x => x.Name,
-            (x, y) => new ParMap(x, y),
-            comparer).ToArray();
+        map = new ParMap[names.Length];
 
-        if (map.Length < parameters.Count)
+        for (int i = 0; i < names.Length; i++)
         {
-            throw new ArgumentException("Not all parameters has been mapped on settings", nameof(parameters));
+            if (!settingsByName.TryGetValue(names[i], out var item))
+            {
+                throw new ArgumentException("Not all parameters has been mapped on settings", nameof(parameters));
+            }
+
+            map[i] = new ParMap(parameters[i], item);
         }
     }
 
     internal DbCommand Create(ScopedContext scopedContext, T value, QueryOptions? queryOptions)
+    {
+        return CreatePrepared(scopedContext, value, scopedContext.PrepareQueryOptions(queryOptions));
+    }
+
+    // for callers that have prepared the options already (they need the options to compile the command)
+    internal DbCommand CreatePrepared(ScopedContext scopedContext, T value, QueryOptions preparedQueryOptions)
     {
         if (scopedContext.ContextProvider != contextProvider)
         {
@@ -83,7 +102,7 @@ public class MappedCommand<T>
             }
         }
 
-        contextProvider.ApplyQueryOptions(cmd, scopedContext.PrepareQueryOptions(queryOptions));
+        contextProvider.ApplyQueryOptions(cmd, preparedQueryOptions);
 
         return cmd;
     }

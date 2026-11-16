@@ -1,10 +1,8 @@
 ﻿using System.Data;
 using System.Globalization;
-using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace Gerakul.FastSql.Common;
-
-internal readonly record struct ReaderField(int Ordinal, string Name);
 
 // the reader field a member's value comes from, and how the value is converted for the member
 internal readonly record struct ValueSource(int Ordinal, Type ConvertingType, bool IsNullable, bool IsEnum)
@@ -75,68 +73,88 @@ internal abstract class ReadInfo<T>
     public abstract T GetValue();
 }
 
+// What a query does before its first row. The members of the type come from TypeMembers, where they are found
+// once per type; here they are matched with the fields of this reader
 internal static class ReadInfoFactory
 {
-    private static ReadOptions GetReadOptions(ReadOptions? readOptions)
+    // the values of the options; the instance of the caller is not changed
+    private static void GetOptions(ReadOptions? readOptions, out FieldsSelector fieldsSelector, out FromTypeOption fromTypeOption,
+        out bool caseSensitive)
     {
-        if (readOptions == null)
-        {
-            return new ReadOptions(true);
-        }
-        else
-        {
-            return readOptions.Clone().SetDefaults();
-        }
+        var defaults = ReadOptions.defaultOptions;
+        fieldsSelector = readOptions?.FieldsSelector ?? defaults.FieldsSelector!.Value;
+        fromTypeOption = readOptions?.FromTypeOption ?? defaults.FromTypeOption!.Value;
+        caseSensitive = readOptions?.CaseSensitiveFieldsMatching ?? defaults.CaseSensitiveFieldsMatching!.Value;
     }
 
-    private static StringComparer GetComparer(ReadOptions readOptions)
+    private static string?[] GetReaderFields(IDataReader reader)
     {
-        return readOptions.CaseSensitiveFieldsMatching!.Value ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
-    }
-
-    private static ReaderField[] GetReaderFields(IDataReader reader)
-    {
-        var readerFields = new ReaderField[reader.FieldCount];
+        var readerFields = new string?[reader.FieldCount];
 
         for (int i = 0; i < readerFields.Length; i++)
         {
-            readerFields[i] = new ReaderField(i, reader.GetName(i));
+            readerFields[i] = reader.GetName(i);
         }
 
         return readerFields;
     }
 
-    public static ReadInfoByType<T> CreateByType<T>(IDataReader reader, ReadOptions? readOptions) where T : new()
+    // Finds the reader field of every member: its ordinal, or -1 for a member without one. Returns the number of
+    // members that have one
+    private static int Match(string?[] readerFields, NameLookup members, bool caseSensitive, Span<int> ordinals)
     {
-        ReadOptions readOpt = GetReadOptions(readOptions);
-        var readerFields = GetReaderFields(reader);
-
-        Helpers.GetMembers(typeof(T), readOpt.FromTypeOption!.Value, true, out FieldInfo[] fiAll, out PropertyInfo[] piAll);
-
-        var comparer = GetComparer(readOpt);
-
-        if (readerFields.GroupBy(x => x.Name, comparer).Any(x => x.Count() > 1))
+        if (Helpers.HasDuplicates(readerFields, caseSensitive ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase))
         {
             throw new ArgumentException("Reader field names has been duplicated");
         }
 
-        if (piAll.Select(x => x.Name).Concat(fiAll.Select(x => x.Name)).GroupBy(x => x, comparer).Any(x => x.Count() > 1))
+        if (members.HasDuplicates(caseSensitive))
         {
             throw new ArgumentException("Destination object field names has been duplicated");
         }
 
-        var fields = fiAll.Join(readerFields, x => x.Name, x => x.Name,
-            (x, y) => (Field: x, Source: ValueSource.For(y.Ordinal, x.FieldType)), comparer).ToArray();
-        var properties = piAll.Join(readerFields, x => x.Name, x => x.Name,
-            (x, y) => (Property: x, Source: ValueSource.For(y.Ordinal, x.PropertyType)), comparer).ToArray();
+        ordinals.Fill(-1);
+        int matched = 0;
 
-        Helpers.CheckFieldSelection(readOpt.FieldsSelector!.Value, readerFields.Length, fiAll.Length + piAll.Length, fields.Length + properties.Length);
+        for (int i = 0; i < readerFields.Length; i++)
+        {
+            if (members.TryFind(readerFields[i], caseSensitive, out int index))
+            {
+                ordinals[index] = i;
+                matched++;
+            }
+        }
+
+        return matched;
+    }
+
+    public static ReadInfoByType<T> CreateByType<T>(IDataReader reader, ReadOptions? readOptions) where T : new()
+    {
+        GetOptions(readOptions, out var fieldsSelector, out var fromTypeOption, out bool caseSensitive);
+        var readerFields = GetReaderFields(reader);
+        var members = TypeMembers<T>.ForReading(fromTypeOption);
+
+        Span<int> ordinals = members.All.Length <= 64 ? stackalloc int[members.All.Length] : new int[members.All.Length];
+        int matched = Match(readerFields, members.Names, caseSensitive, ordinals);
+
+        Helpers.CheckFieldSelection(fieldsSelector, readerFields.Length, members.All.Length, matched);
+
+        // in the order of the members: fields first, then properties
+        var values = new (ReadMember Member, ValueSource Source)[matched];
+
+        for (int i = 0, n = 0; i < ordinals.Length; i++)
+        {
+            if (ordinals[i] >= 0)
+            {
+                values[n++] = (members.All[i], members.All[i].SourceAt(ordinals[i]));
+            }
+        }
 
         return new ReadInfoByType<T>()
         {
             Reader = reader,
-            fields = fields,
-            properties = properties
+            members = members,
+            values = values
         };
     }
 
@@ -151,39 +169,35 @@ internal static class ReadInfoFactory
 
     public static ReadInfoAnonymous<T> CreateAnonymous<T>(IDataReader reader, T proto, ReadOptions? readOptions)
     {
-        ReadOptions readOpt = GetReadOptions(readOptions);
+        GetOptions(readOptions, out var fieldsSelector, out _, out bool caseSensitive);
         var readerFields = GetReaderFields(reader);
+        var constructor = TypeMembers<T>.Constructor;
 
-        ConstructorInfo? constructor = typeof(T).GetConstructors().FirstOrDefault();
-        if (constructor == null)
+        if (constructor.Constructor == null)
         {
             throw new InvalidOperationException($"Type {typeof(T)} has no public constructor");
         }
 
-        ParameterInfo[] piAll = constructor.GetParameters();
+        var all = constructor.Parameters;
+        Span<int> ordinals = all.Length <= 64 ? stackalloc int[all.Length] : new int[all.Length];
+        int matched = Match(readerFields, constructor.Names, caseSensitive, ordinals);
 
-        var comparer = GetComparer(readOpt);
+        Helpers.CheckFieldSelection(fieldsSelector, readerFields.Length, all.Length, matched);
 
-        if (readerFields.GroupBy(x => x.Name, comparer).Any(x => x.Count() > 1))
+        var parameters = new (int Position, ValueSource Source)[matched];
+
+        for (int i = 0, n = 0; i < ordinals.Length; i++)
         {
-            throw new ArgumentException("Reader field names has been duplicated");
+            if (ordinals[i] >= 0)
+            {
+                parameters[n++] = (all[i].Position, all[i].SourceAt(ordinals[i]));
+            }
         }
-
-        if (piAll.GroupBy(x => x.Name, comparer).Any(x => x.Count() > 1))
-        {
-            throw new ArgumentException("Destination object field names has been duplicated");
-        }
-
-        var parameters = piAll.Join(readerFields, x => x.Name, x => x.Name,
-            (x, y) => (x.Position, Source: ValueSource.For(y.Ordinal, x.ParameterType)), comparer).ToArray();
-
-        Helpers.CheckFieldSelection(readOpt.FieldsSelector!.Value, readerFields.Length, piAll.Length, parameters.Length);
 
         return new ReadInfoAnonymous<T>()
         {
             Reader = reader,
             constructor = constructor,
-            parameterCount = piAll.Length,
             parameters = parameters
         };
     }
@@ -200,31 +214,31 @@ internal static class ReadInfoFactory
     {
         return new ReadInfoFirstColumn<T>()
         {
-            Reader = reader,
-            source = ValueSource.For(0, typeof(T))
+            Reader = reader
         };
     }
 }
 
 internal sealed class ReadInfoByType<T> : ReadInfo<T> where T : new()
 {
-    public required (FieldInfo Field, ValueSource Source)[] fields;
-    public required (PropertyInfo Property, ValueSource Source)[] properties;
+    public required ReadMembers members;
+    public required (ReadMember Member, ValueSource Source)[] values;
 
+    // Optimized from the first call, as the other code that runs for every row: the first reads of a type in a new
+    // process run before the runtime optimizes the code, and unoptimized calls made them slower than before the
+    // members were kept per type
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public override T GetValue()
     {
         // boxed once, so the members of a struct are set on the instance that is returned
         object obj = new T();
 
-        for (int i = 0; i < fields.Length; i++)
+        for (int i = 0; i < values.Length; i++)
         {
-            fields[i].Field.SetValue(obj, GetValueFromReader(in fields[i].Source));
+            values[i].Member.SetValue(obj, GetValueFromReader(in values[i].Source));
         }
 
-        for (int i = 0; i < properties.Length; i++)
-        {
-            properties[i].Property.SetValue(obj, GetValueFromReader(in properties[i].Source));
-        }
+        members.CountRow();
 
         return (T)obj;
     }
@@ -244,20 +258,24 @@ internal sealed class ReadInfoObjects : ReadInfo<object[]>
 
 internal sealed class ReadInfoAnonymous<T> : ReadInfo<T>
 {
-    public required ConstructorInfo constructor;
-    public int parameterCount;
+    public required ConstructorMembers constructor;
     public required (int Position, ValueSource Source)[] parameters;
 
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public override T GetValue()
     {
-        object?[] args = new object?[parameterCount];
+        // a parameter without a reader field gets null, which is the default value for a value type
+        object?[] args = new object?[constructor.Parameters.Length];
 
         for (int i = 0; i < parameters.Length; i++)
         {
             args[parameters[i].Position] = GetValueFromReader(in parameters[i].Source);
         }
 
-        return (T)constructor.Invoke(args);
+        var value = (T)constructor.Create(args);
+        constructor.CountRow();
+
+        return value;
     }
 }
 
@@ -271,7 +289,8 @@ internal sealed class ReadInfoFirstColumn : ReadInfo<object?>
 
 internal sealed class ReadInfoFirstColumn<T> : ReadInfo<T>
 {
-    public ValueSource source;
+    // the same for every reader, so it is found once per type
+    private static readonly ValueSource source = ValueSource.For(0, typeof(T));
 
     public override T GetValue()
     {

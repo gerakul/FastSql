@@ -5,6 +5,9 @@ namespace Gerakul.FastSql.Common;
 
 public class SimpleCommand
 {
+    // the names of the first parameters, kept so that they are not formatted for every command
+    private static readonly string[] parameterNames = Enumerable.Range(0, 16).Select(x => $"@p{x}").ToArray();
+
     private readonly ContextProvider contextProvider;
 
     public string CommandText { get; }
@@ -38,7 +41,7 @@ public class SimpleCommand
             }
             else
             {
-                contextProvider.AddParamWithValue(cmd, $"@p{i}", parameters[i] ?? DBNull.Value);
+                contextProvider.AddParamWithValue(cmd, i < parameterNames.Length ? parameterNames[i] : $"@p{i}", parameters[i] ?? DBNull.Value);
             }
         }
 
