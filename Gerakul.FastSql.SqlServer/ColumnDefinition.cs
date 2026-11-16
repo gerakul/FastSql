@@ -3,7 +3,6 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Gerakul.FastSql.SqlServer;
 
-// ::: temporary internal
 internal sealed class ColumnDefinition
 {
     public required string Name { get; set; }

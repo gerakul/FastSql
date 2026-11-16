@@ -37,11 +37,6 @@ public partial class SqlContextProvider : ContextProvider
         return new SqlTransactionContext(this, (SqlTransaction)transaction, queryOptions, bulkOptions, readOptions);
     }
 
-    //protected override void ApplyQueryOptions(DbCommand cmd, QueryOptions queryOptions)
-    //{
-    //    base.ApplyQueryOptions(cmd, queryOptions);
-    //}
-
     protected override DbParameter AddParamWithValue(DbCommand cmd, string paramName, object? value)
     {
         var parameter = ((SqlCommand)cmd).Parameters.AddWithValue(paramName, value);

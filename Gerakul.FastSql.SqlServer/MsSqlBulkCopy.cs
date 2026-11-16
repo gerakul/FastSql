@@ -19,6 +19,10 @@ internal sealed class MsSqlBulkCopy : BulkCopy
 
     private SqlBulkOptions SqlBulkOptions => (SqlBulkOptions)bulkOptions;
 
+    // With the Source selector and nothing said about case, the names of the source fields go to SqlBulkCopy as
+    // they are, and the columns of the table are not read
+    private bool NamesGoAsTheyAre => bulkOptions.FieldsSelector!.Value == FieldsSelector.Source && !bulkOptions.CaseSensitiveFieldsMatching.HasValue;
+
     internal MsSqlBulkCopy(ScopedContext context, DbDataReader reader, string destinationTable, SqlBulkOptions bulkOptions, params string[] fields)
         : base(context, reader, destinationTable, bulkOptions, fields)
     {
@@ -26,87 +30,69 @@ internal sealed class MsSqlBulkCopy : BulkCopy
 
     protected override void WriteToServer()
     {
-        string[] sourceFields = fields.Length > 0 ? fields.ToArray() : reader.GetColumnNames().ToArray();
+        string[] sourceFields = GetSourceFields();
 
         if (bulkOptions.CreateTable!.Value)
         {
-            CreateTable(sourceFields);
+            context.CreateSimple(GetCreateTableScript(sourceFields)).ExecuteNonQuery();
         }
 
-        Mapping[] map;
-
-        if (bulkOptions.FieldsSelector!.Value == FieldsSelector.Source && !bulkOptions.CaseSensitiveFieldsMatching.HasValue)
-        {
-            map = sourceFields.Select(x => new Mapping(x, x)).ToArray();
-        }
-        else
-        {
-            string[] destFields = GetTableColumns().ToArray();
-
-            var comparer = bulkOptions.CaseSensitiveFieldsMatching == true ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
-            map = sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping(x, y), comparer).ToArray();
-
-            CheckFieldSelection(bulkOptions.FieldsSelector!.Value, sourceFields, destFields, comparer);
-        }
+        var map = NamesGoAsTheyAre ? GetMapping(sourceFields) : GetMapping(sourceFields, GetTableColumns());
 
         if (map.Length > 0)
         {
-            using var bcp = new SqlBulkCopy(Connection, SqlBulkOptions.SqlBulkCopyOptions!.Value, Transaction);
-
-            bcp.DestinationTableName = destinationTable;
-            if (SqlBulkOptions.BatchSize.HasValue)
-            {
-                bcp.BatchSize = SqlBulkOptions.BatchSize.Value;
-            }
-
-            if (SqlBulkOptions.BulkCopyTimeout.HasValue)
-            {
-                bcp.BulkCopyTimeout = SqlBulkOptions.BulkCopyTimeout.Value;
-            }
-
-            if (SqlBulkOptions.EnableStreaming.HasValue)
-            {
-                bcp.EnableStreaming = SqlBulkOptions.EnableStreaming.Value;
-            }
-
-            foreach (var item in map)
-            {
-                bcp.ColumnMappings.Add(item.Source, item.Destination);
-            }
-
+            using var bcp = CreateSqlBulkCopy(map);
             bcp.WriteToServer(reader);
         }
     }
 
     protected override async Task WriteToServerAsync(CancellationToken cancellationToken)
     {
-        string[] sourceFields = fields.Length > 0 ? fields.ToArray() : reader.GetColumnNames().ToArray();
+        string[] sourceFields = GetSourceFields();
 
         if (bulkOptions.CreateTable!.Value)
         {
-            await CreateTableAsync(sourceFields, cancellationToken).ConfigureAwait(false);
+            await context.CreateSimple(GetCreateTableScript(sourceFields)).ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        Mapping[] map;
-
-        if (bulkOptions.FieldsSelector!.Value == FieldsSelector.Source && !bulkOptions.CaseSensitiveFieldsMatching.HasValue)
-        {
-            map = sourceFields.Select(x => new Mapping(x, x)).ToArray();
-        }
-        else
-        {
-            string[] destFields = (await GetTableColumnsAsync(cancellationToken).ConfigureAwait(false)).ToArray();
-
-            var comparer = bulkOptions.CaseSensitiveFieldsMatching == true ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
-            map = sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping(x, y), comparer).ToArray();
-
-            CheckFieldSelection(bulkOptions.FieldsSelector!.Value, sourceFields, destFields, comparer);
-        }
+        var map = NamesGoAsTheyAre ? GetMapping(sourceFields) : GetMapping(sourceFields, await GetTableColumnsAsync(cancellationToken).ConfigureAwait(false));
 
         if (map.Length > 0)
         {
-            using var bcp = new SqlBulkCopy(Connection, SqlBulkOptions.SqlBulkCopyOptions!.Value, Transaction);
+            using var bcp = CreateSqlBulkCopy(map);
+            await bcp.WriteToServerAsync(reader, cancellationToken).ConfigureAwait(false);
+        }
+    }
 
+    // the fields the caller named, or all the fields of the source
+    private string[] GetSourceFields()
+    {
+        return fields.Length > 0 ? fields.ToArray() : reader.GetColumnNames().ToArray();
+    }
+
+    private static Mapping[] GetMapping(string[] sourceFields)
+    {
+        return sourceFields.Select(x => new Mapping(x, x)).ToArray();
+    }
+
+    // the source fields that have a column in the table, with the column's own spelling; checked against the FieldsSelector
+    private Mapping[] GetMapping(string[] sourceFields, string[] tableColumns)
+    {
+        var comparer = bulkOptions.CaseSensitiveFieldsMatching == true ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
+        var map = sourceFields.Join(tableColumns, x => x, x => x, (x, y) => new Mapping(x, y), comparer).ToArray();
+
+        CheckFieldSelection(bulkOptions.FieldsSelector!.Value, sourceFields, tableColumns, comparer);
+
+        return map;
+    }
+
+    // the caller disposes it; when the setup fails it is disposed here
+    private SqlBulkCopy CreateSqlBulkCopy(Mapping[] map)
+    {
+        var bcp = new SqlBulkCopy(Connection, SqlBulkOptions.SqlBulkCopyOptions!.Value, Transaction);
+
+        try
+        {
             bcp.DestinationTableName = destinationTable;
             if (SqlBulkOptions.BatchSize.HasValue)
             {
@@ -128,7 +114,12 @@ internal sealed class MsSqlBulkCopy : BulkCopy
                 bcp.ColumnMappings.Add(item.Source, item.Destination);
             }
 
-            await bcp.WriteToServerAsync(reader, cancellationToken).ConfigureAwait(false);
+            return bcp;
+        }
+        catch
+        {
+            ((IDisposable)bcp).Dispose();
+            throw;
         }
     }
 
@@ -182,37 +173,25 @@ internal sealed class MsSqlBulkCopy : BulkCopy
         return sameIgnoringCase == null ? $"'{field}'" : $"'{field}' (it has '{sameIgnoringCase}': the field list is compared with case)";
     }
 
-    private void CreateTable(string[] sourceFields)
+    private string[] GetTableColumns()
     {
-        string cmd = GetCreateTableScript(sourceFields);
-        context.CreateSimple(cmd).ExecuteNonQuery();
-    }
-
-    private async Task CreateTableAsync(string[] sourceFields, CancellationToken cancellationToken)
-    {
-        string cmd = GetCreateTableScript(sourceFields);
-        await context.CreateSimple(cmd).ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-    }
-
-    private IList<string> GetTableColumns()
-    {
-        var result = new List<string>();
+        string[] columns = [];
         context.CreateSimple($"select top 0 * from {destinationTable} with(nolock)")
-            .UseReader(r => result.AddRange(r.GetColumnNames()));
+            .UseReader(r => columns = r.GetColumnNames().ToArray());
 
-        return result;
+        return columns;
     }
 
-    private async Task<IList<string>> GetTableColumnsAsync(CancellationToken cancellationToken)
+    private async Task<string[]> GetTableColumnsAsync(CancellationToken cancellationToken)
     {
-        var result = new List<string>();
+        string[] columns = [];
         await context.CreateSimple($"select top 0 * from {destinationTable} with(nolock)")
             .UseReaderAsync(cancellationToken, r =>
             {
-                result.AddRange(r.GetColumnNames());
+                columns = r.GetColumnNames().ToArray();
                 return Task.CompletedTask;
             }).ConfigureAwait(false);
 
-        return result;
+        return columns;
     }
 }

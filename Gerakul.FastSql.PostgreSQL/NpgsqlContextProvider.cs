@@ -33,11 +33,6 @@ public partial class NpgsqlContextProvider : ContextProvider
         return new NpgsqlTransactionContext(this, (NpgsqlTransaction)transaction, queryOptions, bulkOptions, readOptions);
     }
 
-    //protected override void ApplyQueryOptions(DbCommand cmd, QueryOptions queryOptions)
-    //{
-    //    base.ApplyQueryOptions(cmd, queryOptions);
-    //}
-
     protected override DbParameter AddParamWithValue(DbCommand cmd, string paramName, object? value)
     {
         return ((NpgsqlCommand)cmd).Parameters.AddWithValue(paramName, value!);
