@@ -25,7 +25,9 @@ internal static class ValueConverter
         public static readonly ValueSource Source = ValueSource.For(0, typeof(T));
     }
 
-    // the value of a reader field, for the member the source describes
+    // The value of a reader field, for the member the source describes. It runs for every value that is read, and
+    // most values fit their member as they are: that path has no exception handling, so it can be inlined into the
+    // loop over the values, and the conversion is a method of its own
     public static object? FromReader(IDataReader reader, in ValueSource source)
     {
         if (reader.IsDBNull(source.Ordinal) && source.IsNullable)
@@ -46,6 +48,11 @@ internal static class ValueConverter
             return value;
         }
 
+        return ConvertField(reader, value, in source);
+    }
+
+    private static object ConvertField(IDataReader reader, object value, in ValueSource source)
+    {
         try
         {
             return Convert(value, source.ConvertingType, source.IsEnum);
@@ -77,9 +84,14 @@ internal static class ValueConverter
             return (T)value;
         }
 
+        return (T)ConvertScalar(value, in source);
+    }
+
+    private static object ConvertScalar(object value, in ValueSource source)
+    {
         try
         {
-            return (T)Convert(value, source.ConvertingType, source.IsEnum);
+            return Convert(value, source.ConvertingType, source.IsEnum);
         }
         catch (Exception exception) when (IsConversionFailure(exception))
         {

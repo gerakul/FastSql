@@ -31,21 +31,23 @@ public static class DbCommandExtensions
         }
     }
 
-    // the reader is closed when the enumeration ends or is abandoned
-    private static IEnumerable<T> Query<T>(DbCommand cmd, Func<DbDataReader, IEnumerable<T>> read)
-    {
-        using DbDataReader reader = cmd.ExecuteReader();
-        foreach (var item in read(reader))
-        {
-            yield return item;
-        }
-    }
-
+    // The sync queries check their arguments and return an iterator of their own, which closes the reader when the
+    // enumeration ends or is abandoned. One shared iterator that takes the reading as a delegate made every row of
+    // a query about a quarter slower
     public static IEnumerable<object[]> ExecuteQuery(this DbCommand cmd)
     {
         ArgumentNullException.ThrowIfNull(cmd);
 
-        return Query(cmd, reader => reader.ReadAll());
+        return Rows(cmd);
+
+        static IEnumerable<object[]> Rows(DbCommand cmd)
+        {
+            using DbDataReader reader = cmd.ExecuteReader();
+            foreach (var item in reader.ReadAll())
+            {
+                yield return item;
+            }
+        }
     }
 
     public static IAsyncEnumerable<object[]> ExecuteQueryAsync(this DbCommand cmd, CancellationToken cancellationToken = default)
@@ -59,7 +61,16 @@ public static class DbCommandExtensions
     {
         ArgumentNullException.ThrowIfNull(cmd);
 
-        return Query(cmd, reader => reader.ReadAll<T>(readOptions));
+        return Rows(cmd, readOptions);
+
+        static IEnumerable<T> Rows(DbCommand cmd, ReadOptions? readOptions)
+        {
+            using DbDataReader reader = cmd.ExecuteReader();
+            foreach (var item in reader.ReadAll<T>(readOptions))
+            {
+                yield return item;
+            }
+        }
     }
 
     public static IAsyncEnumerable<T> ExecuteQueryAsync<T>(this DbCommand cmd, ReadOptions? readOptions = null,
@@ -74,7 +85,16 @@ public static class DbCommandExtensions
     {
         ArgumentNullException.ThrowIfNull(cmd);
 
-        return Query(cmd, reader => reader.ReadAllAnonymous(proto, readOptions));
+        return Rows(cmd, proto, readOptions);
+
+        static IEnumerable<T> Rows(DbCommand cmd, T proto, ReadOptions? readOptions)
+        {
+            using DbDataReader reader = cmd.ExecuteReader();
+            foreach (var item in reader.ReadAllAnonymous(proto, readOptions))
+            {
+                yield return item;
+            }
+        }
     }
 
     public static IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(this DbCommand cmd, T proto, ReadOptions? readOptions = null,
@@ -89,7 +109,16 @@ public static class DbCommandExtensions
     {
         ArgumentNullException.ThrowIfNull(cmd);
 
-        return Query(cmd, reader => reader.ReadAllFirstColumn());
+        return Rows(cmd);
+
+        static IEnumerable<object?> Rows(DbCommand cmd)
+        {
+            using DbDataReader reader = cmd.ExecuteReader();
+            foreach (var item in reader.ReadAllFirstColumn())
+            {
+                yield return item;
+            }
+        }
     }
 
     public static IAsyncEnumerable<object?> ExecuteQueryFirstColumnAsync(this DbCommand cmd,
@@ -104,7 +133,16 @@ public static class DbCommandExtensions
     {
         ArgumentNullException.ThrowIfNull(cmd);
 
-        return Query(cmd, reader => reader.ReadAllFirstColumn<T>());
+        return Rows(cmd);
+
+        static IEnumerable<T> Rows(DbCommand cmd)
+        {
+            using DbDataReader reader = cmd.ExecuteReader();
+            foreach (var item in reader.ReadAllFirstColumn<T>())
+            {
+                yield return item;
+            }
+        }
     }
 
     public static IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(this DbCommand cmd,
