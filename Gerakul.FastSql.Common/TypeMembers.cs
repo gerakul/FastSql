@@ -262,8 +262,11 @@ internal sealed class WriteMembers<T>
 // thousand calls through reflection
 internal static class FastAccessors
 {
-    // rows of a type that go through reflection before its accessors are compiled
-    public const int RowsBefore = 1000;
+    // Rows of a type that go through reflection before its accessors are compiled: more than the rows whose
+    // reflection costs as much as the compile (about 7,500 for 8 members), so a type pays for the compile only
+    // when it has been used enough to earn it back. With 1,000 the first read of a few thousand rows in a new
+    // process was slower than without compiled accessors
+    public const int RowsBefore = 10000;
 
     private static readonly ConstructorInfo targetException = typeof(TargetException).GetConstructor([typeof(string)])!;
 

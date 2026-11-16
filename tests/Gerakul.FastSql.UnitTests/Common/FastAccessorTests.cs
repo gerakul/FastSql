@@ -9,14 +9,14 @@ using Xunit;
 
 namespace Gerakul.FastSql.UnitTests.Common
 {
-    // A type that is read or written a lot gets compiled accessors after its first 1,000 rows (FastAccessors).
+    // A type that is read or written a lot gets compiled accessors after its first 10,000 rows (FastAccessors).
     // They must do exactly what the accessors that go through reflection do, so the tests here use more rows
     // than that and compare the rows before the switch with the rows after it. The accessors are compiled on
     // the thread pool, so the tests wait for them at the threshold (WaitingAtTheThreshold). The state is kept
     // per type, for the whole process, so every test has model types of its own.
     public class FastAccessorTests
     {
-        private const int Threshold = 1000;
+        private const int Threshold = 10000;
         private const int Rows = 3 * Threshold;
 
         public enum Color
