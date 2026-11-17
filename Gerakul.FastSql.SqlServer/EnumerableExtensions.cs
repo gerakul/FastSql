@@ -2,7 +2,6 @@
 
 namespace Gerakul.FastSql.SqlServer;
 
-// ::: temporary internal
 internal static partial class EnumerableExtensions
 {
     #region Helpers

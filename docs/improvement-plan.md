@@ -1,8 +1,9 @@
 # Improvement plan (phase 4)
 
 Status: approved on 2026-11-13 as recommended, including the "your call" items (I16, I17, I18, I27), after
-a revision that followed the probes (see [What the probes changed](#what-the-probes-changed)). Being
-implemented; the results go into `docs/improvement-notes.md`.
+a revision that followed the probes (see [What the probes changed](#what-the-probes-changed)).
+Implemented; what was done, where it differs from this plan and the measurements are in the
+[improvement notes](improvement-notes.md).
 
 Phases 0 to 3 gave FastSql tests, current .NET and drivers, bug fixes and modern C#. This phase improves
 the library itself: what it costs per call and per row, what it tells the user when something is wrong,

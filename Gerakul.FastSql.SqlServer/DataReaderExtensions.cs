@@ -4,7 +4,6 @@ using System.Data.Common;
 
 namespace Gerakul.FastSql.SqlServer;
 
-// ::: temporary internal
 internal static partial class DataReaderExtensions
 {
     public static IEnumerable<ColumnDefinition?> GetColumnDefinitions(this IDataReader reader, ColumnDefinitionOptions? options = null, bool ignoreSchemaTable = false)

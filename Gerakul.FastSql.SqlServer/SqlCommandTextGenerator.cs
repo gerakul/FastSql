@@ -1,5 +1,8 @@
 ﻿namespace Gerakul.FastSql.SqlServer;
 
+/// <summary>
+/// Generates the text of commands for SQL Server.
+/// </summary>
 public class SqlCommandTextGenerator : CommandTextGenerator
 {
     // a closing bracket inside a name is written twice
@@ -8,52 +11,64 @@ public class SqlCommandTextGenerator : CommandTextGenerator
         return $"[{name.Replace("]", "]]")}]";
     }
 
+    /// <inheritdoc />
     public override string ColumnList(params string[] fields)
     {
         return string.Join(", ", fields.Select(x => Quote(x)));
     }
 
+    /// <inheritdoc />
     public override string ParamList(params string[] fields)
     {
         return string.Join(", ", fields.Select(x => $"@{x}"));
     }
 
+    /// <inheritdoc />
     public override string WhereClause(params string[] fields)
     {
         return string.Join(" and ", fields.Select(x => $"{Quote(x)} = @{x}"));
     }
 
+    /// <inheritdoc />
     public override string SetClause(params string[] fields)
     {
         return string.Join(", ", fields.Select(x => $"{Quote(x)} = @{x}"));
     }
 
+    /// <inheritdoc />
     public override string Insert(string tableName, params string[] fields)
     {
         return $"insert into {tableName} ({ColumnList(fields)}) values ({ParamList(fields)});";
     }
 
+    /// <inheritdoc />
     public override string InsertWithOutput(string tableName, string[] fields, params string[] outputFields)
     {
         var outputColumnList = string.Join(", ", outputFields.Select(x => $"inserted.{Quote(x)}"));
         return $"insert into {tableName} ({ColumnList(fields)}) output {outputColumnList} values ({ParamList(fields)});";
     }
 
+    /// <summary>
+    /// An insert of the fields that returns the identity value of the inserted row.
+    /// </summary>
     public string InsertAndGetID(string tableName, params string[] fields)
     {
         return Insert(tableName, fields) + " select scope_identity();";
     }
 
+    /// <inheritdoc />
     public override string Update(string tableName, string whereClause, params string[] fields)
     {
         return $"update {tableName} set {SetClause(fields)} where {whereClause};";
     }
 
+    /// <inheritdoc />
     public override string Delete(string tableName, string whereClause)
     {
         return $"delete from {tableName} where {whereClause};";
     }
 
+    /// <inheritdoc />
     public override string Merge(string tableName, IEnumerable<string> keyFields, params string[] fields)
     {
         var allFields = keyFields.Union(fields).ToArray();
