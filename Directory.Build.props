@@ -1,0 +1,33 @@
+<Project>
+
+  <!-- Shared by all projects; tests/Directory.Build.props imports this file and adds the test settings -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Authors>gerakul</Authors>
+    <RepositoryUrl>https://github.com/gerakul/FastSql</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
+  <!-- The three libraries, the only packages: the Gerakul.FastSql.* projects in the root folder -->
+  <PropertyGroup Condition="$(MSBuildProjectName.StartsWith('Gerakul.FastSql.')) And '$(MSBuildProjectDirectory)' == '$(MSBuildThisFileDirectory)$(MSBuildProjectName)'">
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/gerakul/FastSql</PackageProjectUrl>
+    <PackageTags>sql;sqlserver;postgresql;ado.net;micro-orm;orm;bulk-copy;data-access</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!-- Source Link (built into the SDK) with the repository URL in the package, symbols as a .snupkg -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <!-- deterministic paths in the binaries of a CI build -->
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(PackageReadmeFile)' == 'README.md'">
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
+</Project>

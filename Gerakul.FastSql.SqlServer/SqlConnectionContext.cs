@@ -1,26 +1,35 @@
 ﻿using Gerakul.FastSql.Common;
+using Microsoft.Data.SqlClient;
 using System.Data.Common;
-using System.Data.SqlClient;
 
-namespace Gerakul.FastSql.SqlServer
+namespace Gerakul.FastSql.SqlServer;
+
+/// <summary>
+/// A context over an open SQL Server connection.
+/// </summary>
+public class SqlConnectionContext : ConnectionContext, ISqlCommandCreator
 {
-    public class SqlConnectionContext : ConnectionContext, ISqlCommandCreator
+    /// <summary>
+    /// Creates a context over the connection, with the options of the provider or with the given ones.
+    /// </summary>
+    public SqlConnectionContext(SqlContextProvider contextProvider, SqlConnection connection)
+        : this(contextProvider, connection,
+              contextProvider.QueryOptions, contextProvider.BulkOptions, contextProvider.ReadOptions)
     {
-        public SqlConnectionContext(SqlContextProvider contextProvider, SqlConnection connection)
-            : this(contextProvider, connection,
-                  contextProvider.QueryOptions, contextProvider.BulkOptions, contextProvider.ReadOptions)
-        {
-        }
+    }
 
-        protected internal SqlConnectionContext(ContextProvider contextProvider, SqlConnection connection,
-            QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
-            : base(contextProvider, connection, queryOptions, bulkOptions, readOptions)
-        {
-        }
+    /// <summary>
+    /// Creates a context over the connection, with the options of the provider or with the given ones.
+    /// </summary>
+    protected internal SqlConnectionContext(ContextProvider contextProvider, SqlConnection connection,
+        QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
+        : base(contextProvider, connection, queryOptions, bulkOptions, readOptions)
+    {
+    }
 
-        public override DbCommand CreateCommand(string commandText)
-        {
-            return new SqlCommand(commandText, (SqlConnection)Connection);
-        }
+    /// <inheritdoc />
+    public override DbCommand CreateCommand(string commandText)
+    {
+        return new SqlCommand(commandText, (SqlConnection)Connection);
     }
 }

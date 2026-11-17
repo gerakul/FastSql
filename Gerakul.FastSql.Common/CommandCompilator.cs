@@ -1,301 +1,670 @@
-﻿using System.Collections.Generic;
-using System.Data;
-using System.Linq;
+﻿using System.Data;
 
-namespace Gerakul.FastSql.Common
+namespace Gerakul.FastSql.Common;
+
+// The methods that take the type's members from the type (not settings of the caller) keep the command they
+// compiled last, per type and kind of command, and return it again when they are called with the same
+// arguments: see CommandCache
+/// <summary>
+/// Builds commands ahead of their use. A compiled command knows its text and how to fill its parameters, so
+/// creating it for a value costs no analysis. Get the compilator from a context or from the provider.
+/// </summary>
+/// <remarks>
+/// The <c>Create...</c> methods of a context compile on their own and keep the last command of each kind per type;
+/// compile explicitly to keep more than one command, or commands built from your own field settings.
+/// </remarks>
+public class CommandCompilator
 {
-    public class CommandCompilator
+    private readonly ContextProvider contextProvider;
+
+    /// <summary>
+    /// Creates a compilator for the provider.
+    /// </summary>
+    public CommandCompilator(ContextProvider contextProvider)
     {
-        private ContextProvider contextProvider;
+        this.contextProvider = contextProvider;
+    }
 
-        public CommandCompilator(ContextProvider contextProvider)
+    #region Simple
+
+    /// <summary>
+    /// Compiles a text command whose parameters are passed by position, as <c>@p0</c>, <c>@p1</c> and so on.
+    /// </summary>
+    public SimpleCommand CompileSimple(string commandText)
+    {
+        return new SimpleCommand(contextProvider, commandText);
+    }
+
+    /// <summary>
+    /// Compiles a call of a stored procedure whose parameters are passed ready-made.
+    /// </summary>
+    public SimpleCommand CompileProcedureSimple(string name)
+    {
+        return new SimpleCommand(contextProvider, name, CommandType.StoredProcedure);
+    }
+
+    #endregion
+
+    #region Mapped
+
+    /// <summary>
+    /// Compiles a text command whose parameters are filled from the fields of a <c>T</c> by name.
+    /// </summary>
+    /// <remarks>
+    /// The names of the parameters are found in the command text, or given in <c>paramNames</c>. The overloads with
+    /// <c>proto</c> take the type from the value, which is how an anonymous type is named; the overloads with
+    /// <c>settings</c> take the fields as given instead of the public fields and properties of the type.
+    /// </remarks>
+    public MappedCommand<T> CompileMapped<T>(string commandText, IList<string>? paramNames, IList<FieldSettings<T>> settings,
+        bool caseSensitiveParamsMatching = false)
+    {
+        return new MappedCommand<T>(contextProvider, commandText, paramNames, settings, caseSensitiveParamsMatching);
+    }
+
+    /// <summary>
+    /// Compiles a text command whose parameters are filled from the fields of a <c>T</c> by name.
+    /// </summary>
+    /// <remarks>
+    /// The names of the parameters are found in the command text, or given in <c>paramNames</c>. The overloads with
+    /// <c>proto</c> take the type from the value, which is how an anonymous type is named; the overloads with
+    /// <c>settings</c> take the fields as given instead of the public fields and properties of the type.
+    /// </remarks>
+    public MappedCommand<T> CompileMapped<T>(string commandText, IList<FieldSettings<T>> settings, bool caseSensitiveParamsMatching = false)
+    {
+        ArgumentNullException.ThrowIfNull(commandText);
+
+        return new MappedCommand<T>(contextProvider, commandText, contextProvider.ParamsFromCommandText(commandText), settings, caseSensitiveParamsMatching);
+    }
+
+    /// <summary>
+    /// Compiles a text command whose parameters are filled from the fields of a <c>T</c> by name.
+    /// </summary>
+    /// <remarks>
+    /// The names of the parameters are found in the command text, or given in <c>paramNames</c>. The overloads with
+    /// <c>proto</c> take the type from the value, which is how an anonymous type is named; the overloads with
+    /// <c>settings</c> take the fields as given instead of the public fields and properties of the type.
+    /// </remarks>
+    public MappedCommand<T> CompileMapped<T>(string commandText, IList<string>? paramNames, FromTypeOption fromTypeOption = FromTypeOption.Default,
+        bool caseSensitiveParamsMatching = false)
+    {
+        // no names means no parameters; in the cache a missing list stands for the names found in the text
+        paramNames ??= Array.Empty<string>();
+
+        if (Find(CommandCache<T>.Mapped, commandText, fromTypeOption, caseSensitiveParamsMatching, paramNames, null) is { } last)
         {
-            this.contextProvider = contextProvider;
+            return last;
         }
 
-        #region Simple
+        var command = new MappedCommand<T>(contextProvider, commandText, paramNames, FieldSettings.FromTypeShared<T>(fromTypeOption), caseSensitiveParamsMatching);
+        CommandCache<T>.Mapped = Keep(command, commandText, fromTypeOption, caseSensitiveParamsMatching, paramNames, null);
+        return command;
+    }
 
-        public SimpleCommand CompileSimple(string commandText)
+    /// <summary>
+    /// Compiles a text command whose parameters are filled from the fields of a <c>T</c> by name.
+    /// </summary>
+    /// <remarks>
+    /// The names of the parameters are found in the command text, or given in <c>paramNames</c>. The overloads with
+    /// <c>proto</c> take the type from the value, which is how an anonymous type is named; the overloads with
+    /// <c>settings</c> take the fields as given instead of the public fields and properties of the type.
+    /// </remarks>
+    public MappedCommand<T> CompileMapped<T>(string commandText, FromTypeOption fromTypeOption = FromTypeOption.Default, bool caseSensitiveParamsMatching = false)
+    {
+        ArgumentNullException.ThrowIfNull(commandText);
+
+        if (Find(CommandCache<T>.Mapped, commandText, fromTypeOption, caseSensitiveParamsMatching, null, null) is { } last)
         {
-            return new SimpleCommand(contextProvider, commandText);
+            return last;
         }
 
-        public SimpleCommand CompileProcedureSimple(string name)
+        var command = new MappedCommand<T>(contextProvider, commandText, contextProvider.ParamsFromCommandText(commandText),
+            FieldSettings.FromTypeShared<T>(fromTypeOption), caseSensitiveParamsMatching);
+        CommandCache<T>.Mapped = Keep(command, commandText, fromTypeOption, caseSensitiveParamsMatching, null, null);
+        return command;
+    }
+
+    /// <summary>
+    /// Compiles a text command whose parameters are filled from the fields of a <c>T</c> by name.
+    /// </summary>
+    /// <remarks>
+    /// The names of the parameters are found in the command text, or given in <c>paramNames</c>. The overloads with
+    /// <c>proto</c> take the type from the value, which is how an anonymous type is named; the overloads with
+    /// <c>settings</c> take the fields as given instead of the public fields and properties of the type.
+    /// </remarks>
+    public MappedCommand<T> CompileMapped<T>(T proto, string commandText, IList<string>? paramNames, FromTypeOption fromTypeOption = FromTypeOption.Default,
+        bool caseSensitiveParamsMatching = false)
+    {
+        return CompileMapped<T>(commandText, paramNames, fromTypeOption, caseSensitiveParamsMatching);
+    }
+
+    /// <summary>
+    /// Compiles a text command whose parameters are filled from the fields of a <c>T</c> by name.
+    /// </summary>
+    /// <remarks>
+    /// The names of the parameters are found in the command text, or given in <c>paramNames</c>. The overloads with
+    /// <c>proto</c> take the type from the value, which is how an anonymous type is named; the overloads with
+    /// <c>settings</c> take the fields as given instead of the public fields and properties of the type.
+    /// </remarks>
+    public MappedCommand<T> CompileMapped<T>(T proto, string commandText, FromTypeOption fromTypeOption = FromTypeOption.Default, bool caseSensitiveParamsMatching = false)
+    {
+        return CompileMapped<T>(commandText, fromTypeOption, caseSensitiveParamsMatching);
+    }
+
+    #region Stored procedures
+
+    /// <summary>
+    /// Compiles a call of a stored procedure whose parameters are filled from the fields of a <c>T</c> by name.
+    /// </summary>
+    /// <remarks>
+    /// Without <c>paramNames</c> every field is a parameter. The overloads with <c>proto</c> take the type from the
+    /// value; the overloads with <c>settings</c> take the fields as given.
+    /// </remarks>
+    public MappedCommand<T> CompileProcedure<T>(string name, IList<string>? paramNames, IList<FieldSettings<T>> settings, bool caseSensitiveParamsMatching = false)
+    {
+        return new MappedCommand<T>(contextProvider, name, paramNames, settings, caseSensitiveParamsMatching, CommandType.StoredProcedure);
+    }
+
+    /// <summary>
+    /// Compiles a call of a stored procedure whose parameters are filled from the fields of a <c>T</c> by name.
+    /// </summary>
+    /// <remarks>
+    /// Without <c>paramNames</c> every field is a parameter. The overloads with <c>proto</c> take the type from the
+    /// value; the overloads with <c>settings</c> take the fields as given.
+    /// </remarks>
+    public MappedCommand<T> CompileProcedure<T>(string name, IList<FieldSettings<T>> settings, bool caseSensitiveParamsMatching = false)
+    {
+        return new MappedCommand<T>(contextProvider, name, contextProvider.ParamsFromSettings(settings), settings, caseSensitiveParamsMatching, CommandType.StoredProcedure);
+    }
+
+    /// <summary>
+    /// Compiles a call of a stored procedure whose parameters are filled from the fields of a <c>T</c> by name.
+    /// </summary>
+    /// <remarks>
+    /// Without <c>paramNames</c> every field is a parameter. The overloads with <c>proto</c> take the type from the
+    /// value; the overloads with <c>settings</c> take the fields as given.
+    /// </remarks>
+    public MappedCommand<T> CompileProcedure<T>(string name, IList<string>? paramNames, FromTypeOption fromTypeOption = FromTypeOption.Default,
+        bool caseSensitiveParamsMatching = false)
+    {
+        // no names means no parameters; in the cache a missing list stands for the names of the members
+        paramNames ??= Array.Empty<string>();
+
+        if (Find(CommandCache<T>.Procedure, name, fromTypeOption, caseSensitiveParamsMatching, paramNames, null) is { } last)
         {
-            return new SimpleCommand(contextProvider, name, CommandType.StoredProcedure);
+            return last;
         }
 
-        #endregion
+        var command = new MappedCommand<T>(contextProvider, name, paramNames, FieldSettings.FromTypeShared<T>(fromTypeOption), caseSensitiveParamsMatching,
+            CommandType.StoredProcedure);
+        CommandCache<T>.Procedure = Keep(command, name, fromTypeOption, caseSensitiveParamsMatching, paramNames, null);
+        return command;
+    }
 
-        #region Mapped
-
-        public MappedCommand<T> CompileMapped<T>(string commandText, IList<string> paramNames, IList<FieldSettings<T>> settings,
-            bool caseSensitiveParamsMatching = false)
+    /// <summary>
+    /// Compiles a call of a stored procedure whose parameters are filled from the fields of a <c>T</c> by name.
+    /// </summary>
+    /// <remarks>
+    /// Without <c>paramNames</c> every field is a parameter. The overloads with <c>proto</c> take the type from the
+    /// value; the overloads with <c>settings</c> take the fields as given.
+    /// </remarks>
+    public MappedCommand<T> CompileProcedure<T>(string name, FromTypeOption fromTypeOption = FromTypeOption.Default, bool caseSensitiveParamsMatching = false)
+    {
+        if (Find(CommandCache<T>.Procedure, name, fromTypeOption, caseSensitiveParamsMatching, null, null) is { } last)
         {
-            return new MappedCommand<T>(contextProvider, commandText, paramNames, settings, caseSensitiveParamsMatching);
+            return last;
         }
 
-        public MappedCommand<T> CompileMapped<T>(string commandText, IList<FieldSettings<T>> settings, bool caseSensitiveParamsMatching = false)
+        var settings = FieldSettings.FromTypeShared<T>(fromTypeOption);
+        var command = new MappedCommand<T>(contextProvider, name, contextProvider.ParamsFromSettings(settings), settings, caseSensitiveParamsMatching,
+            CommandType.StoredProcedure);
+        CommandCache<T>.Procedure = Keep(command, name, fromTypeOption, caseSensitiveParamsMatching, null, null);
+        return command;
+    }
+
+    /// <summary>
+    /// Compiles a call of a stored procedure whose parameters are filled from the fields of a <c>T</c> by name.
+    /// </summary>
+    /// <remarks>
+    /// Without <c>paramNames</c> every field is a parameter. The overloads with <c>proto</c> take the type from the
+    /// value; the overloads with <c>settings</c> take the fields as given.
+    /// </remarks>
+    public MappedCommand<T> CompileProcedure<T>(T proto, string name, IList<string>? paramNames, FromTypeOption fromTypeOption = FromTypeOption.Default, bool caseSensitiveParamsMatching = false)
+    {
+        return CompileProcedure<T>(name, paramNames, fromTypeOption, caseSensitiveParamsMatching);
+    }
+
+    /// <summary>
+    /// Compiles a call of a stored procedure whose parameters are filled from the fields of a <c>T</c> by name.
+    /// </summary>
+    /// <remarks>
+    /// Without <c>paramNames</c> every field is a parameter. The overloads with <c>proto</c> take the type from the
+    /// value; the overloads with <c>settings</c> take the fields as given.
+    /// </remarks>
+    public MappedCommand<T> CompileProcedure<T>(T proto, string name, FromTypeOption fromTypeOption = FromTypeOption.Default, bool caseSensitiveParamsMatching = false)
+    {
+        return CompileProcedure<T>(name, fromTypeOption, caseSensitiveParamsMatching);
+    }
+
+    #endregion
+
+    #region Special commands
+
+    #region Insert
+
+    /// <summary>
+    /// Compiles an insert of a <c>T</c> into the table: a column per field, except <c>ignoreFields</c>.
+    /// </summary>
+    public MappedCommand<T> CompileInsert<T>(string tableName, IList<FieldSettings<T>> settings, params string[] ignoreFields)
+    {
+        ArgumentNullException.ThrowIfNull(tableName);
+        ArgumentNullException.ThrowIfNull(settings);
+
+        var fields = settings.Select(x => x.Name).Except(ToMemberNames(ignoreFields, settings)).ToArray();
+        string query = contextProvider.CommandTextGenerator.Insert(tableName, fields);
+        return new MappedCommand<T>(contextProvider, query, fields, settings, true);
+    }
+
+    /// <summary>
+    /// Compiles an insert of a <c>T</c> into the table: a column per field, except <c>ignoreFields</c>.
+    /// </summary>
+    public MappedCommand<T> CompileInsert<T>(string tableName, FromTypeOption fromTypeOption, params string[] ignoreFields)
+    {
+        ignoreFields ??= [];
+
+        if (Find(CommandCache<T>.Insert, tableName, fromTypeOption, false, ignoreFields, null) is { } last)
         {
-            return new MappedCommand<T>(contextProvider, commandText, contextProvider.ParamsFromCommandText(commandText), settings, caseSensitiveParamsMatching);
+            return last;
         }
 
-        public MappedCommand<T> CompileMapped<T>(string commandText, IList<string> paramNames, FromTypeOption fromTypeOption = FromTypeOption.Default,
-            bool caseSensitiveParamsMatching = false)
+        var command = CompileInsert(tableName, FieldSettings.FromTypeShared<T>(fromTypeOption), ignoreFields);
+        CommandCache<T>.Insert = Keep(command, tableName, fromTypeOption, false, ignoreFields, null);
+        return command;
+    }
+
+    /// <summary>
+    /// Compiles an insert of a <c>T</c> into the table: a column per field, except <c>ignoreFields</c>.
+    /// </summary>
+    public MappedCommand<T> CompileInsert<T>(string tableName, params string[] ignoreFields)
+    {
+        return CompileInsert<T>(tableName, FromTypeOption.Default, ignoreFields);
+    }
+
+    /// <summary>
+    /// Compiles an insert of a <c>T</c> into the table: a column per field, except <c>ignoreFields</c>.
+    /// </summary>
+    public MappedCommand<T> CompileInsert<T>(T proto, string tableName, FromTypeOption fromTypeOption, params string[] ignoreFields)
+    {
+        return CompileInsert<T>(tableName, fromTypeOption, ignoreFields);
+    }
+
+    /// <summary>
+    /// Compiles an insert of a <c>T</c> into the table: a column per field, except <c>ignoreFields</c>.
+    /// </summary>
+    public MappedCommand<T> CompileInsert<T>(T proto, string tableName, params string[] ignoreFields)
+    {
+        return CompileInsert<T>(tableName, FromTypeOption.Default, ignoreFields);
+    }
+
+    /// <summary>
+    /// Compiles an insert of a <c>T</c> that returns the <c>outputFields</c> of the inserted row (<c>output</c> in
+    /// SQL Server, <c>returning</c> in PostgreSQL).
+    /// </summary>
+    public MappedCommand<T> CompileInsertWithOutput<T>(string tableName, IList<FieldSettings<T>> settings,
+        IList<string>? ignoreFields, params string[] outputFields)
+    {
+        ArgumentNullException.ThrowIfNull(tableName);
+        ArgumentNullException.ThrowIfNull(settings);
+        ArgumentNullException.ThrowIfNull(outputFields);
+
+        var ignFields = ignoreFields?.ToArray() ?? [];
+
+        if (outputFields.Length == 0)
         {
-            return new MappedCommand<T>(contextProvider, commandText, paramNames, FieldSettings.FromType<T>(fromTypeOption), caseSensitiveParamsMatching);
+            return CompileInsert(tableName, settings, ignFields);
         }
 
-        public MappedCommand<T> CompileMapped<T>(string commandText, FromTypeOption fromTypeOption = FromTypeOption.Default, bool caseSensitiveParamsMatching = false)
+        var fields = settings.Select(x => x.Name).Except(ToMemberNames(ignFields, settings)).ToArray();
+        string query = contextProvider.CommandTextGenerator.InsertWithOutput(tableName, fields, outputFields);
+        return new MappedCommand<T>(contextProvider, query, fields, settings, true);
+    }
+
+    // with the members of the type, as the methods above that take a FromTypeOption
+    internal MappedCommand<T> CompileInsertWithOutput<T>(string tableName, FromTypeOption fromTypeOption, IList<string>? ignoreFields, string[] outputFields)
+    {
+        ignoreFields ??= Array.Empty<string>();
+
+        if (Find(CommandCache<T>.InsertWithOutput, tableName, fromTypeOption, false, ignoreFields, outputFields) is { } last)
         {
-            return new MappedCommand<T>(contextProvider, commandText, contextProvider.ParamsFromCommandText(commandText), FieldSettings.FromType<T>(fromTypeOption),
-                caseSensitiveParamsMatching);
+            return last;
         }
 
-        public MappedCommand<T> CompileMapped<T>(T proto, string commandText, IList<string> paramNames, FromTypeOption fromTypeOption = FromTypeOption.Default, 
-            bool caseSensitiveParamsMatching = false)
+        var command = CompileInsertWithOutput(tableName, FieldSettings.FromTypeShared<T>(fromTypeOption), ignoreFields, outputFields);
+        CommandCache<T>.InsertWithOutput = Keep(command, tableName, fromTypeOption, false, ignoreFields, outputFields);
+        return command;
+    }
+
+    #endregion
+
+    #region Update
+
+    /// <summary>
+    /// Compiles an update of the row of a <c>T</c>: the fields in <c>keyFields</c> find the row, the others are
+    /// set, except <c>notKeyIgnoreFields</c>.
+    /// </summary>
+    public MappedCommand<T> CompileUpdate<T>(string tableName, IList<FieldSettings<T>> settings, IList<string> keyFields, IList<string>? notKeyIgnoreFields)
+    {
+        ArgumentNullException.ThrowIfNull(tableName);
+        ArgumentNullException.ThrowIfNull(settings);
+
+        CheckKeyFields(keyFields);
+        var keys = ToMemberNames(keyFields, settings);
+        var fields = settings.Select(x => x.Name).Except(ToMemberNames(notKeyIgnoreFields, settings)).ToArray();
+        var fieldsToUpdate = fields.Except(keys).ToArray();
+        if (fieldsToUpdate.Length == 0)
         {
-            return new MappedCommand<T>(contextProvider, commandText, paramNames, FieldSettings.FromType(proto, fromTypeOption), caseSensitiveParamsMatching);
+            throw new ArgumentException("Update has no fields to set: all fields are key fields or ignored", nameof(keyFields));
         }
 
-        public MappedCommand<T> CompileMapped<T>(T proto, string commandText, FromTypeOption fromTypeOption = FromTypeOption.Default, bool caseSensitiveParamsMatching = false)
+        string query = contextProvider.CommandTextGenerator.Update(tableName, keys, fieldsToUpdate);
+        return new MappedCommand<T>(contextProvider, query, fields, settings, true);
+    }
+
+    /// <summary>
+    /// Compiles an update of the row of a <c>T</c>: the fields in <c>keyFields</c> find the row, the others are
+    /// set, except <c>notKeyIgnoreFields</c>.
+    /// </summary>
+    public MappedCommand<T> CompileUpdate<T>(string tableName, IList<FieldSettings<T>> settings, params string[] keyFields)
+    {
+        return CompileUpdate(tableName, settings, keyFields, Array.Empty<string>());
+    }
+
+    /// <summary>
+    /// Compiles an update of the row of a <c>T</c>: the fields in <c>keyFields</c> find the row, the others are
+    /// set, except <c>notKeyIgnoreFields</c>.
+    /// </summary>
+    public MappedCommand<T> CompileUpdate<T>(string tableName, FromTypeOption fromTypeOption, IList<string> keyFields, IList<string>? notKeyIgnoreFields)
+    {
+        notKeyIgnoreFields ??= Array.Empty<string>();
+
+        if (Find(CommandCache<T>.Update, tableName, fromTypeOption, false, keyFields, notKeyIgnoreFields) is { } last)
         {
-            return new MappedCommand<T>(contextProvider, commandText, contextProvider.ParamsFromCommandText(commandText), FieldSettings.FromType(proto, fromTypeOption), 
-                caseSensitiveParamsMatching);
+            return last;
         }
 
-        #region Stored procedures
+        var command = CompileUpdate(tableName, FieldSettings.FromTypeShared<T>(fromTypeOption), keyFields, notKeyIgnoreFields);
+        CommandCache<T>.Update = Keep(command, tableName, fromTypeOption, false, keyFields, notKeyIgnoreFields);
+        return command;
+    }
 
-        public MappedCommand<T> CompileProcedure<T>(string name, IList<string> paramNames, IList<FieldSettings<T>> settings, bool caseSensitiveParamsMatching = false)
+    /// <summary>
+    /// Compiles an update of the row of a <c>T</c>: the fields in <c>keyFields</c> find the row, the others are
+    /// set, except <c>notKeyIgnoreFields</c>.
+    /// </summary>
+    public MappedCommand<T> CompileUpdate<T>(string tableName, FromTypeOption fromTypeOption, params string[] keyFields)
+    {
+        return CompileUpdate<T>(tableName, fromTypeOption, keyFields, Array.Empty<string>());
+    }
+
+    /// <summary>
+    /// Compiles an update of the row of a <c>T</c>: the fields in <c>keyFields</c> find the row, the others are
+    /// set, except <c>notKeyIgnoreFields</c>.
+    /// </summary>
+    public MappedCommand<T> CompileUpdate<T>(string tableName, IList<string> keyFields, IList<string>? notKeyIgnoreFields)
+    {
+        return CompileUpdate<T>(tableName, FromTypeOption.Default, keyFields, notKeyIgnoreFields);
+    }
+
+    /// <summary>
+    /// Compiles an update of the row of a <c>T</c>: the fields in <c>keyFields</c> find the row, the others are
+    /// set, except <c>notKeyIgnoreFields</c>.
+    /// </summary>
+    public MappedCommand<T> CompileUpdate<T>(string tableName, params string[] keyFields)
+    {
+        return CompileUpdate<T>(tableName, FromTypeOption.Default, keyFields, Array.Empty<string>());
+    }
+
+    /// <summary>
+    /// Compiles an update of the row of a <c>T</c>: the fields in <c>keyFields</c> find the row, the others are
+    /// set, except <c>notKeyIgnoreFields</c>.
+    /// </summary>
+    public MappedCommand<T> CompileUpdate<T>(T proto, string tableName, FromTypeOption fromTypeOption, IList<string> keyFields, IList<string>? notKeyIgnoreFields)
+    {
+        return CompileUpdate<T>(tableName, fromTypeOption, keyFields, notKeyIgnoreFields);
+    }
+
+    /// <summary>
+    /// Compiles an update of the row of a <c>T</c>: the fields in <c>keyFields</c> find the row, the others are
+    /// set, except <c>notKeyIgnoreFields</c>.
+    /// </summary>
+    public MappedCommand<T> CompileUpdate<T>(T proto, string tableName, FromTypeOption fromTypeOption, params string[] keyFields)
+    {
+        return CompileUpdate<T>(tableName, fromTypeOption, keyFields, Array.Empty<string>());
+    }
+
+    /// <summary>
+    /// Compiles an update of the row of a <c>T</c>: the fields in <c>keyFields</c> find the row, the others are
+    /// set, except <c>notKeyIgnoreFields</c>.
+    /// </summary>
+    public MappedCommand<T> CompileUpdate<T>(T proto, string tableName, IList<string> keyFields, IList<string>? notKeyIgnoreFields)
+    {
+        return CompileUpdate<T>(tableName, FromTypeOption.Default, keyFields, notKeyIgnoreFields);
+    }
+
+    /// <summary>
+    /// Compiles an update of the row of a <c>T</c>: the fields in <c>keyFields</c> find the row, the others are
+    /// set, except <c>notKeyIgnoreFields</c>.
+    /// </summary>
+    public MappedCommand<T> CompileUpdate<T>(T proto, string tableName, params string[] keyFields)
+    {
+        return CompileUpdate<T>(tableName, FromTypeOption.Default, keyFields, Array.Empty<string>());
+    }
+
+    #endregion
+
+    #region Delete
+
+    /// <summary>
+    /// Compiles a delete of the row of a <c>T</c>: the fields in <c>keyFields</c> find the row.
+    /// </summary>
+    public MappedCommand<T> CompileDelete<T>(string tableName, IList<FieldSettings<T>> settings, params string[] keyFields)
+    {
+        ArgumentNullException.ThrowIfNull(tableName);
+        ArgumentNullException.ThrowIfNull(settings);
+
+        var keys = keyFields == null || keyFields.Length == 0 ? settings.GetNames() : ToMemberNames(keyFields, settings);
+        string query = contextProvider.CommandTextGenerator.Delete(tableName, keys);
+        return new MappedCommand<T>(contextProvider, query, keys, settings, true);
+    }
+
+    /// <summary>
+    /// Compiles a delete of the row of a <c>T</c>: the fields in <c>keyFields</c> find the row.
+    /// </summary>
+    public MappedCommand<T> CompileDelete<T>(string tableName, FromTypeOption fromTypeOption, params string[] keyFields)
+    {
+        // no key fields: every member is a key field
+        keyFields ??= [];
+
+        if (Find(CommandCache<T>.Delete, tableName, fromTypeOption, false, keyFields, null) is { } last)
         {
-            return new MappedCommand<T>(contextProvider, name, paramNames, settings, caseSensitiveParamsMatching, CommandType.StoredProcedure);
+            return last;
         }
 
-        public MappedCommand<T> CompileProcedure<T>(string name, IList<FieldSettings<T>> settings, bool caseSensitiveParamsMatching = false)
+        var command = CompileDelete(tableName, FieldSettings.FromTypeShared<T>(fromTypeOption), keyFields);
+        CommandCache<T>.Delete = Keep(command, tableName, fromTypeOption, false, keyFields, null);
+        return command;
+    }
+
+    /// <summary>
+    /// Compiles a delete of the row of a <c>T</c>: the fields in <c>keyFields</c> find the row.
+    /// </summary>
+    public MappedCommand<T> CompileDelete<T>(string tableName, params string[] keyFields)
+    {
+        return CompileDelete<T>(tableName, FromTypeOption.Default, keyFields);
+    }
+
+    /// <summary>
+    /// Compiles a delete of the row of a <c>T</c>: the fields in <c>keyFields</c> find the row.
+    /// </summary>
+    public MappedCommand<T> CompileDelete<T>(T proto, string tableName, FromTypeOption fromTypeOption, params string[] keyFields)
+    {
+        return CompileDelete<T>(tableName, fromTypeOption, keyFields);
+    }
+
+    /// <summary>
+    /// Compiles a delete of the row of a <c>T</c>: the fields in <c>keyFields</c> find the row.
+    /// </summary>
+    public MappedCommand<T> CompileDelete<T>(T proto, string tableName, params string[] keyFields)
+    {
+        return CompileDelete<T>(tableName, FromTypeOption.Default, keyFields);
+    }
+
+    #endregion
+
+    #region Merge
+
+    /// <summary>
+    /// Compiles an insert or update of a <c>T</c> by <c>keyFields</c> (<c>merge</c> in SQL Server, <c>insert ... on
+    /// conflict</c> in PostgreSQL). The fields in <c>notKeyIgnoreFields</c> are left out.
+    /// </summary>
+    public MappedCommand<T> CompileMerge<T>(string tableName, IList<FieldSettings<T>> settings, IList<string> keyFields, IList<string>? notKeyIgnoreFields)
+    {
+        ArgumentNullException.ThrowIfNull(tableName);
+        ArgumentNullException.ThrowIfNull(settings);
+
+        CheckKeyFields(keyFields);
+        var keys = ToMemberNames(keyFields, settings);
+        var fields = settings.Select(x => x.Name).Except(ToMemberNames(notKeyIgnoreFields, settings)).ToArray();
+        var fieldsToUpdate = fields.Except(keys).ToArray(); // none: the text generator makes an insert if missing
+        string query = contextProvider.CommandTextGenerator.Merge(tableName, keys, fieldsToUpdate);
+        return new MappedCommand<T>(contextProvider, query, fields, settings, true);
+    }
+
+    /// <summary>
+    /// Compiles an insert or update of a <c>T</c> by <c>keyFields</c> (<c>merge</c> in SQL Server, <c>insert ... on
+    /// conflict</c> in PostgreSQL). The fields in <c>notKeyIgnoreFields</c> are left out.
+    /// </summary>
+    public MappedCommand<T> CompileMerge<T>(string tableName, IList<FieldSettings<T>> settings, params string[] keyFields)
+    {
+        return CompileMerge(tableName, settings, keyFields, Array.Empty<string>());
+    }
+
+    /// <summary>
+    /// Compiles an insert or update of a <c>T</c> by <c>keyFields</c> (<c>merge</c> in SQL Server, <c>insert ... on
+    /// conflict</c> in PostgreSQL). The fields in <c>notKeyIgnoreFields</c> are left out.
+    /// </summary>
+    public MappedCommand<T> CompileMerge<T>(string tableName, FromTypeOption fromTypeOption, IList<string> keyFields, IList<string>? notKeyIgnoreFields)
+    {
+        notKeyIgnoreFields ??= Array.Empty<string>();
+
+        if (Find(CommandCache<T>.Merge, tableName, fromTypeOption, false, keyFields, notKeyIgnoreFields) is { } last)
         {
-            return new MappedCommand<T>(contextProvider, name, contextProvider.ParamsFromSettings(settings), settings, caseSensitiveParamsMatching, CommandType.StoredProcedure);
+            return last;
         }
 
-        public MappedCommand<T> CompileProcedure<T>(string name, IList<string> paramNames, FromTypeOption fromTypeOption = FromTypeOption.Default, 
-            bool caseSensitiveParamsMatching = false)
+        var command = CompileMerge(tableName, FieldSettings.FromTypeShared<T>(fromTypeOption), keyFields, notKeyIgnoreFields);
+        CommandCache<T>.Merge = Keep(command, tableName, fromTypeOption, false, keyFields, notKeyIgnoreFields);
+        return command;
+    }
+
+    /// <summary>
+    /// Compiles an insert or update of a <c>T</c> by <c>keyFields</c> (<c>merge</c> in SQL Server, <c>insert ... on
+    /// conflict</c> in PostgreSQL). The fields in <c>notKeyIgnoreFields</c> are left out.
+    /// </summary>
+    public MappedCommand<T> CompileMerge<T>(string tableName, FromTypeOption fromTypeOption, params string[] keyFields)
+    {
+        return CompileMerge<T>(tableName, fromTypeOption, keyFields, Array.Empty<string>());
+    }
+
+    /// <summary>
+    /// Compiles an insert or update of a <c>T</c> by <c>keyFields</c> (<c>merge</c> in SQL Server, <c>insert ... on
+    /// conflict</c> in PostgreSQL). The fields in <c>notKeyIgnoreFields</c> are left out.
+    /// </summary>
+    public MappedCommand<T> CompileMerge<T>(string tableName, IList<string> keyFields, IList<string>? notKeyIgnoreFields)
+    {
+        return CompileMerge<T>(tableName, FromTypeOption.Default, keyFields, notKeyIgnoreFields);
+    }
+
+    /// <summary>
+    /// Compiles an insert or update of a <c>T</c> by <c>keyFields</c> (<c>merge</c> in SQL Server, <c>insert ... on
+    /// conflict</c> in PostgreSQL). The fields in <c>notKeyIgnoreFields</c> are left out.
+    /// </summary>
+    public MappedCommand<T> CompileMerge<T>(string tableName, params string[] keyFields)
+    {
+        return CompileMerge<T>(tableName, FromTypeOption.Default, keyFields, Array.Empty<string>());
+    }
+
+    /// <summary>
+    /// Compiles an insert or update of a <c>T</c> by <c>keyFields</c> (<c>merge</c> in SQL Server, <c>insert ... on
+    /// conflict</c> in PostgreSQL). The fields in <c>notKeyIgnoreFields</c> are left out.
+    /// </summary>
+    public MappedCommand<T> CompileMerge<T>(T proto, string tableName, FromTypeOption fromTypeOption, IList<string> keyFields, IList<string>? notKeyIgnoreFields)
+    {
+        return CompileMerge<T>(tableName, fromTypeOption, keyFields, notKeyIgnoreFields);
+    }
+
+    /// <summary>
+    /// Compiles an insert or update of a <c>T</c> by <c>keyFields</c> (<c>merge</c> in SQL Server, <c>insert ... on
+    /// conflict</c> in PostgreSQL). The fields in <c>notKeyIgnoreFields</c> are left out.
+    /// </summary>
+    public MappedCommand<T> CompileMerge<T>(T proto, string tableName, FromTypeOption fromTypeOption, params string[] keyFields)
+    {
+        return CompileMerge<T>(tableName, fromTypeOption, keyFields, Array.Empty<string>());
+    }
+
+    /// <summary>
+    /// Compiles an insert or update of a <c>T</c> by <c>keyFields</c> (<c>merge</c> in SQL Server, <c>insert ... on
+    /// conflict</c> in PostgreSQL). The fields in <c>notKeyIgnoreFields</c> are left out.
+    /// </summary>
+    public MappedCommand<T> CompileMerge<T>(T proto, string tableName, IList<string> keyFields, IList<string>? notKeyIgnoreFields)
+    {
+        return CompileMerge<T>(tableName, FromTypeOption.Default, keyFields, notKeyIgnoreFields);
+    }
+
+    /// <summary>
+    /// Compiles an insert or update of a <c>T</c> by <c>keyFields</c> (<c>merge</c> in SQL Server, <c>insert ... on
+    /// conflict</c> in PostgreSQL). The fields in <c>notKeyIgnoreFields</c> are left out.
+    /// </summary>
+    public MappedCommand<T> CompileMerge<T>(T proto, string tableName, params string[] keyFields)
+    {
+        return CompileMerge<T>(tableName, FromTypeOption.Default, keyFields, Array.Empty<string>());
+    }
+
+    #endregion
+
+    #endregion
+
+    #endregion
+
+    // the command compiled last for the type and kind, when it was compiled by this provider from the same arguments
+    private MappedCommand<T>? Find<T>(CompiledCommand<T>? last, string text, FromTypeOption fromTypeOption, bool caseSensitive,
+        IList<string>? names1, IList<string>? names2)
+    {
+        return last != null && last.IsFor(contextProvider, text, fromTypeOption, caseSensitive, names1, names2) ? last.Command : null;
+    }
+
+    private CompiledCommand<T> Keep<T>(MappedCommand<T> command, string text, FromTypeOption fromTypeOption, bool caseSensitive,
+        IList<string>? names1, IList<string>? names2)
+    {
+        return new CompiledCommand<T>(contextProvider, text, fromTypeOption, caseSensitive, names1, names2, command);
+    }
+
+    // names the caller gives (keys, ignored fields) match members case-insensitively, as parameters do by default;
+    // an exact match wins, and the generated text gets the member's spelling; unknown names are kept as given
+    private static string[] ToMemberNames<T>(IEnumerable<string>? names, IList<FieldSettings<T>> settings)
+    {
+        return (names ?? [])
+            .Select(x => settings.Any(y => y.Name == x)
+                ? x
+                : settings.FirstOrDefault(y => string.Equals(y.Name, x, StringComparison.OrdinalIgnoreCase))?.Name ?? x)
+            .ToArray();
+    }
+
+    // without key fields the generated where / on clause is empty, which the server rejects
+    private static void CheckKeyFields(IList<string> keyFields)
+    {
+        if (keyFields == null || keyFields.Count == 0)
         {
-            return new MappedCommand<T>(contextProvider, name, paramNames, FieldSettings.FromType<T>(fromTypeOption), caseSensitiveParamsMatching, CommandType.StoredProcedure);
+            throw new ArgumentException("At least one key field is required", nameof(keyFields));
         }
-
-        public MappedCommand<T> CompileProcedure<T>(string name, FromTypeOption fromTypeOption = FromTypeOption.Default, bool caseSensitiveParamsMatching = false)
-        {
-            var settings = FieldSettings.FromType<T>(fromTypeOption);
-            return new MappedCommand<T>(contextProvider, name, contextProvider.ParamsFromSettings(settings), settings, caseSensitiveParamsMatching, CommandType.StoredProcedure);
-        }
-
-        public MappedCommand<T> CompileProcedure<T>(T proto, string name, IList<string> paramNames, FromTypeOption fromTypeOption = FromTypeOption.Default, bool caseSensitiveParamsMatching = false)
-        {
-            return new MappedCommand<T>(contextProvider, name, paramNames, FieldSettings.FromType(proto, fromTypeOption), caseSensitiveParamsMatching, CommandType.StoredProcedure);
-        }
-
-        public MappedCommand<T> CompileProcedure<T>(T proto, string name, FromTypeOption fromTypeOption = FromTypeOption.Default, bool caseSensitiveParamsMatching = false)
-        {
-            var settings = FieldSettings.FromType(proto, fromTypeOption);
-            return new MappedCommand<T>(contextProvider, name, contextProvider.ParamsFromSettings(settings), settings, caseSensitiveParamsMatching, CommandType.StoredProcedure);
-        }
-
-        #endregion
-
-        #region Special commands
-
-        #region Insert
-
-        public MappedCommand<T> CompileInsert<T>(string tableName, IList<FieldSettings<T>> settings, params string[] ignoreFields)
-        {
-            var fields = settings.Select(x => x.Name).Except(ignoreFields.Select(x => x)).ToArray();
-            string query = contextProvider.CommandTextGenerator.Insert(tableName, fields);
-            return new MappedCommand<T>(contextProvider, query, fields, settings, true);
-        }
-
-        public MappedCommand<T> CompileInsert<T>(string tableName, FromTypeOption fromTypeOption, params string[] ignoreFields)
-        {
-            return CompileInsert(tableName, FieldSettings.FromType<T>(fromTypeOption), ignoreFields);
-        }
-
-        public MappedCommand<T> CompileInsert<T>(string tableName, params string[] ignoreFields)
-        {
-            return CompileInsert(tableName, FieldSettings.FromType<T>(FromTypeOption.Default), ignoreFields);
-        }
-
-        public MappedCommand<T> CompileInsert<T>(T proto, string tableName, FromTypeOption fromTypeOption, params string[] ignoreFields)
-        {
-            return CompileInsert(tableName, FieldSettings.FromType(proto, fromTypeOption), ignoreFields);
-        }
-
-        public MappedCommand<T> CompileInsert<T>(T proto, string tableName, params string[] ignoreFields)
-        {
-            return CompileInsert(tableName, FieldSettings.FromType(proto, FromTypeOption.Default), ignoreFields);
-        }
-
-        public MappedCommand<T> CompileInsertWithOutput<T>(string tableName, IList<FieldSettings<T>> settings,
-            IList<string> ignoreFields, params string[] outputFields)
-        {
-            var ignFields = ignoreFields?.ToArray() ?? new string[0];
-
-            if (outputFields.Length == 0)
-            {
-                return CompileInsert(tableName, settings, ignFields);
-            }
-
-            var fields = settings.Select(x => x.Name).Except(ignFields.Select(x => x)).ToArray();
-            string query = contextProvider.CommandTextGenerator.InsertWithOutput(tableName, fields, outputFields);
-            return new MappedCommand<T>(contextProvider, query, fields, settings, true);
-        }
-
-        #endregion
-
-        #region Update
-
-        public MappedCommand<T> CompileUpdate<T>(string tableName, IList<FieldSettings<T>> settings, IList<string> keyFields, IList<string> notKeyIgnoreFields)
-        {
-            var fields = settings.Select(x => x.Name).Except(notKeyIgnoreFields.Select(x => x)).ToArray();
-            var fieldsToUpdate = fields.Except(keyFields.Select(x => x)).ToArray();
-            string query = contextProvider.CommandTextGenerator.Update(tableName, keyFields, fieldsToUpdate);
-            return new MappedCommand<T>(contextProvider, query, fields, settings, true);
-        }
-
-        public MappedCommand<T> CompileUpdate<T>(string tableName, IList<FieldSettings<T>> settings, params string[] keyFields)
-        {
-            return CompileUpdate(tableName, settings, keyFields, new List<string>());
-        }
-
-        public MappedCommand<T> CompileUpdate<T>(string tableName, FromTypeOption fromTypeOption, IList<string> keyFields, IList<string> notKeyIgnoreFields)
-        {
-            return CompileUpdate(tableName, FieldSettings.FromType<T>(fromTypeOption), keyFields, notKeyIgnoreFields);
-        }
-
-        public MappedCommand<T> CompileUpdate<T>(string tableName, FromTypeOption fromTypeOption, params string[] keyFields)
-        {
-            return CompileUpdate(tableName, FieldSettings.FromType<T>(fromTypeOption), keyFields, new List<string>());
-        }
-
-        public MappedCommand<T> CompileUpdate<T>(string tableName, IList<string> keyFields, IList<string> notKeyIgnoreFields)
-        {
-            return CompileUpdate(tableName, FieldSettings.FromType<T>(), keyFields, notKeyIgnoreFields);
-        }
-
-        public MappedCommand<T> CompileUpdate<T>(string tableName, params string[] keyFields)
-        {
-            return CompileUpdate(tableName, FieldSettings.FromType<T>(), keyFields, new List<string>());
-        }
-
-        public MappedCommand<T> CompileUpdate<T>(T proto, string tableName, FromTypeOption fromTypeOption, IList<string> keyFields, IList<string> notKeyIgnoreFields)
-        {
-            return CompileUpdate(tableName, FieldSettings.FromType(proto, fromTypeOption), keyFields, notKeyIgnoreFields);
-        }
-
-        public MappedCommand<T> CompileUpdate<T>(T proto, string tableName, FromTypeOption fromTypeOption, params string[] keyFields)
-        {
-            return CompileUpdate(tableName, FieldSettings.FromType(proto, fromTypeOption), keyFields, new List<string>());
-        }
-
-        public MappedCommand<T> CompileUpdate<T>(T proto, string tableName, IList<string> keyFields, IList<string> notKeyIgnoreFields)
-        {
-            return CompileUpdate(tableName, FieldSettings.FromType(proto), keyFields, notKeyIgnoreFields);
-        }
-
-        public MappedCommand<T> CompileUpdate<T>(T proto, string tableName, params string[] keyFields)
-        {
-            return CompileUpdate(tableName, FieldSettings.FromType(proto), keyFields, new List<string>());
-        }
-
-        #endregion
-
-        #region Delete
-
-        public MappedCommand<T> CompileDelete<T>(string tableName, IList<FieldSettings<T>> settings, params string[] keyFields)
-        {
-            var keys = keyFields == null || keyFields.Length == 0 ? settings.GetNames() : keyFields;
-            string query = contextProvider.CommandTextGenerator.Delete(tableName, keys);
-            return new MappedCommand<T>(contextProvider, query, keys, settings, true);
-        }
-
-        public MappedCommand<T> CompileDelete<T>(string tableName, FromTypeOption fromTypeOption, params string[] keyFields)
-        {
-            return CompileDelete(tableName, FieldSettings.FromType<T>(fromTypeOption), keyFields);
-        }
-
-        public MappedCommand<T> CompileDelete<T>(string tableName, params string[] keyFields)
-        {
-            return CompileDelete(tableName, FieldSettings.FromType<T>(), keyFields);
-        }
-
-        public MappedCommand<T> CompileDelete<T>(T proto, string tableName, FromTypeOption fromTypeOption, params string[] keyFields)
-        {
-            return CompileDelete(tableName, FieldSettings.FromType(proto, fromTypeOption), keyFields);
-        }
-
-        public MappedCommand<T> CompileDelete<T>(T proto, string tableName, params string[] keyFields)
-        {
-            return CompileDelete(tableName, FieldSettings.FromType(proto), keyFields);
-        }
-
-        #endregion
-
-        #region Merge
-
-        public MappedCommand<T> CompileMerge<T>(string tableName, IList<FieldSettings<T>> settings, IList<string> keyFields, IList<string> notKeyIgnoreFields)
-        {
-            var fields = settings.Select(x => x.Name).Except(notKeyIgnoreFields.Select(x => x)).ToArray();
-            var fieldsToUpdate = fields.Except(keyFields.Select(x => x)).ToArray();
-            string query = contextProvider.CommandTextGenerator.Merge(tableName, keyFields, fieldsToUpdate);
-            return new MappedCommand<T>(contextProvider, query, fields, settings, true);
-        }
-
-        public MappedCommand<T> CompileMerge<T>(string tableName, IList<FieldSettings<T>> settings, params string[] keyFields)
-        {
-            return CompileMerge(tableName, settings, keyFields, new List<string>());
-        }
-
-        public MappedCommand<T> CompileMerge<T>(string tableName, FromTypeOption fromTypeOption, IList<string> keyFields, IList<string> notKeyIgnoreFields)
-        {
-            return CompileMerge(tableName, FieldSettings.FromType<T>(fromTypeOption), keyFields, notKeyIgnoreFields);
-        }
-
-        public MappedCommand<T> CompileMerge<T>(string tableName, FromTypeOption fromTypeOption, params string[] keyFields)
-        {
-            return CompileMerge(tableName, FieldSettings.FromType<T>(fromTypeOption), keyFields, new List<string>());
-        }
-
-        public MappedCommand<T> CompileMerge<T>(string tableName, IList<string> keyFields, IList<string> notKeyIgnoreFields)
-        {
-            return CompileMerge(tableName, FieldSettings.FromType<T>(), keyFields, notKeyIgnoreFields);
-        }
-
-        public MappedCommand<T> CompileMerge<T>(string tableName, params string[] keyFields)
-        {
-            return CompileMerge(tableName, FieldSettings.FromType<T>(), keyFields, new List<string>());
-        }
-
-        public MappedCommand<T> CompileMerge<T>(T proto, string tableName, FromTypeOption fromTypeOption, IList<string> keyFields, IList<string> notKeyIgnoreFields)
-        {
-            return CompileMerge(tableName, FieldSettings.FromType(proto, fromTypeOption), keyFields, notKeyIgnoreFields);
-        }
-
-        public MappedCommand<T> CompileMerge<T>(T proto, string tableName, FromTypeOption fromTypeOption, params string[] keyFields)
-        {
-            return CompileMerge(tableName, FieldSettings.FromType(proto, fromTypeOption), keyFields, new List<string>());
-        }
-
-        public MappedCommand<T> CompileMerge<T>(T proto, string tableName, IList<string> keyFields, IList<string> notKeyIgnoreFields)
-        {
-            return CompileMerge(tableName, FieldSettings.FromType(proto), keyFields, notKeyIgnoreFields);
-        }
-
-        public MappedCommand<T> CompileMerge<T>(T proto, string tableName, params string[] keyFields)
-        {
-            return CompileMerge(tableName, FieldSettings.FromType(proto), keyFields, new List<string>());
-        }
-
-        #endregion
-
-        #endregion
-
-        #endregion
     }
 }

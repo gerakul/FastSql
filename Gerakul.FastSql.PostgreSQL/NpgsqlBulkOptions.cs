@@ -1,38 +1,51 @@
 ﻿using Gerakul.FastSql.Common;
-using Npgsql;
 
-namespace Gerakul.FastSql.PostgreSQL
+namespace Gerakul.FastSql.PostgreSQL;
+
+/// <summary>
+/// Options of a bulk copy to PostgreSQL.
+/// </summary>
+public class NpgsqlBulkOptions : BulkOptions
 {
-    public class NpgsqlBulkOptions : BulkOptions
+    private static readonly NpgsqlBulkOptions defaultOptions = new NpgsqlBulkOptions(true);
+
+    /// <inheritdoc />
+    protected override BulkOptions Default => defaultOptions;
+
+    /// <summary>
+    /// Creates options with the given values; the ones left out are not set.
+    /// </summary>
+    public NpgsqlBulkOptions(FieldsSelector? fieldsSelector = null, bool? caseSensitiveFieldsMatching = null)
+        : base(fieldsSelector, caseSensitiveFieldsMatching, null, null, null)
     {
-        private static readonly NpgsqlBulkOptions defaultOptions = new NpgsqlBulkOptions(true);
+    }
 
-        protected override BulkOptions Default => defaultOptions;
+    /// <summary>
+    /// Creates options with the default values (<c>true</c>) or with nothing set (<c>false</c>).
+    /// </summary>
+    protected NpgsqlBulkOptions(bool defaultOptions)
+        : base(defaultOptions)
+    {
+    }
 
-        public NpgsqlBulkOptions(FieldsSelector? fieldsSelector = null, bool? caseSensitiveFieldsMatching = null)
-            : base(fieldsSelector, caseSensitiveFieldsMatching, null, null, null)
-        {
-        }
+    /// <summary>
+    /// Creates a copy of the given options.
+    /// </summary>
+    protected internal NpgsqlBulkOptions(BulkOptions bulkOptions)
+        : base(bulkOptions)
+    {
+    }
 
-        protected NpgsqlBulkOptions(bool defaultOptions)
-            : base(defaultOptions)
-        {
-        }
+    /// <inheritdoc />
+    protected override BulkOptions SetDefaults(BulkOptions defaultOptions)
+    {
+        base.SetDefaults(defaultOptions);
+        return this;
+    }
 
-        protected internal NpgsqlBulkOptions(BulkOptions bulkOptions)
-            : base(bulkOptions)
-        {
-        }
-
-        protected override BulkOptions SetDefaults(BulkOptions defaultOptions)
-        {
-            base.SetDefaults(defaultOptions);
-            return this;
-        }
-
-        public override BulkOptions Clone()
-        {
-            return new NpgsqlBulkOptions(this);
-        }
+    /// <inheritdoc />
+    public override BulkOptions Clone()
+    {
+        return new NpgsqlBulkOptions(this);
     }
 }

@@ -1,198 +1,142 @@
 ﻿using Gerakul.FastSql.Common;
-using System;
-using System.Collections.Generic;
 using System.Data.Common;
 using Npgsql;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
-namespace Gerakul.FastSql.PostgreSQL
+namespace Gerakul.FastSql.PostgreSQL;
+
+internal sealed class NpgsqlBulkCopy : BulkCopy
 {
-    internal class NpgsqlBulkCopy : BulkCopy
+    private readonly record struct Mapping(string Source, string Destination);
+
+    private NpgsqlConnection? Connection => context switch
     {
-        private class Mapping
+        TransactionContext transactionContext => (NpgsqlConnection?)transactionContext.Transaction.Connection,
+        ConnectionContext connectionContext => (NpgsqlConnection)connectionContext.Connection,
+        _ => null
+    };
+
+    // With the Source selector and nothing said about case, the names of the source fields are the names of the
+    // columns, and the columns of the table are not read
+    private bool NamesGoAsTheyAre => bulkOptions.FieldsSelector!.Value == FieldsSelector.Source && !bulkOptions.CaseSensitiveFieldsMatching.HasValue;
+
+    internal NpgsqlBulkCopy(ScopedContext context, DbDataReader reader, string destinationTable, NpgsqlBulkOptions bulkOptions, params string[] fields)
+        : base(context, reader, destinationTable, bulkOptions, fields)
+    {
+    }
+
+    protected override void WriteToServer()
+    {
+        CheckOptions();
+
+        string[] sourceFields = GetSourceFields();
+        var map = NamesGoAsTheyAre ? GetMapping(sourceFields) : GetMapping(sourceFields, GetTableColumns());
+
+        if (map.Length > 0)
         {
-            public int Ordinal;
-            public string Source;
-            public string Destination;
-        }
+            var ordinals = GetOrdinals(map);
+            using var writer = Connection!.BeginBinaryImport(GetCopyCommand(map));
 
-        private NpgsqlConnection Connection
+            while (reader.Read())
+            {
+                writer.StartRow();
+
+                foreach (var ordinal in ordinals)
+                {
+                    writer.Write(reader.GetValue(ordinal));
+                }
+            }
+
+            writer.Complete();
+        }
+    }
+
+    protected override async Task WriteToServerAsync(CancellationToken cancellationToken)
+    {
+        CheckOptions();
+
+        string[] sourceFields = GetSourceFields();
+        var map = NamesGoAsTheyAre ? GetMapping(sourceFields) : GetMapping(sourceFields, await GetTableColumnsAsync(cancellationToken).ConfigureAwait(false));
+
+        if (map.Length > 0)
         {
-            get
+            var ordinals = GetOrdinals(map);
+            var writer = await Connection!.BeginBinaryImportAsync(GetCopyCommand(map), cancellationToken).ConfigureAwait(false);
+            await using var writerScope = writer.ConfigureAwait(false);
+
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             {
-                if (context is TransactionContext)
+                await writer.StartRowAsync(cancellationToken).ConfigureAwait(false);
+
+                foreach (var ordinal in ordinals)
                 {
-                    return (NpgsqlConnection)((TransactionContext)context).Transaction.Connection;
-                }
-                else if (context is ConnectionContext)
-                {
-                    return (NpgsqlConnection)((ConnectionContext)context).Connection;
-                }
-                else
-                {
-                    return null;
+                    await writer.WriteAsync(reader.GetValue(ordinal), cancellationToken).ConfigureAwait(false);
                 }
             }
-        }
 
-        private NpgsqlTransaction Transaction
+            await writer.CompleteAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    // the fields the caller named, or all the fields of the source
+    private string[] GetSourceFields()
+    {
+        return fields.Length > 0 ? fields.ToArray() : reader.GetColumnNames().ToArray();
+    }
+
+    private void CheckOptions()
+    {
+        if (bulkOptions.CreateTable!.Value)
         {
-            get
-            {
-                if (context is TransactionContext)
-                {
-                    return (NpgsqlTransaction)((TransactionContext)context).Transaction;
-                }
-                else
-                {
-                    return null;
-                }
-            }
+            throw new NotImplementedException("Table creation is not implemented for PostgreSQL");
         }
+    }
 
-        private NpgsqlBulkOptions NpgsqlBulkOptions => (NpgsqlBulkOptions)bulkOptions;
+    private static Mapping[] GetMapping(string[] sourceFields)
+    {
+        return sourceFields.Select(x => new Mapping(x, x)).ToArray();
+    }
 
-        internal NpgsqlBulkCopy(ScopedContext context, DbDataReader reader, string destinationTable, NpgsqlBulkOptions bulkOptions, params string[] fields)
-            : base(context, reader, destinationTable, bulkOptions, fields)
-        {
-        }
+    // the source fields that have a column in the table, with the column's own spelling; checked against the FieldsSelector
+    private Mapping[] GetMapping(string[] sourceFields, string[] tableColumns)
+    {
+        var comparer = bulkOptions.CaseSensitiveFieldsMatching == true ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
+        var map = sourceFields.Join(tableColumns, x => x, x => x, (x, y) => new Mapping(x, y), comparer).ToArray();
 
-        protected override void WriteToServer()
-        {
-            string[] sourceFields = fields.Length > 0 ? fields.ToArray() : reader.GetColumnNames().ToArray();
+        CheckFieldSelection(bulkOptions.FieldsSelector!.Value, sourceFields, tableColumns, comparer);
 
-            if (bulkOptions.CreateTable.Value)
+        return map;
+    }
+
+    private int[] GetOrdinals(Mapping[] map)
+    {
+        return map.Select(x => reader.GetOrdinal(x.Source)).ToArray();
+    }
+
+    private string GetCopyCommand(Mapping[] map)
+    {
+        var columns = context.ContextProvider.CommandTextGenerator.ColumnList(map.Select(x => x.Destination).ToArray());
+        return $"COPY {destinationTable} ({columns}) FROM STDIN (FORMAT BINARY)";
+    }
+
+    private string[] GetTableColumns()
+    {
+        string[] columns = [];
+        context.CreateSimple($"select * from {destinationTable} limit 0")
+            .UseReader(r => columns = r.GetColumnNames().ToArray());
+
+        return columns;
+    }
+
+    private async Task<string[]> GetTableColumnsAsync(CancellationToken cancellationToken)
+    {
+        string[] columns = [];
+        await context.CreateSimple($"select * from {destinationTable} limit 0")
+            .UseReaderAsync(cancellationToken, r =>
             {
-                throw new NotImplementedException("Table creation is not implemented for PostgreSQL");
-                //CreateTable(sourceFields);
-            }
+                columns = r.GetColumnNames().ToArray();
+                return Task.CompletedTask;
+            }).ConfigureAwait(false);
 
-            Mapping[] map;
-
-            if (bulkOptions.FieldsSelector.Value == FieldsSelector.Source && !bulkOptions.CaseSensitiveFieldsMatching.HasValue)
-            {
-                map = sourceFields.Select(x => new Mapping() { Source = x, Destination = x }).ToArray();
-            }
-            else
-            {
-                string[] destFields = GetTableColumns().ToArray();
-
-                map = bulkOptions.CaseSensitiveFieldsMatching.HasValue && bulkOptions.CaseSensitiveFieldsMatching.Value ?
-                  sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping() { Source = x, Destination = y }).ToArray() :
-                  sourceFields.Join(destFields, x => x.ToLowerInvariant(), x => x.ToLowerInvariant(), (x, y) => new Mapping() { Source = x, Destination = y }).ToArray();
-
-                CheckFieldSelection(bulkOptions.FieldsSelector.Value, sourceFields.Length, destFields.Length, map.Length);
-            }
-
-            if (map.Length > 0)
-            {
-                foreach (var item in map)
-                {
-                    item.Ordinal = reader.GetOrdinal(item.Source);
-                }
-
-                var columns = context.ContextProvider.CommandTextGenerator.ColumnList(map.Select(x => x.Destination).ToArray());
-                using (var writer = Connection.BeginBinaryImport($"COPY {destinationTable} ({columns}) FROM STDIN (FORMAT BINARY)"))
-                {
-                    while (reader.Read())
-                    {
-                        writer.StartRow();
-
-                        foreach (var item in map)
-                        {
-                            writer.Write(reader.GetValue(item.Ordinal));
-                        }
-                    }
-
-                    writer.Complete();
-                }
-            }
-        }
-
-        protected override async Task WriteToServerAsync(CancellationToken cancellationToken)
-        {
-            string[] sourceFields = fields.Length > 0 ? fields.ToArray() : reader.GetColumnNames().ToArray();
-
-            if (bulkOptions.CreateTable.Value)
-            {
-                throw new NotImplementedException("Table creation is not implemented for PostgreSQL");
-                //CreateTable(sourceFields);
-            }
-
-            Mapping[] map;
-
-            if (bulkOptions.FieldsSelector.Value == FieldsSelector.Source && !bulkOptions.CaseSensitiveFieldsMatching.HasValue)
-            {
-                map = sourceFields.Select(x => new Mapping() { Source = x, Destination = x }).ToArray();
-            }
-            else
-            {
-                string[] destFields = (await GetTableColumnsAsync(cancellationToken).ConfigureAwait(false)).ToArray();
-
-                map = bulkOptions.CaseSensitiveFieldsMatching.HasValue && bulkOptions.CaseSensitiveFieldsMatching.Value ?
-                  sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping() { Source = x, Destination = y }).ToArray() :
-                  sourceFields.Join(destFields, x => x.ToLowerInvariant(), x => x.ToLowerInvariant(), (x, y) => new Mapping() { Source = x, Destination = y }).ToArray();
-
-                CheckFieldSelection(bulkOptions.FieldsSelector.Value, sourceFields.Length, destFields.Length, map.Length);
-            }
-
-            if (map.Length > 0)
-            {
-                foreach (var item in map)
-                {
-                    item.Ordinal = reader.GetOrdinal(item.Source);
-                }
-
-                var columns = context.ContextProvider.CommandTextGenerator.ColumnList(map.Select(x => x.Destination).ToArray());
-                using (var writer = Connection.BeginBinaryImport($"COPY {destinationTable} ({columns}) FROM STDIN (FORMAT BINARY)"))
-                {
-                    while (reader.Read())
-                    {
-                        writer.StartRow();
-
-                        foreach (var item in map)
-                        {
-                            writer.Write(reader.GetValue(item.Ordinal));
-                        }
-                    }
-
-                    writer.Complete();
-                }
-            }
-        }
-
-        private IList<string> GetTableColumns()
-        {
-            List<string> result = new List<string>();
-            context.CreateSimple(string.Format("select * from {0} limit 0", destinationTable))
-                .UseReader(r =>
-                {
-                    foreach (var item in r.GetColumnNames())
-                    {
-                        result.Add(item);
-                    }
-                });
-
-            return result;
-        }
-
-        private async Task<IList<string>> GetTableColumnsAsync(CancellationToken cancellationToken)
-        {
-            List<string> result = new List<string>();
-            await context.CreateSimple(string.Format("select * from {0} limit 0", destinationTable))
-                .UseReaderAsync(r =>
-                {
-                    foreach (var item in r.GetColumnNames())
-                    {
-                        result.Add(item);
-                    }
-
-                    return Task.CompletedTask;
-                }).ConfigureAwait(false);
-
-            return result;
-        }
+        return columns;
     }
 }

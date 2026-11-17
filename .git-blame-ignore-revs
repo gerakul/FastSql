@@ -1,0 +1,5 @@
+# Mechanical changes that git blame skips. GitHub's blame view reads this file; locally:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# File-scoped namespaces, implicit usings, trailing whitespace (modernization phase 3, M16)
+dbdb0e5b8071491d36d3c18de797af34da6dc797

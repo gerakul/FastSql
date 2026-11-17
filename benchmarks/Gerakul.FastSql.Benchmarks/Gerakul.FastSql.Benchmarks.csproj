@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Benchmarks of FastSql's own work (mapping, command creation) over in-memory readers, no database.
+       How to run them: see Program.cs -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Gerakul.FastSql.PostgreSQL\Gerakul.FastSql.PostgreSQL.csproj" />
+    <ProjectReference Include="..\..\Gerakul.FastSql.SqlServer\Gerakul.FastSql.SqlServer.csproj" />
+  </ItemGroup>
+
+</Project>
