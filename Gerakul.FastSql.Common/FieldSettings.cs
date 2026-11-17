@@ -11,6 +11,11 @@ public class FieldSettings<T>
 
     private FieldSettings(string name, string dataTypeName, Type fieldType, Func<T, object?> getter, Func<T, bool> isNullGetter, bool determineNullByValue)
     {
+        // the type and the name of its data type are not checked: settings without them have always been accepted
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(getter);
+        ArgumentNullException.ThrowIfNull(isNullGetter);
+
         this.Name = name;
         this.DataTypeName = dataTypeName;
         this.FieldType = fieldType;
@@ -80,6 +85,8 @@ public static class FieldSettingsExtension
 {
     public static string[] GetNames<T>(this IEnumerable<FieldSettings<T>> values)
     {
+        ArgumentNullException.ThrowIfNull(values);
+
         return values.Select(x => x.Name).ToArray();
     }
 }

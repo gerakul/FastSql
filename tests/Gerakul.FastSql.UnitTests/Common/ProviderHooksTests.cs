@@ -167,8 +167,13 @@ namespace Gerakul.FastSql.UnitTests.Common
         [InlineData("select @a.b", "@a")]
         [InlineData("select @a::int", "@a")]
         [InlineData("select @a-1", "@a")]
-        [InlineData("select @a\u00e9", "@a")]
-        public void CreateMapped_ParameterName_ConsistsOfAsciiLettersDigitsDollarHashUnderscore(string commandText, string expectedName)
+        // letters of any alphabet belong to the name since phase 4 (I10); until then the name ended at the first of them
+        [InlineData("select @a\u00e9", "@a\u00e9")]
+        [InlineData("select @Gr\u00f6\u00dfe + 1", "@Gr\u00f6\u00dfe")]
+        [InlineData("select @\u0418\u043c\u044f", "@\u0418\u043c\u044f")]
+        [InlineData("select @\u540d\u524d1", "@\u540d\u524d1")]
+        [InlineData("select @a\u00e9.b", "@a\u00e9")]
+        public void CreateMapped_ParameterName_ConsistsOfLettersDigitsDollarHashUnderscore(string commandText, string expectedName)
         {
             var context = Spec.CreateCapturingContext();
             var settings = new[] { new FieldSettings<int>(expectedName.Substring(1)) };
@@ -214,7 +219,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
             Action act = () => context.CreateMapped("select @a where @A > 0", new { a = 1 });
 
-            act.Should().Throw<ArgumentException>().WithMessage("Parameter names has been duplicated");
+            act.Should().Throw<ArgumentException>().WithMessage("Parameter '*' is listed more than once*");
         }
 
         [Fact]

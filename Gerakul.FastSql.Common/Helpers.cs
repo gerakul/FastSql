@@ -49,8 +49,8 @@ internal static class Helpers
         return null;
     }
 
-    // a missing name (null) equals another missing name
-    internal static bool HasDuplicates(string?[] names, StringComparer comparer)
+    // true when a name is there more than once; a missing name (null) equals another missing name
+    internal static bool TryFindDuplicate(string?[] names, StringComparer comparer, out string? duplicate)
     {
         // a few names are compared with each other, which needs no memory
         if (names.Length <= 16)
@@ -61,24 +61,27 @@ internal static class Helpers
                 {
                     if (comparer.Equals(names[i], names[j]))
                     {
+                        duplicate = names[i];
                         return true;
                     }
                 }
             }
-
-            return false;
         }
-
-        var seen = new HashSet<string?>(names.Length, comparer);
-
-        foreach (var name in names)
+        else
         {
-            if (!seen.Add(name))
+            var seen = new HashSet<string?>(names.Length, comparer);
+
+            foreach (var name in names)
             {
-                return true;
+                if (!seen.Add(name))
+                {
+                    duplicate = name;
+                    return true;
+                }
             }
         }
 
+        duplicate = null;
         return false;
     }
 
@@ -143,5 +146,32 @@ internal static class Helpers
 
         return interfaces.Contains(typeof(System.Collections.IEnumerable)) &&
             !interfaces.Contains(typeof(IEnumerable<byte>)) && type != typeof(string);
+    }
+
+    // The sync UsingConnection and UsingTransaction end their scope when the delegate returns. A delegate that
+    // returns a task (an async lambda does) has not finished then: what it awaits would run after the commit, or on
+    // a closed connection. C# binds such a lambda to the overloads with a result, so the result is checked here,
+    // before the scope ends; a transaction is rolled back. what: "the transaction would be committed",
+    // "the connection would be closed"
+    internal static void ThrowIfAsyncResult<TResult>(TResult result, string method, string what)
+    {
+        if (IsAsyncResult(typeof(TResult)) || (result != null && IsAsyncResult(result.GetType())))
+        {
+            // its own exception, when it fails after the scope has ended, is observed, so it does not surface later
+            if (result is Task task)
+            {
+                task.ContinueWith(static x => _ = x.Exception, CancellationToken.None,
+                    TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            }
+
+            throw new InvalidOperationException($"{method} cannot run a delegate that returns a task: {what} before the work " +
+                $"the delegate awaits is done. Use {method}Async for an async delegate.");
+        }
+    }
+
+    private static bool IsAsyncResult(Type type)
+    {
+        return typeof(Task).IsAssignableFrom(type) || type == typeof(ValueTask)
+            || (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ValueTask<>));
     }
 }

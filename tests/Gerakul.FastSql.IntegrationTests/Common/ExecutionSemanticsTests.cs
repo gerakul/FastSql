@@ -17,7 +17,7 @@ namespace Gerakul.FastSql.IntegrationTests.Common
     public abstract class ExecutionSemanticsTests<TDatabase> : IClassFixture<TDatabase> where TDatabase : DatabaseFixture
     {
         private const string DestinationSelectorMessage =
-            "FieldsSelector has value FieldsSelector.Destination, but destination has fields which are not presented in source";
+            "FieldsSelector.Destination: *";
 
         protected ExecutionSemanticsTests(TDatabase database)
         {
@@ -467,7 +467,7 @@ namespace Gerakul.FastSql.IntegrationTests.Common
                 var name = context.CreateSimple(SelectCompanyNames()).ExecuteScalar();
                 transaction?.Commit();
 
-                mappingFails.Should().BeOfType<InvalidOperationException>().Which.Message.Should().Be(DestinationSelectorMessage);
+                mappingFails.Should().BeOfType<InvalidOperationException>().Which.Message.Should().Match(DestinationSelectorMessage);
                 name.Should().Be("Mega Co");
             }
         }
@@ -488,7 +488,7 @@ namespace Gerakul.FastSql.IntegrationTests.Common
                 var name = await context.CreateSimple(SelectCompanyNames()).ExecuteScalarAsync(Token);
                 transaction?.Commit();
 
-                mappingFails.Should().BeOfType<InvalidOperationException>().Which.Message.Should().Be(DestinationSelectorMessage);
+                mappingFails.Should().BeOfType<InvalidOperationException>().Which.Message.Should().Match(DestinationSelectorMessage);
                 name.Should().Be("Mega Co");
             }
         }
@@ -502,7 +502,7 @@ namespace Gerakul.FastSql.IntegrationTests.Common
                 .ToListCompat(Token));
             var name = await context.CreateSimple(SelectCompanyNames()).ExecuteScalarAsync(Token);
 
-            mappingFails.Should().BeOfType<InvalidOperationException>().Which.Message.Should().Be(DestinationSelectorMessage);
+            mappingFails.Should().BeOfType<InvalidOperationException>().Which.Message.Should().Match(DestinationSelectorMessage);
             name.Should().Be("Mega Co");
         }
 

@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Data;
+﻿using System.Data;
 using System.Data.Common;
 using System.Runtime.CompilerServices;
 
@@ -32,77 +31,125 @@ public static class DbCommandExtensions
         }
     }
 
+    // The sync queries check their arguments and return an iterator of their own, which closes the reader when the
+    // enumeration ends or is abandoned. One shared iterator that takes the reading as a delegate made every row of
+    // a query about a quarter slower
     public static IEnumerable<object[]> ExecuteQuery(this DbCommand cmd)
     {
-        using DbDataReader reader = cmd.ExecuteReader();
-        foreach (var item in reader.ReadAll())
+        ArgumentNullException.ThrowIfNull(cmd);
+
+        return Rows(cmd);
+
+        static IEnumerable<object[]> Rows(DbCommand cmd)
         {
-            yield return item;
+            using DbDataReader reader = cmd.ExecuteReader();
+            foreach (var item in reader.ReadAll())
+            {
+                yield return item;
+            }
         }
     }
 
     public static IAsyncEnumerable<object[]> ExecuteQueryAsync(this DbCommand cmd, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(cmd);
+
         return QueryAsync(cmd, r => ReadInfoFactory.CreateObjects(r), cancellationToken);
     }
 
-    public static IEnumerable<T> ExecuteQuery<T>(this DbCommand cmd, ReadOptions? readOptions = null) where T : new()
+    public static IEnumerable<T> ExecuteQuery<T>(this DbCommand cmd, ReadOptions? readOptions = null)
     {
-        using DbDataReader reader = cmd.ExecuteReader();
-        foreach (var item in reader.ReadAll<T>(readOptions))
+        ArgumentNullException.ThrowIfNull(cmd);
+
+        return Rows(cmd, readOptions);
+
+        static IEnumerable<T> Rows(DbCommand cmd, ReadOptions? readOptions)
         {
-            yield return item;
+            using DbDataReader reader = cmd.ExecuteReader();
+            foreach (var item in reader.ReadAll<T>(readOptions))
+            {
+                yield return item;
+            }
         }
     }
 
     public static IAsyncEnumerable<T> ExecuteQueryAsync<T>(this DbCommand cmd, ReadOptions? readOptions = null,
-      CancellationToken cancellationToken = default) where T : new()
+      CancellationToken cancellationToken = default)
     {
-        return QueryAsync(cmd, r => ReadInfoFactory.CreateByType<T>(r, readOptions), cancellationToken);
+        ArgumentNullException.ThrowIfNull(cmd);
+
+        return QueryAsync(cmd, r => ReadInfoFactory.Create<T>(r, readOptions), cancellationToken);
     }
 
     public static IEnumerable<T> ExecuteQueryAnonymous<T>(this DbCommand cmd, T proto, ReadOptions? readOptions = null)
     {
-        using DbDataReader reader = cmd.ExecuteReader();
-        foreach (var item in reader.ReadAllAnonymous(proto, readOptions))
+        ArgumentNullException.ThrowIfNull(cmd);
+
+        return Rows(cmd, proto, readOptions);
+
+        static IEnumerable<T> Rows(DbCommand cmd, T proto, ReadOptions? readOptions)
         {
-            yield return item;
+            using DbDataReader reader = cmd.ExecuteReader();
+            foreach (var item in reader.ReadAllAnonymous(proto, readOptions))
+            {
+                yield return item;
+            }
         }
     }
 
     public static IAsyncEnumerable<T> ExecuteQueryAnonymousAsync<T>(this DbCommand cmd, T proto, ReadOptions? readOptions = null,
       CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(cmd);
+
         return QueryAsync(cmd, r => ReadInfoFactory.CreateAnonymous<T>(r, proto, readOptions), cancellationToken);
     }
 
-    public static IEnumerable ExecuteQueryFirstColumn(this DbCommand cmd)
+    public static IEnumerable<object?> ExecuteQueryFirstColumn(this DbCommand cmd)
     {
-        using DbDataReader reader = cmd.ExecuteReader();
-        foreach (var item in reader.ReadAllFirstColumn())
+        ArgumentNullException.ThrowIfNull(cmd);
+
+        return Rows(cmd);
+
+        static IEnumerable<object?> Rows(DbCommand cmd)
         {
-            yield return item;
+            using DbDataReader reader = cmd.ExecuteReader();
+            foreach (var item in reader.ReadAllFirstColumn())
+            {
+                yield return item;
+            }
         }
     }
 
     public static IAsyncEnumerable<object?> ExecuteQueryFirstColumnAsync(this DbCommand cmd,
       CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(cmd);
+
         return QueryAsync(cmd, r => ReadInfoFactory.CreateFirstColumn(r), cancellationToken);
     }
 
     public static IEnumerable<T> ExecuteQueryFirstColumn<T>(this DbCommand cmd)
     {
-        using DbDataReader reader = cmd.ExecuteReader();
-        foreach (var item in reader.ReadAllFirstColumn<T>())
+        ArgumentNullException.ThrowIfNull(cmd);
+
+        return Rows(cmd);
+
+        static IEnumerable<T> Rows(DbCommand cmd)
         {
-            yield return item;
+            using DbDataReader reader = cmd.ExecuteReader();
+            foreach (var item in reader.ReadAllFirstColumn<T>())
+            {
+                yield return item;
+            }
         }
     }
 
     public static IAsyncEnumerable<T> ExecuteQueryFirstColumnAsync<T>(this DbCommand cmd,
       CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(cmd);
+
         return QueryAsync(cmd, r => ReadInfoFactory.CreateFirstColumn<T>(r), cancellationToken);
     }
 }

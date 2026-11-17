@@ -202,7 +202,7 @@ namespace Gerakul.FastSql.UnitTests.Common
                 enumerator.Current.Should().Be(1);
 
                 Action moveNext = () => enumerator.MoveNext();
-                moveNext.Should().ThrowExactly<InvalidCastException>().WithMessage("Object cannot be cast from DBNull to other types.");
+                moveNext.Should().ThrowExactly<InvalidCastException>().WithMessage("Cannot read field '*' (*) into *: Object cannot be cast from DBNull to other types.");
             }
         }
 
@@ -218,7 +218,7 @@ namespace Gerakul.FastSql.UnitTests.Common
                 enumerator.Current.Should().Be(1);
 
                 Func<Task> moveNext = () => enumerator.MoveNextAsync();
-                await moveNext.Should().ThrowExactlyAsync<InvalidCastException>().WithMessage("Object cannot be cast from DBNull to other types.");
+                await moveNext.Should().ThrowExactlyAsync<InvalidCastException>().WithMessage("Cannot read field '*' (*) into *: Object cannot be cast from DBNull to other types.");
             }
         }
 

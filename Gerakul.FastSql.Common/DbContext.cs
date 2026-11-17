@@ -15,6 +15,11 @@ public abstract class DbContext : ICommandCreator
     protected internal DbContext(ContextProvider contextProvider,
         QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
     {
+        ArgumentNullException.ThrowIfNull(contextProvider);
+        ArgumentNullException.ThrowIfNull(queryOptions);
+        ArgumentNullException.ThrowIfNull(bulkOptions);
+        ArgumentNullException.ThrowIfNull(readOptions);
+
         this.ContextProvider = contextProvider;
         this.QueryOptions = queryOptions.Clone();
         this.BulkOptions = bulkOptions.Clone();
@@ -71,6 +76,8 @@ public abstract class DbContext : ICommandCreator
 
     public IWrappedCommand Set(Func<ScopedContext, DbCommand> commandGetter)
     {
+        ArgumentNullException.ThrowIfNull(commandGetter);
+
         return GetICommandCreator().Set(commandGetter);
     }
 

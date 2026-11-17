@@ -52,15 +52,29 @@ public static partial class EnumerableExtensions
 
     public static void WriteToServer<T>(this IEnumerable<T> values, DbContext context, string destinationTable, BulkOptions? bulkOptions, params string[] fields)
     {
+        ArgumentNullException.ThrowIfNull(values);
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(destinationTable);
+
         using var reader = values.ToDataReader();
         reader.WriteToServer(context, destinationTable, bulkOptions, fields);
     }
 
-    public static async Task WriteToServerAsync<T>(this IEnumerable<T> values, DbContext context, string destinationTable, BulkOptions? bulkOptions, CancellationToken cancellationToken, params string[] fields)
+    public static Task WriteToServerAsync<T>(this IEnumerable<T> values, DbContext context, string destinationTable, BulkOptions? bulkOptions, CancellationToken cancellationToken, params string[] fields)
     {
-        var reader = values.ToDataReader();
+        ArgumentNullException.ThrowIfNull(values);
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(destinationTable);
+
+        return WriteToServerAsync(values.ToDataReader(), context, destinationTable, bulkOptions, cancellationToken, fields);
+    }
+
+    // the reader belongs to this method, so it is disposed here
+    private static async Task WriteToServerAsync<T>(UniversalDataReader<T> reader, DbContext context, string destinationTable, BulkOptions? bulkOptions,
+        CancellationToken cancellationToken, string[] fields)
+    {
         await using var readerScope = reader.ConfigureAwait(false);
-        await reader.WriteToServerAsync(context, destinationTable, bulkOptions, cancellationToken, fields).ConfigureAwait(false);
+        await DataReaderExtensions.WriteToServerAsync(reader, context, destinationTable, bulkOptions, cancellationToken, fields).ConfigureAwait(false);
     }
 
     public static Task WriteToServerAsync<T>(this IEnumerable<T> values, DbContext context, string destinationTable, BulkOptions? bulkOptions, params string[] fields)
@@ -79,6 +93,32 @@ public static partial class EnumerableExtensions
     }
 
     public static Task WriteToServerAsync<T>(this IEnumerable<T> values, DbContext context, string destinationTable, params string[] fields)
+    {
+        return values.WriteToServerAsync(context, destinationTable, null, CancellationToken.None, fields);
+    }
+
+    // The same for a sequence that is produced asynchronously, a FastSql query for example: its rows are taken
+    // without blocking a thread. The token is not passed to the sequence; a sequence that needs one gets it where it is created
+    public static Task WriteToServerAsync<T>(this IAsyncEnumerable<T> values, DbContext context, string destinationTable, BulkOptions? bulkOptions, CancellationToken cancellationToken, params string[] fields)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(destinationTable);
+
+        return WriteToServerAsync(values.ToDataReader(), context, destinationTable, bulkOptions, cancellationToken, fields);
+    }
+
+    public static Task WriteToServerAsync<T>(this IAsyncEnumerable<T> values, DbContext context, string destinationTable, BulkOptions? bulkOptions, params string[] fields)
+    {
+        return values.WriteToServerAsync(context, destinationTable, bulkOptions, CancellationToken.None, fields);
+    }
+
+    public static Task WriteToServerAsync<T>(this IAsyncEnumerable<T> values, DbContext context, string destinationTable, CancellationToken cancellationToken, params string[] fields)
+    {
+        return values.WriteToServerAsync(context, destinationTable, null, cancellationToken, fields);
+    }
+
+    public static Task WriteToServerAsync<T>(this IAsyncEnumerable<T> values, DbContext context, string destinationTable, params string[] fields)
     {
         return values.WriteToServerAsync(context, destinationTable, null, CancellationToken.None, fields);
     }

@@ -16,7 +16,7 @@ namespace Gerakul.FastSql.IntegrationTests.Common
     public abstract class DbCommandExtensionsTests<TDatabase> : IClassFixture<TDatabase> where TDatabase : DatabaseFixture
     {
         private const string DestinationSelectorMessage =
-            "FieldsSelector has value FieldsSelector.Destination, but destination has fields which are not presented in source";
+            "FieldsSelector.Destination: *";
 
         protected DbCommandExtensionsTests(TDatabase database)
         {

@@ -611,7 +611,7 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
             Action act = () => Database.Run(ContextKind.Connection, x => UnsupportedRows.WriteToServer(x, table,
                 new SqlBulkOptions(createTable: true, ignoreDataReaderSchemaTable: true)));
 
-            act.Should().Throw<InvalidOperationException>().WithMessage("Can not create table with specified fields");
+            act.Should().Throw<InvalidOperationException>().WithMessage("Cannot create table *");
             TableExists(table).Should().BeFalse();
         }
 
@@ -624,7 +624,7 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
             Func<Task> act = () => Database.RunAsync(ContextKind.Connection, x => UnsupportedRows.WriteToServerAsync(x, table,
                 new SqlBulkOptions(createTable: true, ignoreDataReaderSchemaTable: true), TestContext.Current.CancellationToken));
 
-            await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("Can not create table with specified fields");
+            await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("Cannot create table *");
             TableExists(table).Should().BeFalse();
         }
 
@@ -652,7 +652,7 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
                 new SqlBulkOptions(createTable: true, ignoreDataReaderSchemaTable: true, columnDefinitionOptions: columnOptions)));
 
             act.Should().Throw<ArgumentOutOfRangeException>().WithMessage("Unsupported type*").WithParameterName("type")
-                .Which.ActualValue.Should().Be(typeof(TimeSpan));
+                .Which.ActualValue.Should().Be(typeof(Version));
             TableExists(table).Should().BeFalse();
         }
 
@@ -668,7 +668,7 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
                 TestContext.Current.CancellationToken));
 
             (await act.Should().ThrowAsync<ArgumentOutOfRangeException>().WithMessage("Unsupported type*").WithParameterName("type"))
-                .Which.ActualValue.Should().Be(typeof(TimeSpan));
+                .Which.ActualValue.Should().Be(typeof(Version));
             TableExists(table).Should().BeFalse();
         }
 
@@ -774,7 +774,7 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
             Action act = () => Database.Run(ContextKind.Connection, x => SourceContext().CreateSimple($"select * from {source}")
                 .WriteToServer(x, table, new SqlBulkOptions(createTable: true), "ID", field));
 
-            act.Should().Throw<InvalidOperationException>().WithMessage("Can not create table with specified fields");
+            act.Should().Throw<InvalidOperationException>().WithMessage("Cannot create table *");
             TableExists(table).Should().BeFalse();
         }
 
@@ -1096,7 +1096,7 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
 
         private static UnsupportedRow[] UnsupportedRows => new[]
         {
-            new UnsupportedRow() { ID = 1, Duration = TimeSpan.FromMinutes(5) }
+            new UnsupportedRow() { ID = 1, Duration = new Version(1, 2) }
         };
 
         private class NamedRow
@@ -1156,7 +1156,7 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
         private class UnsupportedRow
         {
             public int ID { get; set; }
-            public TimeSpan Duration { get; set; }
+            public Version Duration { get; set; }
         }
 
         private class ColumnInfo

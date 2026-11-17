@@ -11,6 +11,9 @@ public static partial class CommandCreatorExtensions
 
     public static IWrappedCommand CreateSimple(this ICommandCreator creator, QueryOptions? queryOptions, string commandText, params object?[] parameters)
     {
+        ArgumentNullException.ThrowIfNull(creator);
+        ArgumentNullException.ThrowIfNull(commandText);
+
         return creator.Set(x => x.CommandCompilator.CompileSimple(commandText).Create(x, queryOptions, parameters));
     }
 
@@ -21,6 +24,9 @@ public static partial class CommandCreatorExtensions
 
     public static IWrappedCommand CreateSimple(this ICommandCreator creator, QueryOptions? queryOptions, SimpleCommand precompiledCommand, params object?[] parameters)
     {
+        ArgumentNullException.ThrowIfNull(creator);
+        ArgumentNullException.ThrowIfNull(precompiledCommand);
+
         return creator.Set(x => precompiledCommand.Create(x, queryOptions, parameters));
     }
 
@@ -31,12 +37,18 @@ public static partial class CommandCreatorExtensions
 
     public static IWrappedCommand CreateProcedureSimple(this ICommandCreator creator, QueryOptions? queryOptions, string name, params DbParameter[] parameters)
     {
+        ArgumentNullException.ThrowIfNull(creator);
+        ArgumentNullException.ThrowIfNull(name);
+
         return creator.Set(x => x.CommandCompilator.CompileProcedureSimple(name).Create(x, queryOptions, parameters));
     }
 
 
     public static IWrappedCommand CreateMapped<T>(this ICommandCreator creator, string commandText, T value, QueryOptions? queryOptions = null, FromTypeOption fromTypeOption = FromTypeOption.Default)
     {
+        ArgumentNullException.ThrowIfNull(creator);
+        ArgumentNullException.ThrowIfNull(commandText);
+
         return creator.Set(x =>
         {
             var o = x.PrepareQueryOptions(queryOptions);
@@ -46,11 +58,17 @@ public static partial class CommandCreatorExtensions
 
     public static IWrappedCommand CreateMapped<T>(this ICommandCreator creator, MappedCommand<T> precompiledCommand, T value, QueryOptions? queryOptions = null)
     {
+        ArgumentNullException.ThrowIfNull(creator);
+        ArgumentNullException.ThrowIfNull(precompiledCommand);
+
         return creator.Set(x => precompiledCommand.Create(x, value, queryOptions));
     }
 
     public static IWrappedCommand CreateMapped<T>(this ICommandCreator creator, string commandText, IList<string>? paramNames, T value, QueryOptions? queryOptions = null, FromTypeOption fromTypeOption = FromTypeOption.Default)
     {
+        ArgumentNullException.ThrowIfNull(creator);
+        ArgumentNullException.ThrowIfNull(commandText);
+
         return creator.Set(x =>
         {
             var o = x.PrepareQueryOptions(queryOptions);
@@ -60,6 +78,10 @@ public static partial class CommandCreatorExtensions
 
     public static IWrappedCommand CreateMapped<T>(this ICommandCreator creator, string commandText, IList<FieldSettings<T>> settings, T value, QueryOptions? queryOptions = null)
     {
+        ArgumentNullException.ThrowIfNull(creator);
+        ArgumentNullException.ThrowIfNull(commandText);
+        ArgumentNullException.ThrowIfNull(settings);
+
         return creator.Set(x =>
         {
             var o = x.PrepareQueryOptions(queryOptions);
@@ -69,6 +91,10 @@ public static partial class CommandCreatorExtensions
 
     public static IWrappedCommand CreateMapped<T>(this ICommandCreator creator, string commandText, IList<string>? paramNames, IList<FieldSettings<T>> settings, T value, QueryOptions? queryOptions = null)
     {
+        ArgumentNullException.ThrowIfNull(creator);
+        ArgumentNullException.ThrowIfNull(commandText);
+        ArgumentNullException.ThrowIfNull(settings);
+
         return creator.Set(x =>
         {
             var o = x.PrepareQueryOptions(queryOptions);
@@ -78,6 +104,9 @@ public static partial class CommandCreatorExtensions
 
     public static IWrappedCommand CreateProcedure<T>(this ICommandCreator creator, string name, T value, QueryOptions? queryOptions = null, FromTypeOption fromTypeOption = FromTypeOption.Both)
     {
+        ArgumentNullException.ThrowIfNull(creator);
+        ArgumentNullException.ThrowIfNull(name);
+
         return creator.Set(x =>
         {
             var o = x.PrepareQueryOptions(queryOptions);
@@ -87,6 +116,9 @@ public static partial class CommandCreatorExtensions
 
     public static IWrappedCommand CreateProcedure<T>(this ICommandCreator creator, string name, IList<string>? paramNames, T value, QueryOptions? queryOptions = null, FromTypeOption fromTypeOption = FromTypeOption.Both)
     {
+        ArgumentNullException.ThrowIfNull(creator);
+        ArgumentNullException.ThrowIfNull(name);
+
         return creator.Set(x =>
         {
             var o = x.PrepareQueryOptions(queryOptions);
@@ -96,6 +128,10 @@ public static partial class CommandCreatorExtensions
 
     public static IWrappedCommand CreateProcedure<T>(this ICommandCreator creator, string name, IList<FieldSettings<T>> settings, T value, QueryOptions? queryOptions = null)
     {
+        ArgumentNullException.ThrowIfNull(creator);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(settings);
+
         return creator.Set(x =>
         {
             var o = x.PrepareQueryOptions(queryOptions);
@@ -105,6 +141,10 @@ public static partial class CommandCreatorExtensions
 
     public static IWrappedCommand CreateProcedure<T>(this ICommandCreator creator, string name, IList<string>? paramNames, IList<FieldSettings<T>> settings, T value, QueryOptions? queryOptions = null)
     {
+        ArgumentNullException.ThrowIfNull(creator);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(settings);
+
         return creator.Set(x =>
         {
             var o = x.PrepareQueryOptions(queryOptions);
@@ -119,6 +159,9 @@ public static partial class CommandCreatorExtensions
 
     public static IWrappedCommand CreateInsert<T>(this ICommandCreator creator, string tableName, T value, QueryOptions? queryOptions, params string[] ignoreFields)
     {
+        ArgumentNullException.ThrowIfNull(creator);
+        ArgumentNullException.ThrowIfNull(tableName);
+
         return creator.Set(x => x.CommandCompilator.CompileInsert<T>(tableName, ignoreFields).Create(x, value, queryOptions));
     }
 
@@ -139,6 +182,9 @@ public static partial class CommandCreatorExtensions
 
     public static IWrappedCommand CreateInsertWithOutput<T>(this ICommandCreator creator, string tableName, T value, QueryOptions? queryOptions, IList<string>? ignoreFields, params string[] outputFields)
     {
+        ArgumentNullException.ThrowIfNull(creator);
+        ArgumentNullException.ThrowIfNull(tableName);
+
         return creator.Set(x => x.CommandCompilator.CompileInsertWithOutput<T>(tableName, FromTypeOption.Default, ignoreFields, outputFields).Create(x, value, queryOptions));
     }
 
@@ -149,6 +195,9 @@ public static partial class CommandCreatorExtensions
 
     public static IWrappedCommand CreateUpdate<T>(this ICommandCreator creator, string tableName, T value, QueryOptions? queryOptions, params string[] keyFields)
     {
+        ArgumentNullException.ThrowIfNull(creator);
+        ArgumentNullException.ThrowIfNull(tableName);
+
         return creator.Set(x => x.CommandCompilator.CompileUpdate<T>(tableName, keyFields).Create(x, value, queryOptions));
     }
 
@@ -159,6 +208,9 @@ public static partial class CommandCreatorExtensions
 
     public static IWrappedCommand CreateDelete<T>(this ICommandCreator creator, string tableName, T value, QueryOptions? queryOptions, params string[] keyFields)
     {
+        ArgumentNullException.ThrowIfNull(creator);
+        ArgumentNullException.ThrowIfNull(tableName);
+
         return creator.Set(x => x.CommandCompilator.CompileDelete<T>(tableName, keyFields).Create(x, value, queryOptions));
     }
 
@@ -169,87 +221,92 @@ public static partial class CommandCreatorExtensions
 
     public static IWrappedCommand CreateMerge<T>(this ICommandCreator creator, string tableName, T value, QueryOptions? queryOptions, params string[] keyFields)
     {
+        ArgumentNullException.ThrowIfNull(creator);
+        ArgumentNullException.ThrowIfNull(tableName);
+
         return creator.Set(x => x.CommandCompilator.CompileMerge<T>(tableName, keyFields).Create(x, value, queryOptions));
     }
 
     #region Some combination of Create and Execute
 
-    public static void Insert<T>(this ICommandCreator creator, string tableName, T value, params string[] ignoreFields)
+    // each returns the number of rows the command affected, as ExecuteNonQuery does
+
+    public static int Insert<T>(this ICommandCreator creator, string tableName, T value, params string[] ignoreFields)
     {
-        creator.CreateInsert(tableName, value, ignoreFields).ExecuteNonQuery();
+        return creator.CreateInsert(tableName, value, ignoreFields).ExecuteNonQuery();
     }
 
-    public static void Insert<T>(this ICommandCreator creator, string tableName, T value, QueryOptions? queryOptions, params string[] ignoreFields)
+    public static int Insert<T>(this ICommandCreator creator, string tableName, T value, QueryOptions? queryOptions, params string[] ignoreFields)
     {
-        creator.CreateInsert(tableName, value, queryOptions, ignoreFields).ExecuteNonQuery();
+        return creator.CreateInsert(tableName, value, queryOptions, ignoreFields).ExecuteNonQuery();
     }
 
-    public static Task InsertAsync<T>(this ICommandCreator creator, string tableName, T value, params string[] ignoreFields)
+    public static Task<int> InsertAsync<T>(this ICommandCreator creator, string tableName, T value, params string[] ignoreFields)
     {
         return creator.CreateInsert(tableName, value, ignoreFields).ExecuteNonQueryAsync();
     }
 
-    public static Task InsertAsync<T>(this ICommandCreator creator, string tableName, T value, QueryOptions? queryOptions, params string[] ignoreFields)
+    public static Task<int> InsertAsync<T>(this ICommandCreator creator, string tableName, T value, QueryOptions? queryOptions, params string[] ignoreFields)
     {
         return creator.CreateInsert(tableName, value, queryOptions, ignoreFields).ExecuteNonQueryAsync();
     }
 
-    public static void Update<T>(this ICommandCreator creator, string tableName, T value, params string[] keyFields)
+    public static int Update<T>(this ICommandCreator creator, string tableName, T value, params string[] keyFields)
     {
-        creator.CreateUpdate(tableName, value, keyFields).ExecuteNonQuery();
+        return creator.CreateUpdate(tableName, value, keyFields).ExecuteNonQuery();
     }
 
-    public static void Update<T>(this ICommandCreator creator, string tableName, T value, QueryOptions? queryOptions, params string[] keyFields)
+    public static int Update<T>(this ICommandCreator creator, string tableName, T value, QueryOptions? queryOptions, params string[] keyFields)
     {
-        creator.CreateUpdate(tableName, value, queryOptions, keyFields).ExecuteNonQuery();
+        return creator.CreateUpdate(tableName, value, queryOptions, keyFields).ExecuteNonQuery();
     }
 
-    public static Task UpdateAsync<T>(this ICommandCreator creator, string tableName, T value, params string[] keyFields)
+    public static Task<int> UpdateAsync<T>(this ICommandCreator creator, string tableName, T value, params string[] keyFields)
     {
         return creator.CreateUpdate(tableName, value, keyFields).ExecuteNonQueryAsync();
     }
 
-    public static Task UpdateAsync<T>(this ICommandCreator creator, string tableName, T value, QueryOptions? queryOptions, params string[] keyFields)
+    public static Task<int> UpdateAsync<T>(this ICommandCreator creator, string tableName, T value, QueryOptions? queryOptions, params string[] keyFields)
     {
         return creator.CreateUpdate(tableName, value, queryOptions, keyFields).ExecuteNonQueryAsync();
     }
 
-    public static void Delete<T>(this ICommandCreator creator, string tableName, T value, params string[] keyFields)
+    public static int Delete<T>(this ICommandCreator creator, string tableName, T value, params string[] keyFields)
     {
-        creator.CreateDelete(tableName, value, keyFields).ExecuteNonQuery();
+        return creator.CreateDelete(tableName, value, keyFields).ExecuteNonQuery();
     }
 
-    public static void Delete<T>(this ICommandCreator creator, string tableName, T value, QueryOptions? queryOptions, params string[] keyFields)
+    public static int Delete<T>(this ICommandCreator creator, string tableName, T value, QueryOptions? queryOptions, params string[] keyFields)
     {
-        creator.CreateDelete(tableName, value, queryOptions, keyFields).ExecuteNonQuery();
+        return creator.CreateDelete(tableName, value, queryOptions, keyFields).ExecuteNonQuery();
     }
 
-    public static Task DeleteAsync<T>(this ICommandCreator creator, string tableName, T value, params string[] keyFields)
+    public static Task<int> DeleteAsync<T>(this ICommandCreator creator, string tableName, T value, params string[] keyFields)
     {
         return creator.CreateDelete(tableName, value, keyFields).ExecuteNonQueryAsync();
     }
 
-    public static Task DeleteAsync<T>(this ICommandCreator creator, string tableName, T value, QueryOptions? queryOptions, params string[] keyFields)
+    public static Task<int> DeleteAsync<T>(this ICommandCreator creator, string tableName, T value, QueryOptions? queryOptions, params string[] keyFields)
     {
         return creator.CreateDelete(tableName, value, queryOptions, keyFields).ExecuteNonQueryAsync();
     }
 
-    public static void Merge<T>(this ICommandCreator creator, string tableName, T value, params string[] keyFields)
+    public static int Merge<T>(this ICommandCreator creator, string tableName, T value, params string[] keyFields)
     {
-        creator.CreateMerge(tableName, value, keyFields).ExecuteNonQuery();
+        return creator.CreateMerge(tableName, value, keyFields).ExecuteNonQuery();
     }
 
-    public static void Merge<T>(this ICommandCreator creator, string tableName, T value, QueryOptions? queryOptions, params string[] keyFields)
+    public static int Merge<T>(this ICommandCreator creator, string tableName, T value, QueryOptions? queryOptions, params string[] keyFields)
     {
-        creator.CreateMerge(tableName, value, queryOptions, keyFields).ExecuteNonQuery();
+        return creator.CreateMerge(tableName, value, queryOptions, keyFields).ExecuteNonQuery();
     }
 
-    public static Task MergeAsync<T>(this ICommandCreator creator, string tableName, T value, params string[] keyFields)
+    public static Task<int> MergeAsync<T>(this ICommandCreator creator, string tableName, T value, params string[] keyFields)
     {
         return creator.CreateMerge(tableName, value, keyFields).ExecuteNonQueryAsync();
     }
 
-    public static Task MergeAsync<T>(this ICommandCreator creator, string tableName, T value, QueryOptions? queryOptions, params string[] keyFields)
+    public static Task<int> MergeAsync<T>(this ICommandCreator creator, string tableName, T value, QueryOptions? queryOptions, params string[] keyFields)
     {
         return creator.CreateMerge(tableName, value, queryOptions, keyFields).ExecuteNonQueryAsync();
     }

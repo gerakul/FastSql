@@ -35,7 +35,7 @@ namespace Gerakul.FastSql.UnitTests.Common
         }
 
         private const string MappedText = "select * from Person where ID = @ID and Name = @Name";
-        private const string NotMappedMessage = "Not all parameters has been mapped on settings (Parameter 'parameters')";
+        private const string NotMappedMessage = "No field of * matches the parameter '*' (Parameter 'parameters')";
 
         private readonly ContextProvider provider;
         private readonly ICapturingContext context;
@@ -256,7 +256,7 @@ namespace Gerakul.FastSql.UnitTests.Common
         {
             Action act = () => Compilator.CompileMapped<Person>("select 1", new[] { first, second }, caseSensitiveParamsMatching: caseSensitive);
 
-            act.Should().Throw<ArgumentException>().WithMessage("Parameter names has been duplicated");
+            act.Should().Throw<ArgumentException>().WithMessage("Parameter '*' is listed more than once*");
         }
 
         [Fact]
@@ -265,7 +265,7 @@ namespace Gerakul.FastSql.UnitTests.Common
         {
             Action act = () => Compilator.CompileMapped<Person>("select @ID, @id");
 
-            act.Should().Throw<ArgumentException>().WithMessage("Parameter names has been duplicated");
+            act.Should().Throw<ArgumentException>().WithMessage("Parameter '*' is listed more than once*");
         }
 
         [Theory]
@@ -282,7 +282,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
             Action act = () => Compilator.CompileMapped("select @ID", settings, caseSensitive);
 
-            act.Should().Throw<ArgumentException>().WithMessage("Setting names has been duplicated");
+            act.Should().Throw<ArgumentException>().WithMessage("More than one field of * is named '*'*");
         }
 
         [Fact]
@@ -879,7 +879,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             Action act = () => context.CreateSimple(compiled);
 
             act.Should().Throw<ArgumentException>()
-                .WithMessage("ContextProvider presented in received ScopedContext does not match stored in given SimpleCommand (Parameter 'scopedContext')")
+                .WithMessage("The command was compiled by another context provider than the one of this context*(Parameter 'scopedContext')")
                 .WithParameterName("scopedContext");
             context.Commands.Should().BeEmpty();
         }
@@ -892,7 +892,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             Action act = () => context.CreateMapped(compiled, person);
 
             act.Should().Throw<ArgumentException>()
-                .WithMessage("ContextProvider presented in received ScopedContext does not match stored in given MappedCommand (Parameter 'scopedContext')")
+                .WithMessage("The command was compiled by another context provider than the one of this context*(Parameter 'scopedContext')")
                 .WithParameterName("scopedContext");
             context.Commands.Should().BeEmpty();
         }

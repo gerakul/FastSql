@@ -13,6 +13,11 @@ internal static class TypeMembers<T>
     private static readonly ReadMembers?[] forReading = new ReadMembers?[8];
     private static readonly WriteMembers<T>?[] forWriting = new WriteMembers<T>?[8];
     private static ConstructorMembers? constructor;
+    private static ConstructorMembers? largestConstructor;
+
+    // A type with a public constructor without parameters (every struct has one) is read by setting its members,
+    // any other type through a constructor
+    public static readonly bool HasParameterlessConstructor = typeof(T).IsValueType || typeof(T).GetConstructor(Type.EmptyTypes) != null;
 
     // threads that come here at the same time build equal objects, and the one stored last stays
     public static ReadMembers ForReading(FromTypeOption fromTypeOption)
@@ -25,19 +30,39 @@ internal static class TypeMembers<T>
         return forWriting[(int)fromTypeOption & 7] ??= new WriteMembers<T>(fromTypeOption);
     }
 
-    public static ConstructorMembers Constructor => constructor ??= new ConstructorMembers(typeof(T));
+    // the first public constructor: what ReadAllAnonymous has always used (an anonymous type has only one)
+    public static ConstructorMembers Constructor => constructor ??= new ConstructorMembers(typeof(T).GetConstructors().FirstOrDefault());
+
+    // the public constructor with the most parameters, the first of them when several have as many: what a type
+    // without a parameterless constructor is read through
+    public static ConstructorMembers LargestConstructor => largestConstructor ??= GetLargestConstructor();
+
+    private static ConstructorMembers GetLargestConstructor()
+    {
+        var constructors = typeof(T).GetConstructors();
+        var largest = constructors.MaxBy(x => x.GetParameters().Length);
+
+        // the same object when both are the same constructor, so its rows are counted in one place
+        return largest == null || largest == constructors[0] ? Constructor : new ConstructorMembers(largest);
+    }
 }
 
 // finds a member by its name, exactly or regardless of case
 internal sealed class NameLookup
 {
+    private readonly string?[] names;
     private readonly Dictionary<string, int> exact;
     private readonly Dictionary<string, int> ignoringCase;
-    private readonly bool exactUnique = true;
-    private readonly bool ignoringCaseUnique = true;
+    private readonly (string First, string Second)? exactDuplicate;
+    private readonly (string First, string Second)? ignoringCaseDuplicate;
+
+    public int Count => names.Length;
+
+    public string? this[int index] => names[index];
 
     public NameLookup(string?[] names)
     {
+        this.names = names;
         this.exact = new Dictionary<string, int>(names.Length, StringComparer.Ordinal);
         this.ignoringCase = new Dictionary<string, int>(names.Length, StringComparer.OrdinalIgnoreCase);
 
@@ -46,16 +71,26 @@ internal sealed class NameLookup
             // a member without a name matches nothing
             if (names[i] is string name)
             {
-                this.exactUnique &= this.exact.TryAdd(name, i);
-                this.ignoringCaseUnique &= this.ignoringCase.TryAdd(name, i);
+                if (!this.exact.TryAdd(name, i))
+                {
+                    this.exactDuplicate ??= (name, name);
+                }
+
+                if (!this.ignoringCase.TryAdd(name, i))
+                {
+                    this.ignoringCaseDuplicate ??= (names[this.ignoringCase[name]]!, name);
+                }
             }
         }
     }
 
-    // with duplicates a name does not say which member is meant
-    public bool HasDuplicates(bool caseSensitive)
+    // with duplicates a name does not say which member is meant; the first two names that are the same
+    public bool HasDuplicates(bool caseSensitive, out string? first, out string? second)
     {
-        return caseSensitive ? !exactUnique : !ignoringCaseUnique;
+        var duplicate = caseSensitive ? exactDuplicate : ignoringCaseDuplicate;
+        first = duplicate?.First;
+        second = duplicate?.Second;
+        return duplicate != null;
     }
 
     public bool TryFind(string? name, bool caseSensitive, out int index)
@@ -178,7 +213,7 @@ internal readonly record struct ReadParameter(string? Name, int Position, ValueS
     }
 }
 
-// the constructor that objects without settable members are created with (anonymous types), and its parameters
+// a constructor that objects are created with (anonymous types, records), and its parameters
 internal sealed class ConstructorMembers
 {
     private int rowsUntilFast = FastAccessors.RowsBefore;
@@ -195,10 +230,8 @@ internal sealed class ConstructorMembers
     // the compile of the constructor, from the moment the threshold is reached
     public Task? Compiling { get; private set; }
 
-    public ConstructorMembers(Type type)
+    public ConstructorMembers(ConstructorInfo? constructor)
     {
-        var constructor = type.GetConstructors().FirstOrDefault();
-
         this.Constructor = constructor;
         this.Parameters = constructor == null ? []
             : constructor.GetParameters().Select(x => new ReadParameter(x.Name, x.Position, ValueSource.For(-1, x.ParameterType))).ToArray();

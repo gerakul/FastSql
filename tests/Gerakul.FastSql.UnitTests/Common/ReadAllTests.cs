@@ -12,8 +12,8 @@ namespace Gerakul.FastSql.UnitTests.Common
     // the FieldsSelector matrix in FieldsSelectorTests, value conversions in ValueConversionTests.
     public class ReadAllTests
     {
-        private const string DestinationMessage = "FieldsSelector has value FieldsSelector.Destination, but destination has fields which are not presented in source";
-        private const string SourceMessage = "FieldsSelector has value FieldsSelector.Source, but source has fields which are not presented in destination";
+        private const string DestinationMessage = "FieldsSelector.Destination: *";
+        private const string SourceMessage = "FieldsSelector.Source: *";
 
         public class Person
         {
@@ -461,7 +461,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
             Action act = () => reader.ReadAll<Person>(new ReadOptions(caseSensitiveFieldsMatching: caseSensitive)).ToList();
 
-            act.Should().ThrowExactly<ArgumentException>().WithMessage("Reader field names has been duplicated");
+            act.Should().ThrowExactly<ArgumentException>().WithMessage("The reader has more than one field named '*'*");
         }
 
         [Fact]
@@ -471,7 +471,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
             Action act = () => reader.ReadAll<Person>().ToList();
 
-            act.Should().ThrowExactly<ArgumentException>().WithMessage("Reader field names has been duplicated");
+            act.Should().ThrowExactly<ArgumentException>().WithMessage("The reader has more than one field named '*'*");
         }
 
         [Fact]
@@ -491,7 +491,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
             Action act = () => reader.ReadAll<CaseConflict>().ToList();
 
-            act.Should().ThrowExactly<ArgumentException>().WithMessage("Destination object field names has been duplicated");
+            act.Should().ThrowExactly<ArgumentException>().WithMessage("The * of * differ only by case (names are compared case-insensitively)");
         }
 
         [Fact]
@@ -559,7 +559,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
             Action act = () => reader.ReadAll<Person>().ToList();
 
-            act.Should().ThrowExactly<InvalidCastException>().WithMessage("Object cannot be cast from DBNull to other types.");
+            act.Should().ThrowExactly<InvalidCastException>().WithMessage("Cannot read field '*' (*) into *: Object cannot be cast from DBNull to other types.");
         }
 
         [Fact]
@@ -571,7 +571,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
             Action act = () => reader.ReadAll<FieldsAndProperties>().ToList();
 
-            act.Should().ThrowExactly<InvalidCastException>().WithMessage("Object cannot be cast from DBNull to other types.");
+            act.Should().ThrowExactly<InvalidCastException>().WithMessage("Cannot read field '*' (*) into *: Object cannot be cast from DBNull to other types.");
         }
 
         [Fact]

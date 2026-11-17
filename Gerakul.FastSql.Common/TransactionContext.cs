@@ -10,6 +10,7 @@ public abstract class TransactionContext : ScopedContext
         QueryOptions queryOptions, BulkOptions bulkOptions, ReadOptions readOptions)
         : base(contextProvider, queryOptions, bulkOptions, readOptions)
     {
+        // a missing transaction is not rejected here: it has always been accepted, and fails when a command is created
         this.Transaction = transaction;
     }
 }

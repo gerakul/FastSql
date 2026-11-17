@@ -47,7 +47,7 @@ internal sealed class NpgsqlBulkCopy : BulkCopy
             var comparer = bulkOptions.CaseSensitiveFieldsMatching == true ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
             map = sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping(x, y), comparer).ToArray();
 
-            CheckFieldSelection(bulkOptions.FieldsSelector!.Value, sourceFields.Length, destFields.Length, map.Length);
+            CheckFieldSelection(bulkOptions.FieldsSelector!.Value, sourceFields, destFields, comparer);
         }
 
         if (map.Length > 0)
@@ -93,7 +93,7 @@ internal sealed class NpgsqlBulkCopy : BulkCopy
             var comparer = bulkOptions.CaseSensitiveFieldsMatching == true ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
             map = sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping(x, y), comparer).ToArray();
 
-            CheckFieldSelection(bulkOptions.FieldsSelector!.Value, sourceFields.Length, destFields.Length, map.Length);
+            CheckFieldSelection(bulkOptions.FieldsSelector!.Value, sourceFields, destFields, comparer);
         }
 
         if (map.Length > 0)

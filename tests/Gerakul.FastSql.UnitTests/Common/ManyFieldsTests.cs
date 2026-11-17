@@ -152,7 +152,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             Action ignoringCase = () => table.CreateReader().ReadAll<Wide>(new ReadOptions(FieldsSelector.Common)).Count();
             var caseSensitive = table.CreateReader().ReadAll<Wide>(new ReadOptions(FieldsSelector.Common, true)).Single();
 
-            ignoringCase.Should().Throw<ArgumentException>().WithMessage("Reader field names has been duplicated");
+            ignoringCase.Should().Throw<ArgumentException>().WithMessage("The reader has more than one field named '*'*");
             caseSensitive.P00.Should().Be(0);
             caseSensitive.P68.Should().Be(680);
             caseSensitive.P69.Should().Be(0);
@@ -196,8 +196,8 @@ namespace Gerakul.FastSql.UnitTests.Common
             parameters.Select(x => x.ParameterName).Should().Equal(names);
             parameters[0].Value.Should().Be(1);
             parameters[69].Value.Should().Be(2);
-            duplicate.Should().Throw<ArgumentException>().WithMessage("Parameter names has been duplicated");
-            unknown.Should().Throw<ArgumentException>().WithMessage("Not all parameters has been mapped on settings*");
+            duplicate.Should().Throw<ArgumentException>().WithMessage("Parameter '*' is listed more than once*");
+            unknown.Should().Throw<ArgumentException>().WithMessage("No field of Wide matches the parameter '@P70' (Parameter 'parameters')");
         }
     }
 }

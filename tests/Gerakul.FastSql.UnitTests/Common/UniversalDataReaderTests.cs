@@ -242,12 +242,13 @@ namespace Gerakul.FastSql.UnitTests.Common
             source.LastEnumerator.MoveNextCalls.Should().Be(1);
         }
 
+        // NullReferenceException until phase 4 (I9)
         [Fact]
-        public void Constructor_NullValues_ThrowsNullReferenceException()
+        public void Constructor_NullValues_ThrowsArgumentNullException()
         {
             Action act = () => new UniversalDataReader<Row>((IEnumerable<Row>)null, FieldSettings.FromType<Row>(), true);
 
-            act.Should().Throw<NullReferenceException>();
+            act.Should().Throw<ArgumentNullException>().WithParameterName("values");
         }
 
         [Fact]
@@ -255,7 +256,7 @@ namespace Gerakul.FastSql.UnitTests.Common
         {
             Action act = () => new UniversalDataReader<Row>(CreateRows(), null, true);
 
-            act.Should().Throw<ArgumentNullException>().WithParameterName("source");
+            act.Should().Throw<ArgumentNullException>().WithParameterName("settings");
         }
 
         // until phase 4 every access created a new collection
@@ -283,7 +284,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
             Action act = () => CreateReader(source, CreateRows(), settings, false);
 
-            act.Should().Throw<ArgumentException>().WithMessage("An item with the same key has already been added. Key: id");
+            act.Should().Throw<ArgumentException>().WithMessage("Field 'id' is defined more than once*");
         }
 
         [Theory]
@@ -299,7 +300,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
             Action act = () => CreateReader(source, CreateRows(), settings, true);
 
-            act.Should().Throw<ArgumentException>().WithMessage("An item with the same key has already been added. Key: ID");
+            act.Should().Throw<ArgumentException>().WithMessage("Field 'ID' is defined more than once*");
         }
 
         [Fact]
@@ -927,40 +928,55 @@ namespace Gerakul.FastSql.UnitTests.Common
             reader.IsClosed.Should().BeTrue();
         }
 
+        // Until phase 4 Close hid DbDataReader.Close instead of overriding it, so the three calls below did nothing
         [Fact]
-        [Trait("Quirk", "Q01")]
-        public void Close_ThroughDbDataReaderReference_DoesNotClose()
+        [Trait("Fixed", "Q01")]
+        public void Close_ThroughDbDataReaderReference_Closes()
         {
             DbDataReader reader = CreateReader();
 
             reader.Close();
 
-            reader.IsClosed.Should().BeFalse();
-            reader.Read().Should().BeTrue();
+            reader.IsClosed.Should().BeTrue();
+            reader.Invoking(x => x.Read()).Should().Throw<InvalidOperationException>().WithMessage("DataReader has been closed");
         }
 
         [Fact]
-        [Trait("Quirk", "Q01")]
-        public void Close_ThroughIDataReaderReference_DoesNotClose()
+        [Trait("Fixed", "Q01")]
+        public void Close_ThroughIDataReaderReference_Closes()
         {
             IDataReader reader = CreateReader();
 
             reader.Close();
 
-            reader.IsClosed.Should().BeFalse();
-            reader.Read().Should().BeTrue();
+            reader.IsClosed.Should().BeTrue();
+            reader.Invoking(x => x.Read()).Should().Throw<InvalidOperationException>().WithMessage("DataReader has been closed");
         }
 
         [Fact]
-        [Trait("Quirk", "Q01")]
-        public async Task CloseAsync_DoesNotCloseAsync()
+        [Trait("Fixed", "Q01")]
+        public async Task CloseAsync_ClosesAsync()
         {
             var reader = CreateReader();
 
             await reader.CloseAsync();
 
-            reader.IsClosed.Should().BeFalse();
-            (await reader.ReadAsync(TestContext.Current.CancellationToken)).Should().BeTrue();
+            reader.IsClosed.Should().BeTrue();
+            await reader.Invoking(x => x.ReadAsync(TestContext.Current.CancellationToken)).Should().ThrowAsync<InvalidOperationException>();
+        }
+
+        [Fact]
+        [Trait("Fixed", "Q01")]
+        public void Close_ThroughDbDataReaderReference_DisposesTheSource()
+        {
+            var source = new TrackingEnumerable(CreateRows());
+            DbDataReader reader = source.ToDataReader();
+
+            reader.Close();
+            reader.Close();
+            reader.Dispose();
+
+            source.LastEnumerator.DisposeCalls.Should().Be(1);
         }
 
         [Fact]

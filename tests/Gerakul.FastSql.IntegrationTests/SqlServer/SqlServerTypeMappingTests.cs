@@ -310,7 +310,7 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
 
             Action act = () => ReadValue<DateTime>(table);
 
-            act.Should().ThrowExactly<InvalidCastException>().WithMessage("Object must implement IConvertible.");
+            act.Should().ThrowExactly<InvalidCastException>().WithMessage("Cannot read field '*' (*) into *: Object must implement IConvertible.");
         }
 
         [Fact]
@@ -323,7 +323,7 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
 
             Action act = () => CreateContext().CreateSimple($"select [Id], [Value] from {table}").ExecuteQuery<ValueRow<DateTimeOffset>>().ToList();
 
-            act.Should().ThrowExactly<InvalidCastException>().WithMessage("Invalid cast from 'System.DateTime' to 'System.DateTimeOffset'.");
+            act.Should().ThrowExactly<InvalidCastException>().WithMessage("Cannot read field '*' (*) into *: Invalid cast from 'System.DateTime' to 'System.DateTimeOffset'.");
         }
 
         #endregion
@@ -537,7 +537,7 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
 
             Action act = () => ReadValue<ulong>(table);
 
-            act.Should().ThrowExactly<InvalidCastException>().WithMessage("Object must implement IConvertible.");
+            act.Should().ThrowExactly<InvalidCastException>().WithMessage("Cannot read field '*' (*) into *: Object must implement IConvertible.");
         }
 
         #endregion

@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Data;
+﻿using System.Data;
 using System.Data.Common;
 using System.Runtime.CompilerServices;
 
@@ -53,41 +52,53 @@ public static partial class DataReaderExtensions
 
     public static IEnumerable<object[]> ReadAll(this IDataReader reader)
     {
+        ArgumentNullException.ThrowIfNull(reader);
+
         return CreateEnumerable(() => ReadInfoFactory.CreateObjects(reader));
     }
 
     public static IAsyncEnumerable<object[]> ReadAllAsync(this IDataReader reader)
     {
+        ArgumentNullException.ThrowIfNull(reader);
+
         return CreateAsyncEnumerable(() => ReadInfoFactory.CreateObjects(reader));
     }
 
-    public static IEnumerable<T> ReadAll<T>(this IDataReader reader, ReadOptions? readOptions) where T : new()
+    public static IEnumerable<T> ReadAll<T>(this IDataReader reader, ReadOptions? readOptions)
     {
-        return CreateEnumerable(() => ReadInfoFactory.CreateByType<T>(reader, readOptions));
+        ArgumentNullException.ThrowIfNull(reader);
+
+        return CreateEnumerable(() => ReadInfoFactory.Create<T>(reader, readOptions));
     }
 
-    public static IAsyncEnumerable<T> ReadAllAsync<T>(this IDataReader reader, ReadOptions? readOptions) where T : new()
+    public static IAsyncEnumerable<T> ReadAllAsync<T>(this IDataReader reader, ReadOptions? readOptions)
     {
-        return CreateAsyncEnumerable(() => ReadInfoFactory.CreateByType<T>(reader, readOptions));
+        ArgumentNullException.ThrowIfNull(reader);
+
+        return CreateAsyncEnumerable(() => ReadInfoFactory.Create<T>(reader, readOptions));
     }
 
-    public static IEnumerable<T> ReadAll<T>(this IDataReader reader) where T : new()
+    public static IEnumerable<T> ReadAll<T>(this IDataReader reader)
     {
         return ReadAll<T>(reader, null);
     }
 
-    public static IAsyncEnumerable<T> ReadAllAsync<T>(this IDataReader reader) where T : new()
+    public static IAsyncEnumerable<T> ReadAllAsync<T>(this IDataReader reader)
     {
         return ReadAllAsync<T>(reader, null);
     }
 
     public static IEnumerable<T> ReadAllAnonymous<T>(this IDataReader reader, T proto, ReadOptions? readOptions)
     {
+        ArgumentNullException.ThrowIfNull(reader);
+
         return CreateEnumerable(() => ReadInfoFactory.CreateAnonymous(reader, proto, readOptions));
     }
 
     public static IAsyncEnumerable<T> ReadAllAnonymousAsync<T>(this IDataReader reader, T proto, ReadOptions? readOptions)
     {
+        ArgumentNullException.ThrowIfNull(reader);
+
         return CreateAsyncEnumerable(() => ReadInfoFactory.CreateAnonymous(reader, proto, readOptions));
     }
 
@@ -101,23 +112,31 @@ public static partial class DataReaderExtensions
         return ReadAllAnonymousAsync(reader, proto, null);
     }
 
-    public static IEnumerable ReadAllFirstColumn(this IDataReader reader)
+    public static IEnumerable<object?> ReadAllFirstColumn(this IDataReader reader)
     {
+        ArgumentNullException.ThrowIfNull(reader);
+
         return CreateEnumerable(() => ReadInfoFactory.CreateFirstColumn(reader));
     }
 
     public static IAsyncEnumerable<object?> ReadAllFirstColumnAsync(this IDataReader reader)
     {
+        ArgumentNullException.ThrowIfNull(reader);
+
         return CreateAsyncEnumerable(() => ReadInfoFactory.CreateFirstColumn(reader));
     }
 
     public static IEnumerable<T> ReadAllFirstColumn<T>(this IDataReader reader)
     {
+        ArgumentNullException.ThrowIfNull(reader);
+
         return CreateEnumerable(() => ReadInfoFactory.CreateFirstColumn<T>(reader));
     }
 
     public static IAsyncEnumerable<T> ReadAllFirstColumnAsync<T>(this IDataReader reader)
     {
+        ArgumentNullException.ThrowIfNull(reader);
+
         return CreateAsyncEnumerable(() => ReadInfoFactory.CreateFirstColumn<T>(reader));
     }
 
@@ -127,6 +146,9 @@ public static partial class DataReaderExtensions
 
     internal static IBulkWriter GetBulkWriter(this DbDataReader reader, DbContext context)
     {
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(context);
+
         return context switch
         {
             ScopedContext scopedContext => new DataReaderAttachedToScopedContext(reader, scopedContext),
@@ -137,31 +159,43 @@ public static partial class DataReaderExtensions
 
     public static void WriteToServer(this DbDataReader reader, DbContext context, string destinationTable, BulkOptions? bulkOptions, params string[] fields)
     {
+        ArgumentNullException.ThrowIfNull(destinationTable);
+
         reader.GetBulkWriter(context).WriteToServer(destinationTable, bulkOptions, fields);
     }
 
     public static Task WriteToServerAsync(this DbDataReader reader, DbContext context, string destinationTable, BulkOptions? bulkOptions, CancellationToken cancellationToken, params string[] fields)
     {
+        ArgumentNullException.ThrowIfNull(destinationTable);
+
         return reader.GetBulkWriter(context).WriteToServerAsync(destinationTable, bulkOptions, cancellationToken, fields);
     }
 
     public static Task WriteToServerAsync(this DbDataReader reader, DbContext context, string destinationTable, BulkOptions? bulkOptions, params string[] fields)
     {
+        ArgumentNullException.ThrowIfNull(destinationTable);
+
         return reader.GetBulkWriter(context).WriteToServerAsync(destinationTable, bulkOptions, fields);
     }
 
     public static void WriteToServer(this DbDataReader reader, DbContext context, string destinationTable, params string[] fields)
     {
+        ArgumentNullException.ThrowIfNull(destinationTable);
+
         reader.GetBulkWriter(context).WriteToServer(destinationTable, fields);
     }
 
     public static Task WriteToServerAsync(this DbDataReader reader, DbContext context, string destinationTable, CancellationToken cancellationToken, params string[] fields)
     {
+        ArgumentNullException.ThrowIfNull(destinationTable);
+
         return reader.GetBulkWriter(context).WriteToServerAsync(destinationTable, cancellationToken, fields);
     }
 
     public static Task WriteToServerAsync(this DbDataReader reader, DbContext context, string destinationTable, params string[] fields)
     {
+        ArgumentNullException.ThrowIfNull(destinationTable);
+
         return reader.GetBulkWriter(context).WriteToServerAsync(destinationTable, fields);
     }
 
@@ -169,10 +203,17 @@ public static partial class DataReaderExtensions
 
     public static IEnumerable<string> GetColumnNames(this IDataReader reader)
     {
-        for (int i = 0; i < reader.FieldCount; i++)
+        ArgumentNullException.ThrowIfNull(reader);
+
+        return Names(reader);
+
+        static IEnumerable<string> Names(IDataReader reader)
         {
-            string name = reader.GetName(i);
-            yield return name;
+            for (int i = 0; i < reader.FieldCount; i++)
+            {
+                string name = reader.GetName(i);
+                yield return name;
+            }
         }
     }
 }

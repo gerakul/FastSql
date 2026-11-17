@@ -350,7 +350,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
             Action act = () => values.ToDataReader(false);
 
-            act.Should().Throw<ArgumentException>().WithMessage("An item with the same key has already been added. Key: id");
+            act.Should().Throw<ArgumentException>().WithMessage("Field 'id' is defined more than once*");
         }
 
         [Fact]

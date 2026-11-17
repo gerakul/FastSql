@@ -46,7 +46,7 @@ internal sealed class MsSqlBulkCopy : BulkCopy
             var comparer = bulkOptions.CaseSensitiveFieldsMatching == true ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
             map = sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping(x, y), comparer).ToArray();
 
-            CheckFieldSelection(bulkOptions.FieldsSelector!.Value, sourceFields.Length, destFields.Length, map.Length);
+            CheckFieldSelection(bulkOptions.FieldsSelector!.Value, sourceFields, destFields, comparer);
         }
 
         if (map.Length > 0)
@@ -100,7 +100,7 @@ internal sealed class MsSqlBulkCopy : BulkCopy
             var comparer = bulkOptions.CaseSensitiveFieldsMatching == true ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
             map = sourceFields.Join(destFields, x => x, x => x, (x, y) => new Mapping(x, y), comparer).ToArray();
 
-            CheckFieldSelection(bulkOptions.FieldsSelector!.Value, sourceFields.Length, destFields.Length, map.Length);
+            CheckFieldSelection(bulkOptions.FieldsSelector!.Value, sourceFields, destFields, comparer);
         }
 
         if (map.Length > 0)
@@ -139,10 +139,47 @@ internal sealed class MsSqlBulkCopy : BulkCopy
 
         if (colDefs.Length != sourceFields.Length)
         {
-            throw new InvalidOperationException("Can not create table with specified fields");
+            // A field of the list that the source does not have, one whose type has no column type, or a field
+            // listed twice. The list is compared with the names of the source as they are, case included (Q130)
+            var readerFields = reader.GetColumnNames().ToArray();
+            var duplicates = sourceFields.GroupBy(x => x).Where(x => x.Count() > 1).Select(x => $"'{x.Key}'").ToArray();
+            var missing = sourceFields.Except(colDefs.Select(x => x!.Name)).ToArray();
+            var unknown = missing.Except(readerFields).Select(x => DescribeUnknown(x, readerFields)).ToArray();
+            var untyped = missing.Intersect(readerFields).Select(x => $"'{x}' ({reader.GetFieldType(reader.GetOrdinal(x)).Name})").ToArray();
+            var problems = new List<string>(3);
+
+            if (unknown.Length > 0)
+            {
+                problems.Add($"the source has no {(unknown.Length == 1 ? "field" : "fields")} {string.Join(", ", unknown)}");
+            }
+
+            if (untyped.Length > 0)
+            {
+                problems.Add($"there is no column type for the {(untyped.Length == 1 ? "field" : "fields")} {string.Join(", ", untyped)}");
+            }
+
+            if (duplicates.Length > 0)
+            {
+                problems.Add($"the field list names {string.Join(", ", duplicates)} more than once");
+            }
+
+            if (problems.Count == 0)
+            {
+                problems.Add("the field list does not match the fields of the source");
+            }
+
+            throw new InvalidOperationException($"Cannot create table {destinationTable}: {string.Join("; ", problems)}");
         }
 
         return colDefs.CreateTableScript(destinationTable, bulkOptions.CheckTableIfNotExistsBeforeCreation!.Value);
+    }
+
+    // a name that differs from a field of the source only in case says so
+    private static string DescribeUnknown(string field, string[] readerFields)
+    {
+        var sameIgnoringCase = readerFields.FirstOrDefault(x => string.Equals(x, field, StringComparison.OrdinalIgnoreCase));
+
+        return sameIgnoringCase == null ? $"'{field}'" : $"'{field}' (it has '{sameIgnoringCase}': the field list is compared with case)";
     }
 
     private void CreateTable(string[] sourceFields)
