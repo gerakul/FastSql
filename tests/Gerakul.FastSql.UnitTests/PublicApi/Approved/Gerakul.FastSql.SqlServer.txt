@@ -31,7 +31,6 @@ namespace Gerakul.FastSql.SqlServer
         protected SqlBulkOptions(bool defaultOptions) { }
         public SqlBulkOptions(int? batchSize = default, int? bulkCopyTimeout = default, Microsoft.Data.SqlClient.SqlBulkCopyOptions? sqlBulkCopyOptions = default, Gerakul.FastSql.Common.FieldsSelector? fieldsSelector = default, bool? caseSensitiveFieldsMatching = default, bool? enableStreaming = default, bool? createTable = default, Gerakul.FastSql.SqlServer.ColumnDefinitionOptions? columnDefinitionOptions = null, bool? ignoreDataReaderSchemaTable = default, bool? checkTableIfNotExistsBeforeCreation = default) { }
         public int? BatchSize { get; set; }
-        public int? BulkCopyTimeout { get; set; }
         public Gerakul.FastSql.SqlServer.ColumnDefinitionOptions? ColumnDefinitionOptions { get; set; }
         protected override Gerakul.FastSql.Common.BulkOptions Default { get; }
         public bool? EnableStreaming { get; set; }

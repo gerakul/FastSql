@@ -35,7 +35,8 @@ namespace Gerakul.FastSql.Common
     {
         protected BulkOptions(Gerakul.FastSql.Common.BulkOptions bulkOptions) { }
         protected BulkOptions(bool defaultOptions) { }
-        public BulkOptions(Gerakul.FastSql.Common.FieldsSelector? fieldsSelector = default, bool? caseSensitiveFieldsMatching = default, bool? createTable = default, bool? ignoreDataReaderSchemaTable = default, bool? checkTableIfNotExistsBeforeCreation = default) { }
+        public BulkOptions(Gerakul.FastSql.Common.FieldsSelector? fieldsSelector = default, bool? caseSensitiveFieldsMatching = default, bool? createTable = default, bool? ignoreDataReaderSchemaTable = default, bool? checkTableIfNotExistsBeforeCreation = default, int? bulkCopyTimeout = default) { }
+        public int? BulkCopyTimeout { get; set; }
         public bool? CaseSensitiveFieldsMatching { get; set; }
         public bool? CheckTableIfNotExistsBeforeCreation { get; set; }
         public bool? CreateTable { get; set; }

@@ -23,7 +23,8 @@ namespace Gerakul.FastSql.PostgreSQL
     {
         protected NpgsqlBulkOptions(Gerakul.FastSql.Common.BulkOptions bulkOptions) { }
         protected NpgsqlBulkOptions(bool defaultOptions) { }
-        public NpgsqlBulkOptions(Gerakul.FastSql.Common.FieldsSelector? fieldsSelector = default, bool? caseSensitiveFieldsMatching = default) { }
+        public NpgsqlBulkOptions(Gerakul.FastSql.Common.FieldsSelector? fieldsSelector = default, bool? caseSensitiveFieldsMatching = default, bool? createTable = default, Gerakul.FastSql.PostgreSQL.ColumnDefinitionOptions? columnDefinitionOptions = null, bool? ignoreDataReaderSchemaTable = default, bool? checkTableIfNotExistsBeforeCreation = default, int? bulkCopyTimeout = default) { }
+        public Gerakul.FastSql.PostgreSQL.ColumnDefinitionOptions? ColumnDefinitionOptions { get; set; }
         protected override Gerakul.FastSql.Common.BulkOptions Default { get; }
         public override Gerakul.FastSql.Common.BulkOptions Clone() { }
         protected override Gerakul.FastSql.Common.BulkOptions SetDefaults(Gerakul.FastSql.Common.BulkOptions defaultOptions) { }

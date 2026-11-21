@@ -216,6 +216,18 @@ Bulk copy
 
 An `IAsyncEnumerable<T>` is written the same way, with `await rows.WriteToServerAsync(context, "Employee")`.
 
+Bulk copy can create the table first, on both databases:
+  ```csharp
+  newEmployees.WriteToServer(context, "NewEmployee", new BulkOptions(createTable: true));
+
+  // the column sizes and the primary key (NpgsqlBulkOptions takes the PostgreSQL ColumnDefinitionOptions)
+  newEmployees.WriteToServer(context, "NewEmployee", new SqlBulkOptions(createTable: true, checkTableIfNotExistsBeforeCreation: true,
+      columnDefinitionOptions: ColumnDefinitionOptions.FromSmall("ID")));
+  ```
+The column types come from the source: for a query of the same database, the types of its columns; for objects, or a query of the other database, the types of the fields, where a value type gives a `not null` column. `checkTableIfNotExistsBeforeCreation` creates the table only when it does not exist. On PostgreSQL the column names are quoted, so they keep their case; a table in the `pg_temp` schema (`pg_temp.new_employee`) is a temporary table; and a query reports nullability and keys only when it is read with `CommandBehavior.KeyInfo`, so without it every column is nullable and there is no primary key unless `ColumnDefinitionOptions.PrimaryKey` names one.
+
+`BulkCopyTimeout` (seconds, 0 for no limit) sets the timeout of the copy on both databases. When it expires, Npgsql also closes the connection.
+
 `ToDataReader` presents objects as a data reader, which anything that reads a `DbDataReader` can take. `FieldSettings` choose its fields when the public members are not the ones to write:
   ```csharp
   var reader = newEmployees.ToDataReader(
@@ -271,7 +283,7 @@ The token of `UsingConnectionAsync` and `UsingTransactionAsync` cancels opening 
 There are three kinds of options:
 - `QueryOptions` (`SqlQueryOptions`, `NpgsqlQueryOptions`): the command timeout, and whether parameters are matched to members with regard to case (default: no).
 - `ReadOptions`: how the fields of a result are matched to members: `FieldsSelector` (default `Destination`), which members are filled (`FromTypeOption`; by default the public fields and properties, except the ones of collection types, that is anything enumerable other than `string` and sequences of bytes such as `byte[]`; a property without a setter is not filled), and the case (default: ignored).
-- `BulkOptions` (`SqlBulkOptions`, `NpgsqlBulkOptions`): how the fields of the source are matched to the columns of the table (`FieldsSelector`, default `Source`), the case, table creation (Sql Server only), and for Sql Server the settings of `SqlBulkCopy` (batch size, timeout, `SqlBulkCopyOptions`, streaming).
+- `BulkOptions` (`SqlBulkOptions`, `NpgsqlBulkOptions`): how the fields of the source are matched to the columns of the table (`FieldsSelector`, default `Source`), the case, table creation and how its columns are declared (`ColumnDefinitionOptions`), the timeout, and for Sql Server the other settings of `SqlBulkCopy` (batch size, `SqlBulkCopyOptions`, streaming).
 
 A value is taken from the first place that sets it (a property that is `null` sets nothing): the options of the call, then the options of the context, then the defaults. A context starts with a copy of its provider's options, so a change to the provider's options applies to the contexts created after it, and a change to a context's options applies to that context only:
   ```csharp

@@ -1,46 +1,46 @@
 ﻿namespace Gerakul.FastSql.PostgreSQL;
 
-// Not used: table creation is not implemented for PostgreSQL (bulk copy with CreateTable throws). The class is
-// public, so it stays until that is decided
 /// <summary>
-/// Not used yet: a bulk copy to PostgreSQL does not create the table, and <c>NpgsqlBulkOptions</c> takes no column
-/// definition options. The class has the shape of the SQL Server one and stays in the public API until PostgreSQL
-/// table creation is decided.
+/// How the columns are declared when a bulk copy creates the table (see <c>CreateTable</c> of the bulk copy
+/// options). The class has the shape of the SQL Server one.
 /// </summary>
 public class ColumnDefinitionOptions
 {
     /// <summary>
-    /// Not used: a bulk copy to PostgreSQL does not create the table.
+    /// The names of the columns of the primary key; null or empty for a table without one.
     /// </summary>
     public List<string>? PrimaryKey { get; set; }
 
     /// <summary>
-    /// Not used: a bulk copy to PostgreSQL does not create the table.
+    /// The length of the columns created for strings: <c>varchar(n)</c>, or <c>text</c> with -1.
     /// </summary>
     public short StringMaxLength { get; set; }
 
     /// <summary>
-    /// Not used: a bulk copy to PostgreSQL does not create the table.
+    /// No effect on PostgreSQL: byte arrays are created as <c>bytea</c>, which has no length.
     /// </summary>
     public short BytesMaxLength { get; set; }
 
     /// <summary>
-    /// Not used: a bulk copy to PostgreSQL does not create the table.
+    /// The precision of the columns created for decimals: <c>numeric(precision, scale)</c>.
     /// </summary>
     public byte Precision { get; set; }
 
     /// <summary>
-    /// Not used: a bulk copy to PostgreSQL does not create the table.
+    /// The scale of the columns created for decimals.
     /// </summary>
     public byte Scale { get; set; }
 
     /// <summary>
-    /// Not used: a bulk copy to PostgreSQL does not create the table.
+    /// The number of fractional digits of the seconds in the columns created for <c>DateTime</c>
+    /// (<c>timestamp</c>), <c>DateTimeOffset</c> (<c>timestamptz</c>), <c>TimeOnly</c> (<c>time</c>) and
+    /// <c>TimeSpan</c> (<c>interval</c>). PostgreSQL allows at most 6; a larger value is taken as 6.
     /// </summary>
     public byte DateTimeScale { get; set; }
 
     /// <summary>
-    /// Not used: a bulk copy to PostgreSQL does not create the table.
+    /// Whether a field whose type has no column type throws <c>ArgumentOutOfRangeException</c> as soon as it is
+    /// met. Otherwise the table is not created either, and the exception names all such fields.
     /// </summary>
     public bool ThrowIfUnsupportedType { get; set; } = false;
 
@@ -62,8 +62,7 @@ public class ColumnDefinitionOptions
     }
 
     /// <summary>
-    /// The values of the SQL Server options of this name. Not used: a bulk copy to PostgreSQL does not create the
-    /// table.
+    /// <c>varchar(4000)</c>, <c>numeric(38, 18)</c>, 6 fractional digits for dates and times.
     /// </summary>
     public static readonly ColumnDefinitionOptions Default = new ColumnDefinitionOptions()
     {
@@ -71,12 +70,11 @@ public class ColumnDefinitionOptions
         BytesMaxLength = 8000,
         Precision = 38,
         Scale = 18,
-        DateTimeScale = 7
+        DateTimeScale = 6
     };
 
     /// <summary>
-    /// The values of the SQL Server options of this name. Not used: a bulk copy to PostgreSQL does not create the
-    /// table.
+    /// <c>text</c>, <c>numeric(38, 18)</c>, 6 fractional digits for dates and times.
     /// </summary>
     public static readonly ColumnDefinitionOptions Max = new ColumnDefinitionOptions()
     {
@@ -84,12 +82,11 @@ public class ColumnDefinitionOptions
         BytesMaxLength = -1,
         Precision = 38,
         Scale = 18,
-        DateTimeScale = 7
+        DateTimeScale = 6
     };
 
     /// <summary>
-    /// The values of the SQL Server options of this name. Not used: a bulk copy to PostgreSQL does not create the
-    /// table.
+    /// <c>varchar(255)</c>, <c>numeric(19, 9)</c>, 3 fractional digits for dates and times.
     /// </summary>
     public static readonly ColumnDefinitionOptions Small = new ColumnDefinitionOptions()
     {
@@ -101,8 +98,7 @@ public class ColumnDefinitionOptions
     };
 
     /// <summary>
-    /// A copy of the options with the given primary key. Not used: a bulk copy to PostgreSQL does not create the
-    /// table.
+    /// A copy of the options with the given primary key.
     /// </summary>
     public static ColumnDefinitionOptions FromOption(ColumnDefinitionOptions option, params string[] primaryKey)
     {
@@ -112,8 +108,7 @@ public class ColumnDefinitionOptions
     }
 
     /// <summary>
-    /// A copy of <c>Default</c> with the given primary key. Not used: a bulk copy to PostgreSQL does not create the
-    /// table.
+    /// A copy of <c>Default</c> with the given primary key.
     /// </summary>
     public static ColumnDefinitionOptions FromDefault(params string[] primaryKey)
     {
@@ -121,8 +116,7 @@ public class ColumnDefinitionOptions
     }
 
     /// <summary>
-    /// A copy of <c>Max</c> with the given primary key. Not used: a bulk copy to PostgreSQL does not create the
-    /// table.
+    /// A copy of <c>Max</c> with the given primary key.
     /// </summary>
     public static ColumnDefinitionOptions FromMax(params string[] primaryKey)
     {
@@ -130,8 +124,7 @@ public class ColumnDefinitionOptions
     }
 
     /// <summary>
-    /// A copy of <c>Small</c> with the given primary key. Not used: a bulk copy to PostgreSQL does not create the
-    /// table.
+    /// A copy of <c>Small</c> with the given primary key.
     /// </summary>
     public static ColumnDefinitionOptions FromSmall(params string[] primaryKey)
     {

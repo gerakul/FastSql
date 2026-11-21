@@ -465,7 +465,7 @@ Classes: `BulkCopyTests`, `SqlServerBulkCopyOptionsTests`, `PostgreSqlBulkCopyTe
 - [x] Nulls; identity columns are generated.
 - [x] `SqlBulkCopyOptions`: `KeepIdentity`, `KeepNulls` (column default), `CheckConstraints`, `FireTriggers`; `TableLock`, `BatchSize`, `BulkCopyTimeout`, `EnableStreaming` accepted (smoke).
 - [x] SQL Server `CreateTable`: from a query reader (column types, lengths, nullability, checked in `INFORMATION_SCHEMA`; the source primary key is not reproduced, only `ColumnDefinitionOptions.PrimaryKey` creates one, Q103); from `IEnumerable<T>` only with `IgnoreDataReaderSchemaTable = true`, otherwise `NotSupportedException` (Q14); `ColumnDefinitionOptions` `Default` / `Max` / `Small` and a primary key list; an unsupported member type with `ThrowIfUnsupportedType` false and true; `CheckTableIfNotExistsBeforeCreation` with an existing table; an `xml` source column throws `NotSupportedException`.
-- [x] PostgreSQL `CreateTable` throws `NotImplementedException` (sync and async) (Q10).
+- [x] PostgreSQL `CreateTable` threw `NotImplementedException` (sync and async) (Q10). Since phase 5 (P1) it creates the table, with the scenarios of the SQL Server tests (`PostgreSqlCreateTableTests`, the script in the unit tests `NpgsqlCreateTableTests`), and a query of the other database creates a table on either provider from the field types (Q131).
 - [x] Cross-provider import: a SQL Server query written into a PostgreSQL table and the reverse, through `IWrappedCommand.WriteToServer`.
 
 ### I10. README and Examples scenarios (P)
@@ -504,7 +504,7 @@ by the implementation PRs (each PR had its own block of IDs, so some numbers are
 | Q07 | `CommandTextGenerator.Delete("T", "ID")` binds to the `whereClause` overload and produces `delete from T where ID;`. | U1 | confirmed | `CommandTextGeneratorTests` |
 | Q08 | `Delete` with a null key value compares with `= NULL` and deletes nothing. | I7 | by design, documented in the README (phase 2) | `DeleteTests` |
 | Q09 | `Update` / `Merge` with no non-key members produce invalid SQL (an empty `set` clause), which the server rejects. | U1, I7 | fixed in phase 2: Merge inserts if missing, Update throws `ArgumentException` (the generator's `Update` still returns the text) | `SqlCommandTextGeneratorTests`, `NpgsqlCommandTextGeneratorTests`, `UpdateTests`, `MergeTests` |
-| Q10 | PostgreSQL bulk copy with `CreateTable` throws `NotImplementedException` ("Table creation is not implemented for PostgreSQL"), sync and async, however the option is set; the public PostgreSQL `ColumnDefinitionOptions` is an unused copy of the SQL Server one. Phase 4 (I19) removed the unreachable copy of the table creation code behind it; the options class stays. | U4, I9 | confirmed | `ColumnDefinitionOptionsTests` (PostgreSQL), `NpgsqlBulkOptionsTests`, `PostgreSqlBulkCopyTests` |
+| Q10 | PostgreSQL bulk copy with `CreateTable` threw `NotImplementedException` ("Table creation is not implemented for PostgreSQL"), sync and async, however the option was set; the public PostgreSQL `ColumnDefinitionOptions` was an unused copy of the SQL Server one. Phase 4 (I19) removed the unreachable copy of the table creation code behind it. Since phase 5 (P1) the table is created: column types from an Npgsql reader's schema (with their sizes) or from the field types, `NpgsqlBulkOptions.ColumnDefinitionOptions` for the declarations (date and time scale at most 6), `create table if not exists`. From a query, Npgsql reports keys and nullability only with `KeyInfo`, so there every column is nullable and the source key is not reproduced. | U4, I9 | fixed in phase 5 | `ColumnDefinitionOptionsTests` (PostgreSQL), `NpgsqlBulkOptionsTests`, `NpgsqlCreateTableTests`, `PostgreSqlCreateTableTests` |
 | Q11 | Parameter discovery treats `@` inside string literals, comments and e-mail addresses as parameters. | U2 | fixed in phase 2 | `ProviderHooksTests`, `WrappedCommandQueryTests` |
 | Q12 | `DBNull` into a non-nullable value type throws `InvalidCastException`; `ReadAll()` keeps `DBNull` while `ReadAllFirstColumn()` returns null. See Q50 for enums and Q112 for `UniversalDataReader`. | U5 | confirmed | `ReadAll*Tests`, `ValueConversionTests` |
 | Q13 | Get-only properties count as destination members when reading, then fail when set ("Property set method not found."). | U5 | fixed in phase 2 | `ReadAllTests`, `ReadAllAsyncTests` |
@@ -560,7 +560,7 @@ by the implementation PRs (each PR had its own block of IDs, so some numbers are
 | Q101 | Merged into Q85 (the same behavior, found again). | I9 | merged into Q85 | – |
 | Q102 | Merged into Q80 (the same behavior, found again). | I9 | merged into Q80 | – |
 | Q103 | SQL Server `CreateTable` from a query reader does not reproduce the source primary key (the reader reports no key information); only `ColumnDefinitionOptions.PrimaryKey` creates one. | I9 | confirmed | `SqlServerBulkCopyOptionsTests` |
-| Q104 | SQL Server `CreateTable` with `IgnoreDataReaderSchemaTable` over a database reader creates value-type columns as `not null`, because the reader reports `int`, not `int?`, so a null value then fails. | I9 | confirmed | `SqlServerBulkCopyOptionsTests` |
+| Q104 | SQL Server `CreateTable` with `IgnoreDataReaderSchemaTable` over a database reader creates value-type columns as `not null`, because the reader reports `int`, not `int?`, so a null value then fails. Since phase 5 the same holds on PostgreSQL, and for a reader of the other database, whose field types decide (Q131). | I9 | confirmed | `SqlServerBulkCopyOptionsTests`, `PostgreSqlCreateTableTests`, `CrossProviderImportTests` |
 | Q110 | A data import whose source and destination are the same scoped context fails: the source reader keeps the connection busy while the bulk copy needs it (SQL Server `InvalidOperationException`; PostgreSQL `NpgsqlOperationInProgressException` with Npgsql 4, `InvalidOperationException` "Connection is busy" with Npgsql 10). Connection string contexts use a connection each and work. The README import examples hit this with connection and transaction contexts (on PostgreSQL only the query import since Npgsql 10: the TestProc import fails earlier, see I8). | I9, I10 | confirmed | `ReadmeScenarioTests` |
 | Q111 | PostgreSQL bulk copy writes the identity (`serial`) values of the source, unlike SQL Server, which generates them unless `KeepIdentity` is set. So the README bulk copy example (new objects with `ID = 0`) and the README import of a table into itself fail with a duplicate key (23505) on PostgreSQL. | I9, I10 | confirmed | `PostgreSqlBulkCopyTests`, `PostgreSqlReadmeScenarioTests` |
 | Q112 | Reading a `UniversalDataReader` (`ToDataReader()`) null value into a non-nullable value-type member gives the default value (0) instead of the `InvalidCastException` of database readers (Q12), because `GetValue` returns null (Q47); `ReadAllFirstColumn<int>()` throws `NullReferenceException` instead. | U5, U6 | confirmed | `ToDataReaderTests` |
@@ -582,6 +582,7 @@ Found by the bug analysis of phase 2 ([bug-report.md](bug-report.md)), and all f
 | Q128 | SQL Server `CreateTable`: a reader that reports `IsKey = false` (opened with `KeyInfo`) overrode `ColumnDefinitionOptions.PrimaryKey`. | I9 | fixed in phase 2 | `SqlServerBulkCopyOptionsTests` |
 | Q129 | `UniversalDataReader.GetOrdinal` and the name indexer threw `KeyNotFoundException` for an unknown name instead of `IndexOutOfRangeException`; `SqlBulkCopy` now reports it as its own column mapping error. | U6, I9 | fixed in phase 2 | `UniversalDataReaderTests`, `ToDataReaderTests`, `SqlServerBulkCopyOptionsTests`, `PostgreSqlBulkCopyTests` |
 | Q130 | SQL Server `CreateTable` compares the field list with the names of the source case-sensitively, while the matching of names elsewhere ignores case by default: a field list `id` against a source field `ID` cannot create the table. Since phase 4 the message says so, and names a field listed twice (I8). | I9 | confirmed | `SqlServerBulkCopyOptionsTests`, `SqlCreateTableMessageTests` |
+| Q131 | SQL Server `CreateTable` took the column type names from the schema of any reader, so a query of another database could not create the table (PostgreSQL: "Cannot find data type character varying"). Since phase 5 (P7) the schema is used only when Microsoft.Data.SqlClient made it (its columns are `SqlDbColumn`, which wrappers pass on), otherwise the field types decide; PostgreSQL table creation (P1) has the same rule with Npgsql. | I9 | fixed in phase 5 | `CrossProviderImportTests` |
 
 Observed but not pinned: a failed async SQL Server bulk copy (a client-side null check failing in the
 middle of the copy) once returned its pooled connection in the middle of the bulk load, and the next
@@ -709,7 +710,7 @@ private code. The "Covered by" column lists the areas that test each type on pur
 | `CommandTextGenerator` | 12 | U1 |
 | `ContextProvider` | 21 | U2 (including the protected extension points `ApplyQueryOptions` and `GetTyped`, through a provider subclass), U9, I2 |
 | `DbContext`, `ScopedContext`, `ConnectionStringContext`, `ConnectionContext`, `TransactionContext` | 7 + 2 + 9 + 6 + 2 | U9, I2, I3, I10 |
-| `QueryOptions`, `ReadOptions`, `BulkOptions` | 9 + 5 + 11 | U4, I3, I9 |
+| `QueryOptions`, `ReadOptions`, `BulkOptions` | 9 + 5 + 12 | U4, I3, I9 |
 | `FieldSettings<T>`, `FieldSettings`, `FieldSettingsExtension` | 11 + 4 + 1 | U3 |
 | `FromTypeOption`, `FieldsSelector` (enums) | – | U3, U5, I9 |
 | `DataReaderExtensions` | 21 | U5 (reading), I9 (`WriteToServer` ×6) |
@@ -728,7 +729,7 @@ private code. The "Covered by" column lists the areas that test each type on pur
 | `CommandCreatorExtensions` (`CreateInsertAndGetID`) | 2 | U8, I7 |
 | `SqlCommandTextGenerator` | 11 | U1 |
 | `SqlQueryOptions` | 6 | U4 |
-| `SqlBulkOptions` | 11 | U4, I9 |
+| `SqlBulkOptions` | 10 | U4, I9 |
 | `ColumnDefinitionOptions` | 16 | U4, I9 |
 
 ### Gerakul.FastSql.PostgreSQL
@@ -739,5 +740,5 @@ private code. The "Covered by" column lists the areas that test each type on pur
 | `NpgsqlConnectionStringContext`, `NpgsqlConnectionContext`, `NpgsqlTransactionContext` | 3 + 3 + 3 | U9, I2 |
 | `NpgsqlCommandTextGenerator` | 10 | U1 |
 | `NpgsqlQueryOptions` | 6 | U4 |
-| `NpgsqlBulkOptions` | 6 | U4, I9 |
-| `ColumnDefinitionOptions` | 16 | U4 (unused by the provider, Q10; the internal table creation code behind it is dead, see §9) |
+| `NpgsqlBulkOptions` | 7 | U4, I9 |
+| `ColumnDefinitionOptions` | 16 | U4, I9 (used by `NpgsqlBulkOptions` since phase 5, Q10) |
