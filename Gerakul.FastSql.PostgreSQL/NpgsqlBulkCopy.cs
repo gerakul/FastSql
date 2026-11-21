@@ -40,6 +40,7 @@ internal sealed class NpgsqlBulkCopy : BulkCopy
         if (map.Length > 0)
         {
             var ordinals = GetOrdinals(map);
+            var utcColumns = GetUtcColumns(ordinals);
             using var writer = Connection!.BeginBinaryImport(GetCopyCommand(map));
             SetTimeout(writer);
 
@@ -47,9 +48,10 @@ internal sealed class NpgsqlBulkCopy : BulkCopy
             {
                 writer.StartRow();
 
-                foreach (var ordinal in ordinals)
+                for (int i = 0; i < ordinals.Length; i++)
                 {
-                    writer.Write(reader.GetValue(ordinal));
+                    var value = reader.GetValue(ordinals[i]);
+                    writer.Write(utcColumns != null && utcColumns[i] ? NpgsqlContextProvider.ToUniversalTime(value) : value);
                 }
             }
 
@@ -71,6 +73,7 @@ internal sealed class NpgsqlBulkCopy : BulkCopy
         if (map.Length > 0)
         {
             var ordinals = GetOrdinals(map);
+            var utcColumns = GetUtcColumns(ordinals);
             var writer = await Connection!.BeginBinaryImportAsync(GetCopyCommand(map), cancellationToken).ConfigureAwait(false);
             await using var writerScope = writer.ConfigureAwait(false);
             SetTimeout(writer);
@@ -79,9 +82,11 @@ internal sealed class NpgsqlBulkCopy : BulkCopy
             {
                 await writer.StartRowAsync(cancellationToken).ConfigureAwait(false);
 
-                foreach (var ordinal in ordinals)
+                for (int i = 0; i < ordinals.Length; i++)
                 {
-                    await writer.WriteAsync(reader.GetValue(ordinal), cancellationToken).ConfigureAwait(false);
+                    var value = reader.GetValue(ordinals[i]);
+                    await writer.WriteAsync(utcColumns != null && utcColumns[i] ? NpgsqlContextProvider.ToUniversalTime(value) : value,
+                        cancellationToken).ConfigureAwait(false);
                 }
             }
 
@@ -136,6 +141,28 @@ internal sealed class NpgsqlBulkCopy : BulkCopy
     private int[] GetOrdinals(Mapping[] map)
     {
         return map.Select(x => reader.GetOrdinal(x.Source)).ToArray();
+    }
+
+    // The columns whose values are DateTimeOffset, which go in UTC (P3); null when there are none. Decided once per copy
+    // from the field types, so the other columns pay nothing per row
+    private bool[]? GetUtcColumns(int[] ordinals)
+    {
+        var utcColumns = ordinals.Select(IsDateTimeOffsetField).ToArray();
+        return utcColumns.Contains(true) ? utcColumns : null;
+    }
+
+    // a reader that cannot tell a field type copies as before
+    private bool IsDateTimeOffsetField(int ordinal)
+    {
+        try
+        {
+            var type = reader.GetFieldType(ordinal);
+            return type == typeof(DateTimeOffset) || type == typeof(DateTimeOffset?);
+        }
+        catch (Exception exception) when (exception is NotSupportedException or NotImplementedException or InvalidCastException)
+        {
+            return false;
+        }
     }
 
     private string GetCopyCommand(Mapping[] map)

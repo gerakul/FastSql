@@ -35,6 +35,12 @@ namespace Gerakul.FastSql.UnitTests.Common
             return Read<T>(method, new ReaderTable().Column("Value", columnType).Row(value));
         }
 
+        // a DateTime column that keeps the kind the mode says (the default mode drops it)
+        private static ReaderTable DateTimeTable(DataSetDateTime mode, DateTime value)
+        {
+            return new ReaderTable().Column(new DataColumn("Value", typeof(DateTime)) { DateTimeMode = mode }).Row(value);
+        }
+
         // the tests run with the invariant culture (xunit.runner.json); this reads with another current culture
         private static async Task<T> ReadUnderCulture<T>(string culture, MappingReadMethod method, Type columnType, object value)
         {
@@ -483,6 +489,35 @@ namespace Gerakul.FastSql.UnitTests.Common
 
             await dateTime.Should().ThrowExactlyAsync<InvalidCastException>().WithMessage("Cannot read field 'Value' (DateTime) into TimeOnly: *");
             await timeSpan.Should().ThrowExactlyAsync<InvalidCastException>().WithMessage("Cannot read field 'Value' (TimeSpan) into DateOnly: *");
+        }
+
+        // A DateTime of kind Utc (what Npgsql 10 returns for timestamptz) is an instant, which a DateTimeOffset with offset 0
+        // is (phase 5, P3); a DateTime of another kind has no known offset and is not converted (the rest of Q87)
+        [Theory]
+        [MemberData(nameof(Methods))]
+        [Trait("Fixed", "Q87")]
+        public async Task Read_UtcDateTimeIntoDateTimeOffset_ReturnsOffsetZero(MappingReadMethod method)
+        {
+            var value = await Read<DateTimeOffset>(method, DateTimeTable(DataSetDateTime.Utc, new DateTime(2020, 2, 29, 13, 14, 15, DateTimeKind.Utc)));
+            var nullable = await Read<DateTimeOffset?>(method, DateTimeTable(DataSetDateTime.Utc, new DateTime(2020, 2, 29, 13, 14, 15, DateTimeKind.Utc)));
+
+            value.Should().Be(new DateTimeOffset(2020, 2, 29, 13, 14, 15, TimeSpan.Zero));
+            value.Offset.Should().Be(TimeSpan.Zero);
+            nullable.Should().Be(value);
+        }
+
+        [Theory]
+        [MemberData(nameof(Methods))]
+        [Trait("Quirk", "Q87")]
+        public async Task Read_UnspecifiedOrLocalDateTimeIntoDateTimeOffset_ThrowsInvalidCastException(MappingReadMethod method)
+        {
+            Func<Task> unspecified = () => Read<DateTimeOffset>(method, DateTimeTable(DataSetDateTime.Unspecified, new DateTime(2020, 2, 29, 13, 14, 15)));
+            Func<Task> local = () => Read<DateTimeOffset>(method, DateTimeTable(DataSetDateTime.Local, new DateTime(2020, 2, 29, 13, 14, 15, DateTimeKind.Local)));
+
+            await unspecified.Should().ThrowExactlyAsync<InvalidCastException>()
+                .WithMessage("Cannot read field 'Value' (DateTime) into DateTimeOffset: Invalid cast from 'System.DateTime' to 'System.DateTimeOffset'.");
+            await local.Should().ThrowExactlyAsync<InvalidCastException>()
+                .WithMessage("Cannot read field 'Value' (DateTime) into DateTimeOffset: Invalid cast from 'System.DateTime' to 'System.DateTimeOffset'.");
         }
 
         [Theory]

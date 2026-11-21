@@ -53,7 +53,14 @@ public partial class NpgsqlContextProvider : ContextProvider
     /// <inheritdoc />
     protected override DbParameter AddParamWithValue(DbCommand cmd, string paramName, object? value)
     {
-        return ((NpgsqlCommand)cmd).Parameters.AddWithValue(paramName, value!);
+        return ((NpgsqlCommand)cmd).Parameters.AddWithValue(paramName, ToUniversalTime(value)!);
+    }
+
+    // Npgsql refuses a DateTimeOffset with a non-zero offset (and closes the connection). A timestamptz keeps the instant
+    // only, which the value in UTC is, so the server stores what it would store from the value with its offset (P3)
+    internal static object? ToUniversalTime(object? value)
+    {
+        return value is DateTimeOffset dateTimeOffset && dateTimeOffset.Offset != TimeSpan.Zero ? dateTimeOffset.ToUniversalTime() : value;
     }
 
     /// <inheritdoc />

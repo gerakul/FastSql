@@ -307,20 +307,36 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
             value.Should().Be(new DateTime(2020, 1, 1, 10, 0, 0, DateTimeKind.Utc));
         }
 
-        // Npgsql 4 wrote the instant (read back as 07:00 UTC)
+        // Npgsql 4 wrote the instant (read back as 07:00 UTC); Npgsql 10 throws ArgumentException for a non-zero offset, so
+        // since phase 5 (P3) FastSql sends the value in UTC, and the instant is stored as Npgsql 4 stored it
         [Theory]
         [MemberData(nameof(WritePaths))]
-        [Trait("Quirk", "Q87")]
+        [Trait("Fixed", "Q87")]
         [Trait("UpgradeSensitive", Timestamptz)]
-        public void Write_DateTimeOffsetWithNonZeroOffsetIntoTimestamptz_ThrowsArgumentException(TypeMappingWritePath writePath)
+        public void Write_DateTimeOffsetWithNonZeroOffsetIntoTimestamptz_StoresTheInstant(TypeMappingWritePath writePath)
         {
             var table = CreateValueTable("timestamptz");
 
-            Action act = () => WriteValue(table, writePath, new DateTimeOffset(2020, 1, 1, 10, 0, 0, TimeSpan.FromHours(3)));
+            WriteValue(table, writePath, new DateTimeOffset(2020, 1, 1, 10, 0, 0, TimeSpan.FromHours(3)));
 
-            act.Should().ThrowExactly<ArgumentException>()
-                .WithMessage("Cannot write DateTimeOffset with Offset=03:00:00 to PostgreSQL type 'timestamp with time zone', only offset 0 (UTC) is supported.*");
-            CountRows(table).Should().Be(0);
+            var read = ReadValue<DateTimeOffset>(table);
+            read.Should().Be(new DateTimeOffset(2020, 1, 1, 7, 0, 0, TimeSpan.Zero));
+            read.Offset.Should().Be(TimeSpan.Zero);
+        }
+
+        // into timestamp the server takes the instant at the session time zone (UTC in the container), through Insert and
+        // bulk copy alike
+        [Theory]
+        [MemberData(nameof(WritePaths))]
+        [Trait("UpgradeSensitive", Timestamptz)]
+        public void Write_DateTimeOffsetWithNonZeroOffsetIntoTimestamp_StoresTheInstantAtSessionTime(TypeMappingWritePath writePath)
+        {
+            AssertSessionTimeZoneIsUtc();
+            var table = CreateValueTable("timestamp");
+
+            WriteValue(table, writePath, new DateTimeOffset(2020, 1, 1, 10, 0, 0, TimeSpan.FromHours(3)));
+
+            ReadValue<DateTime>(table).Should().Be(new DateTime(2020, 1, 1, 7, 0, 0));
         }
 
         [Fact]
@@ -350,21 +366,32 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
             untyped[1].Should().BeSameAs(DBNull.Value);
         }
 
-        [Theory]
-        [InlineData("ExecuteQuery<T>")]
-        [InlineData("ExecuteQueryFirstColumn<T>")]
-        [Trait("Quirk", "Q87")]
+        // Npgsql 10 returns timestamptz as a UTC DateTime, which threw InvalidCastException for a DateTimeOffset member
+        // until phase 5 (P3); the instant comes with offset 0, the offset of the written value is not stored (D2)
+        [Fact]
+        [Trait("Fixed", "Q87")]
         [Trait("UpgradeSensitive", Timestamptz)]
-        public void Read_TimestamptzIntoDateTimeOffset_ThrowsInvalidCastException(string readPath)
+        public void Read_TimestamptzIntoDateTimeOffset_ReturnsInstantWithOffsetZeroOnEveryReadPath()
         {
             var table = CreateValueTable("timestamptz");
-            Database.Execute($"insert into {table} values (1, '2020-01-01 10:00:00+03')");
+            Database.Execute($"insert into {table} values (1, '2020-01-01 10:00:00+03'), (2, null)");
+            var command = CreateContext().CreateSimple($"select \"Id\", \"Value\" from {table} order by \"Id\"");
+            var instant = new DateTimeOffset(2020, 1, 1, 7, 0, 0, TimeSpan.Zero);
 
-            Action act = readPath == "ExecuteQuery<T>"
-                ? (Action)(() => CreateContext().CreateSimple($"select \"Id\", \"Value\" from {table}").ExecuteQuery<ValueRow<DateTimeOffset>>().ToList())
-                : () => ReadValue<DateTimeOffset>(table);
+            var typed = command.ExecuteQuery<ValueRow<DateTimeOffset?>>().Select(x => x.Value).ToArray();
+            var anonymous = command.ExecuteQueryAnonymous(new { Id = 0, Value = default(DateTimeOffset?) }).Select(x => x.Value).ToArray();
+            var firstColumn = CreateContext().CreateSimple($"select \"Value\" from {table} order by \"Id\"").ExecuteQueryFirstColumn<DateTimeOffset?>().ToArray();
+            var scalar = CreateContext().CreateSimple($"select \"Value\" from {table} where \"Id\" = 1").ExecuteScalar<DateTimeOffset>();
 
-            act.Should().ThrowExactly<InvalidCastException>().WithMessage("Cannot read field '*' (*) into *: Invalid cast from 'System.DateTime' to 'System.DateTimeOffset'.");
+            foreach (var values in new[] { typed, anonymous, firstColumn })
+            {
+                values[0].Should().Be(instant);
+                values[0].Value.Offset.Should().Be(TimeSpan.Zero);
+                values[1].Should().BeNull();
+            }
+
+            scalar.Should().Be(instant);
+            scalar.Offset.Should().Be(TimeSpan.Zero);
         }
 
         [Theory]

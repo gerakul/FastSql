@@ -138,6 +138,23 @@ namespace Gerakul.FastSql.IntegrationTests.Common
                 .Should().BeEquivalentTo(SeedData.Employees.Select(x => new { x.ID, x.CompanyID, x.Name }), o => o.WithStrictOrdering());
         }
 
+        // P3 (phase 5): SQL Server datetimeoffset values keep their offsets, which Npgsql refuses for timestamptz; the copy
+        // writes them in UTC, so the instants arrive (the offsets do not, D2)
+        [Theory]
+        [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
+        [Trait("Fixed", "Q87")]
+        public void WriteToServer_SqlServerDatetimeoffsetIntoPostgreSqlTimestamptz_CopiesInstants(ContextKind kind)
+        {
+            var table = PostgreSql.CreateScratchTable("\"ID\" int not null, \"Moment\" timestamptz null");
+
+            PostgreSql.Run(kind, x => SqlServerContext().CreateSimple("select ID, Moment from (values (1, cast('2020-01-02 03:04:05 +02:00' as datetimeoffset)), "
+                    + "(2, cast('2020-01-02 03:04:05 -05:30' as datetimeoffset)), (3, null)) v (ID, Moment) order by ID")
+                .WriteToServer(x, table));
+
+            PostgreSql.Run(ContextKind.ConnectionString, x => x.CreateSimple($"select \"Moment\" from {table} order by \"ID\"").ExecuteQueryFirstColumn<DateTimeOffset?>().ToArray())
+                .Should().Equal(new DateTimeOffset(2020, 1, 2, 1, 4, 5, TimeSpan.Zero), new DateTimeOffset(2020, 1, 2, 8, 34, 5, TimeSpan.Zero), null);
+        }
+
         private DbContext SqlServerContext()
         {
             return SqlServer.Spec.DefaultProvider.CreateContext(SqlServer.ConnectionString);

@@ -1,6 +1,6 @@
 _**NOTE:** The old version of FastSql has been moved to old\_version branch_
 # FastSql
-Light-weight, flexible and easy to use C# library to retrieve and manipulate (including bulk copy) data in SQL databases. Now it has implemented for Sql Server and PostgreSQL. Examples below have been written for Sql Server, but examples for PostgreSQL would look same.
+Light-weight, flexible and easy to use C# library to retrieve and manipulate (including bulk copy) data in SQL databases. Now it has implemented for Sql Server and PostgreSQL. Examples below have been written for Sql Server, but examples for PostgreSQL would look same; where the two databases behave differently, it is listed in [Differences between the databases](#differences-between-the-databases).
 
 **NOTE:** Put "using Gerakul.FastSql.Common;" in your code file to use Create<...> methods.
 
@@ -11,7 +11,7 @@ Light-weight, flexible and easy to use C# library to retrieve and manipulate (in
 - .NET 10.
 - Sql Server: Microsoft.Data.SqlClient. It encrypts connections by default, so a server without a trusted certificate needs `TrustServerCertificate=True` in the connection string.
 - PostgreSQL: Npgsql 10. `CreateProcedure` calls procedures (with `CALL`), not functions.
-- On both: `date` and `time` columns can be read into `DateOnly` / `TimeOnly` members as well as into `DateTime` / `TimeSpan` members.
+- On both: `date` and `time` columns can be read into `DateOnly` / `TimeOnly` members as well as into `DateTime` / `TimeSpan` members, and `datetimeoffset` / `timestamptz` columns into `DateTimeOffset` members.
 
 ## Simple example
   ```csharp
@@ -282,6 +282,16 @@ Cancellation
   }, token);
   ```
 The token of `UsingConnectionAsync` and `UsingTransactionAsync` cancels opening the connection, beginning and committing the transaction; the action gets no token, so pass it to the commands inside yourself.
+
+## Differences between the databases
+The same methods work on both databases. Where the databases themselves differ, so does what happens:
+- **Routines that return rows.** `CreateProcedure` calls a procedure on both. A Sql Server procedure can return result sets; a PostgreSQL procedure cannot (its `INOUT` values come back as one row), and a function cannot be called this way, because Npgsql calls with `CALL`. Call a function with a query, for example `context.CreateSimple("select * from my_function(@p0, @p1)", 1, 40)`. Npgsql's `Npgsql.EnableStoredProcedureCompatMode` switch makes `CreateProcedure` call functions instead, for the whole process (procedures then cannot be called).
+- **Offsets.** A Sql Server `datetimeoffset` keeps the offset of the value; a PostgreSQL `timestamptz` keeps the instant only, so a `DateTimeOffset` reads back with offset 0. FastSql sends `DateTimeOffset` values to PostgreSQL in UTC, which Npgsql requires; the instant is the same.
+- **Generated IDs.** `CreateInsertAndGetID` returns a `decimal` on Sql Server and a `bigint` on PostgreSQL; `ExecuteNonQuery` of it returns 1 on Sql Server and -1 on PostgreSQL.
+- **Bulk copy settings.** PostgreSQL's `COPY` always checks constraints, fires triggers, writes nulls as nulls and writes the source's values into identity columns; `SqlBulkCopy` does each of these only with its `SqlBulkCopyOptions` (`CheckConstraints`, `FireTriggers`, `KeepNulls`, `KeepIdentity`). `BatchSize`, `EnableStreaming` and the other `SqlBulkCopyOptions` have no PostgreSQL counterpart.
+- **Column types in bulk copy.** `SqlBulkCopy` converts a value to the column's type; PostgreSQL's binary `COPY` writes the value's own type, so for example an `int` into a `bigint` column fails there. Copy values of the columns' types: a query of the same column types, or into a table that the bulk copy creates.
+- **Merge.** On PostgreSQL `Merge` is `insert ... on conflict`: the key fields need a unique constraint or index of exactly those columns, and the `not null` columns need values even when the row exists.
+- **Types.** PostgreSQL has no `tinyint` (a `byte` is written to `smallint`), timestamps have at most 6 fractional digits, string parameters are `text` (a string into a `json`, `jsonb` or enum column needs a cast in the command text), and C# enums need to be registered with Npgsql.
 
 ## Options
 There are three kinds of options:

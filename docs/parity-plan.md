@@ -1,7 +1,8 @@
 # Parity plan (phase 5)
 
 Status: approved on 2026-11-20 as recommended (see [Decisions needed](#decisions-needed) for the answers),
-after the probes below were planned; their results are in [Probe results](#probe-results).
+after the probes below were planned; their results are in [Probe results](#probe-results). Implemented; what was
+done, where it differs from this plan and the measurements are in the [parity notes](parity-notes.md).
 
 Goal of this phase: every contract of FastSql works on both SQL Server and PostgreSQL wherever the two
 databases allow it. Where they cannot behave the same, the difference is written down.

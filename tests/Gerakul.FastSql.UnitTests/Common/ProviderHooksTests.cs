@@ -331,12 +331,27 @@ namespace Gerakul.FastSql.UnitTests.Common
         public void CreateMapped_Value_IsPassedAsIs(string kind)
         {
             var value = SampleValue(kind);
+            var expected = ExpectedParameterValue(value);
 
             var parameter = ParameterWithValue(value);
 
             parameter.ParameterName.Should().Be("@Value");
-            parameter.Value.Should().BeSameAs(value);
+            if (ReferenceEquals(expected, value))
+            {
+                parameter.Value.Should().BeSameAs(value);
+            }
+            else
+            {
+                parameter.Value.Should().Be(expected);
+            }
+
             parameter.Direction.Should().Be(ParameterDirection.Input);
+        }
+
+        // the value a parameter gets for a value of the object; the value itself unless the provider changes it
+        protected virtual object ExpectedParameterValue(object value)
+        {
+            return value;
         }
 
         #endregion
