@@ -1,4 +1,4 @@
-using AwesomeAssertions;
+﻿using AwesomeAssertions;
 using Gerakul.FastSql.Common;
 using Xunit;
 
@@ -28,7 +28,7 @@ namespace Gerakul.FastSql.UnitTests.Common
 
         protected static BulkOptions BaseValues()
         {
-            return new BulkOptions(FieldsSelector.Common, true, true, true, true);
+            return new BulkOptions(FieldsSelector.Common, true, true, true, true, 45);
         }
 
         [Fact]
@@ -42,6 +42,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             options.CreateTable.Should().BeNull();
             options.IgnoreDataReaderSchemaTable.Should().BeNull();
             options.CheckTableIfNotExistsBeforeCreation.Should().BeNull();
+            options.BulkCopyTimeout.Should().BeNull();
         }
 
         [Fact]
@@ -53,6 +54,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             options.CreateTable = true;
             options.IgnoreDataReaderSchemaTable = false;
             options.CheckTableIfNotExistsBeforeCreation = true;
+            options.BulkCopyTimeout = 45;
 
             var clone = options.Clone();
 
@@ -62,6 +64,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             clone.CreateTable.Should().BeTrue();
             clone.IgnoreDataReaderSchemaTable.Should().BeFalse();
             clone.CheckTableIfNotExistsBeforeCreation.Should().BeTrue();
+            clone.BulkCopyTimeout.Should().Be(45);
         }
 
         [Fact]
@@ -89,6 +92,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             defaultOptions.CreateTable.Should().BeFalse();
             defaultOptions.IgnoreDataReaderSchemaTable.Should().BeFalse();
             defaultOptions.CheckTableIfNotExistsBeforeCreation.Should().BeFalse();
+            defaultOptions.BulkCopyTimeout.Should().BeNull();
         }
 
         [Fact]
@@ -107,6 +111,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             options.CreateTable.Should().BeFalse();
             options.IgnoreDataReaderSchemaTable.Should().BeFalse();
             options.CheckTableIfNotExistsBeforeCreation.Should().BeFalse();
+            options.BulkCopyTimeout.Should().BeNull();
         }
 
         [Fact]
@@ -119,6 +124,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             options.CreateTable.Should().BeNull();
             options.IgnoreDataReaderSchemaTable.Should().BeNull();
             options.CheckTableIfNotExistsBeforeCreation.Should().BeNull();
+            options.BulkCopyTimeout.Should().BeNull();
         }
 
         [Fact]
@@ -131,6 +137,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             options.CreateTable.Should().BeTrue();
             options.IgnoreDataReaderSchemaTable.Should().BeTrue();
             options.CheckTableIfNotExistsBeforeCreation.Should().BeTrue();
+            options.BulkCopyTimeout.Should().Be(45);
         }
 
         [Fact]
@@ -147,6 +154,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             options.CreateTable.Should().BeFalse();
             options.IgnoreDataReaderSchemaTable.Should().BeTrue();
             options.CheckTableIfNotExistsBeforeCreation.Should().BeTrue();
+            options.BulkCopyTimeout.Should().Be(45);
             defaults.FieldsSelector.Should().Be(FieldsSelector.Common);
             defaults.CreateTable.Should().BeTrue();
         }
@@ -163,6 +171,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             options.CreateTable.Should().BeNull();
             options.IgnoreDataReaderSchemaTable.Should().BeNull();
             options.CheckTableIfNotExistsBeforeCreation.Should().BeNull();
+            options.BulkCopyTimeout.Should().BeNull();
         }
 
         [Fact]
@@ -177,6 +186,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             options.CreateTable.Should().BeFalse();
             options.IgnoreDataReaderSchemaTable.Should().BeFalse();
             options.CheckTableIfNotExistsBeforeCreation.Should().BeFalse();
+            options.BulkCopyTimeout.Should().BeNull();
         }
     }
 }

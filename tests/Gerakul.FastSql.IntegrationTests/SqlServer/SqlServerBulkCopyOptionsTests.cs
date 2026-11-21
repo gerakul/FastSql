@@ -393,6 +393,24 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
             ReadIds(table).Should().Equal(10, 20);
         }
 
+        // BulkCopyTimeout is a base value since phase 5 (P5): set on BulkOptions, it is merged with the context's
+        // SQL Server options and given to SqlBulkCopy
+        [Fact]
+        public void WriteToServer_PerCallBaseTimeoutShorterThanCopy_ThrowsSqlException()
+        {
+            var table = CreateTableWithTrigger(out var log);
+            Database.Execute($"alter trigger {table}_insert on {table} after insert as begin waitfor delay '00:00:03'; insert into {log} (ID) select ID from inserted; end");
+
+            Action act = () => Database.Run(ContextKind.Connection, x =>
+            {
+                ((SqlBulkOptions)x.BulkOptions).SqlBulkCopyOptions = SqlBulkCopyOptions.FireTriggers;
+                NamedRows.WriteToServer(x, table, new BulkOptions(bulkCopyTimeout: 1));
+            });
+
+            act.Should().Throw<SqlException>().WithMessage("*Timeout*");
+            CountRows(table).Should().Be(0);
+        }
+
         #endregion
 
         #region CreateTable

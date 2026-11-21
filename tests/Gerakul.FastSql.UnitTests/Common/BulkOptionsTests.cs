@@ -1,4 +1,4 @@
-using AwesomeAssertions;
+﻿using AwesomeAssertions;
 using Gerakul.FastSql.Common;
 using Xunit;
 
@@ -44,13 +44,14 @@ namespace Gerakul.FastSql.UnitTests.Common
         [Fact]
         public void Constructor_Arguments_AreStored()
         {
-            var options = new BulkOptions(FieldsSelector.Destination, true, false, true, false);
+            var options = new BulkOptions(FieldsSelector.Destination, true, false, true, false, 30);
 
             options.FieldsSelector.Should().Be(FieldsSelector.Destination);
             options.CaseSensitiveFieldsMatching.Should().BeTrue();
             options.CreateTable.Should().BeFalse();
             options.IgnoreDataReaderSchemaTable.Should().BeTrue();
             options.CheckTableIfNotExistsBeforeCreation.Should().BeFalse();
+            options.BulkCopyTimeout.Should().Be(30);
         }
 
         [Fact]
