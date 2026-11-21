@@ -9,15 +9,24 @@ public class NpgsqlBulkOptions : BulkOptions
 {
     private static readonly NpgsqlBulkOptions defaultOptions = new NpgsqlBulkOptions(true);
 
+    /// <summary>
+    /// How the columns are declared when the table is created.
+    /// </summary>
+    public ColumnDefinitionOptions? ColumnDefinitionOptions { get; set; }
+
     /// <inheritdoc />
     protected override BulkOptions Default => defaultOptions;
 
     /// <summary>
     /// Creates options with the given values; the ones left out are not set.
     /// </summary>
-    public NpgsqlBulkOptions(FieldsSelector? fieldsSelector = null, bool? caseSensitiveFieldsMatching = null)
-        : base(fieldsSelector, caseSensitiveFieldsMatching, null, null, null)
+    public NpgsqlBulkOptions(FieldsSelector? fieldsSelector = null, bool? caseSensitiveFieldsMatching = null,
+      bool? createTable = null, ColumnDefinitionOptions? columnDefinitionOptions = null, bool? ignoreDataReaderSchemaTable = null,
+      bool? checkTableIfNotExistsBeforeCreation = null, int? bulkCopyTimeout = null)
+        : base(fieldsSelector, caseSensitiveFieldsMatching, createTable, ignoreDataReaderSchemaTable, checkTableIfNotExistsBeforeCreation,
+              bulkCopyTimeout)
     {
+        this.ColumnDefinitionOptions = columnDefinitionOptions;
     }
 
     /// <summary>
@@ -26,6 +35,10 @@ public class NpgsqlBulkOptions : BulkOptions
     protected NpgsqlBulkOptions(bool defaultOptions)
         : base(defaultOptions)
     {
+        if (defaultOptions)
+        {
+            this.ColumnDefinitionOptions = ColumnDefinitionOptions.Default;
+        }
     }
 
     /// <summary>
@@ -34,12 +47,23 @@ public class NpgsqlBulkOptions : BulkOptions
     protected internal NpgsqlBulkOptions(BulkOptions bulkOptions)
         : base(bulkOptions)
     {
+        if (bulkOptions is NpgsqlBulkOptions opt)
+        {
+            this.ColumnDefinitionOptions = opt.ColumnDefinitionOptions;
+        }
     }
 
     /// <inheritdoc />
     protected override BulkOptions SetDefaults(BulkOptions defaultOptions)
     {
         base.SetDefaults(defaultOptions);
+        if (defaultOptions is not NpgsqlBulkOptions opt)
+        {
+            return this;
+        }
+
+        ColumnDefinitionOptions ??= opt.ColumnDefinitionOptions?.Clone();
+
         return this;
     }
 

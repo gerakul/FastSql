@@ -23,7 +23,8 @@ namespace Gerakul.FastSql.PostgreSQL
     {
         protected NpgsqlBulkOptions(Gerakul.FastSql.Common.BulkOptions bulkOptions) { }
         protected NpgsqlBulkOptions(bool defaultOptions) { }
-        public NpgsqlBulkOptions(Gerakul.FastSql.Common.FieldsSelector? fieldsSelector = default, bool? caseSensitiveFieldsMatching = default) { }
+        public NpgsqlBulkOptions(Gerakul.FastSql.Common.FieldsSelector? fieldsSelector = default, bool? caseSensitiveFieldsMatching = default, bool? createTable = default, Gerakul.FastSql.PostgreSQL.ColumnDefinitionOptions? columnDefinitionOptions = null, bool? ignoreDataReaderSchemaTable = default, bool? checkTableIfNotExistsBeforeCreation = default, int? bulkCopyTimeout = default) { }
+        public Gerakul.FastSql.PostgreSQL.ColumnDefinitionOptions? ColumnDefinitionOptions { get; set; }
         protected override Gerakul.FastSql.Common.BulkOptions Default { get; }
         public override Gerakul.FastSql.Common.BulkOptions Clone() { }
         protected override Gerakul.FastSql.Common.BulkOptions SetDefaults(Gerakul.FastSql.Common.BulkOptions defaultOptions) { }
@@ -34,6 +35,7 @@ namespace Gerakul.FastSql.PostgreSQL
         public override string ColumnList(params string[] fields) { }
         public override string Delete(string tableName, string whereClause) { }
         public override string Insert(string tableName, params string[] fields) { }
+        public override string InsertAndGetID(string tableName, params string[] fields) { }
         public override string InsertWithOutput(string tableName, string[] fields, params string[] outputFields) { }
         public override string Merge(string tableName, System.Collections.Generic.IEnumerable<string> keyFields, params string[] fields) { }
         public override string ParamList(params string[] fields) { }

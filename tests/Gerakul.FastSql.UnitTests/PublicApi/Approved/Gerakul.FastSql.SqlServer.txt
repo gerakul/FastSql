@@ -31,7 +31,6 @@ namespace Gerakul.FastSql.SqlServer
         protected SqlBulkOptions(bool defaultOptions) { }
         public SqlBulkOptions(int? batchSize = default, int? bulkCopyTimeout = default, Microsoft.Data.SqlClient.SqlBulkCopyOptions? sqlBulkCopyOptions = default, Gerakul.FastSql.Common.FieldsSelector? fieldsSelector = default, bool? caseSensitiveFieldsMatching = default, bool? enableStreaming = default, bool? createTable = default, Gerakul.FastSql.SqlServer.ColumnDefinitionOptions? columnDefinitionOptions = null, bool? ignoreDataReaderSchemaTable = default, bool? checkTableIfNotExistsBeforeCreation = default) { }
         public int? BatchSize { get; set; }
-        public int? BulkCopyTimeout { get; set; }
         public Gerakul.FastSql.SqlServer.ColumnDefinitionOptions? ColumnDefinitionOptions { get; set; }
         protected override Gerakul.FastSql.Common.BulkOptions Default { get; }
         public bool? EnableStreaming { get; set; }
@@ -45,7 +44,7 @@ namespace Gerakul.FastSql.SqlServer
         public override string ColumnList(params string[] fields) { }
         public override string Delete(string tableName, string whereClause) { }
         public override string Insert(string tableName, params string[] fields) { }
-        public string InsertAndGetID(string tableName, params string[] fields) { }
+        public override string InsertAndGetID(string tableName, params string[] fields) { }
         public override string InsertWithOutput(string tableName, string[] fields, params string[] outputFields) { }
         public override string Merge(string tableName, System.Collections.Generic.IEnumerable<string> keyFields, params string[] fields) { }
         public override string ParamList(params string[] fields) { }

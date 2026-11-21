@@ -1,6 +1,6 @@
 _**NOTE:** The old version of FastSql has been moved to old\_version branch_
 # FastSql
-Light-weight, flexible and easy to use C# library to retrieve and manipulate (including bulk copy) data in SQL databases. Now it has implemented for Sql Server and PostgreSQL. Examples below have been written for Sql Server, but examples for PostgreSQL would look same.
+Light-weight, flexible and easy to use C# library to retrieve and manipulate (including bulk copy) data in SQL databases. Now it has implemented for Sql Server and PostgreSQL. Examples below have been written for Sql Server, but examples for PostgreSQL would look same; where the two databases behave differently, it is listed in [Differences between the databases](#differences-between-the-databases).
 
 **NOTE:** Put "using Gerakul.FastSql.Common;" in your code file to use Create<...> methods.
 
@@ -11,7 +11,7 @@ Light-weight, flexible and easy to use C# library to retrieve and manipulate (in
 - .NET 10.
 - Sql Server: Microsoft.Data.SqlClient. It encrypts connections by default, so a server without a trusted certificate needs `TrustServerCertificate=True` in the connection string.
 - PostgreSQL: Npgsql 10. `CreateProcedure` calls procedures (with `CALL`), not functions.
-- On both: `date` and `time` columns can be read into `DateOnly` / `TimeOnly` members as well as into `DateTime` / `TimeSpan` members.
+- On both: `date` and `time` columns can be read into `DateOnly` / `TimeOnly` members as well as into `DateTime` / `TimeSpan` members, and `datetimeoffset` / `timestamptz` columns into `DateTimeOffset` members.
 
 ## Simple example
   ```csharp
@@ -178,7 +178,11 @@ Insert
   context.Insert("Employee", emp);
   // or with returning some inserted fields
   var id = context.CreateInsertWithOutput("Employee", emp, "ID").ExecuteQueryFirstColumn<int>().First();
+  // or returning the generated ID, without naming its column
+  var newId = context.CreateInsertAndGetID("Employee", emp).ExecuteScalar<int>();
   ```  
+**NOTE:** `CreateInsertAndGetID` returns `scope_identity()` on Sql Server, a `decimal`, and the inserted row's value of its `serial` or identity column on PostgreSQL, a `bigint`; `ExecuteScalar<int>()` and `ExecuteScalar<long>()` read both, and a table without such a column gives null. Leave the ID out of the object, or name it in the ignore list: `CreateInsertAndGetID("Employee", employee, "ID")`.
+
 Update
   ```csharp
   var emp = new { ID = 2, CompanyID = 2, Name = "Updated", Phone = "111" };
@@ -215,6 +219,18 @@ Bulk copy
 **NOTE:** on Sql Server the default bulk options pass the field names to SqlBulkCopy as they are, and SqlBulkCopy matches them with the column names case-sensitively. To match names regardless of case, set `CaseSensitiveFieldsMatching = false` in the bulk options, for example `new SqlBulkOptions(caseSensitiveFieldsMatching: false)`; FastSql then reads the table's column names first.
 
 An `IAsyncEnumerable<T>` is written the same way, with `await rows.WriteToServerAsync(context, "Employee")`.
+
+Bulk copy can create the table first, on both databases:
+  ```csharp
+  newEmployees.WriteToServer(context, "NewEmployee", new BulkOptions(createTable: true));
+
+  // the column sizes and the primary key (NpgsqlBulkOptions takes the PostgreSQL ColumnDefinitionOptions)
+  newEmployees.WriteToServer(context, "NewEmployee", new SqlBulkOptions(createTable: true, checkTableIfNotExistsBeforeCreation: true,
+      columnDefinitionOptions: ColumnDefinitionOptions.FromSmall("ID")));
+  ```
+The column types come from the source: for a query of the same database, the types of its columns; for objects, or a query of the other database, the types of the fields, where a value type gives a `not null` column. `checkTableIfNotExistsBeforeCreation` creates the table only when it does not exist. On PostgreSQL the column names are quoted, so they keep their case; a table in the `pg_temp` schema (`pg_temp.new_employee`) is a temporary table; and a query reports nullability and keys only when it is read with `CommandBehavior.KeyInfo`, so without it every column is nullable and there is no primary key unless `ColumnDefinitionOptions.PrimaryKey` names one.
+
+`BulkCopyTimeout` (seconds, 0 for no limit) sets the timeout of the copy on both databases. When it expires, Npgsql also closes the connection.
 
 `ToDataReader` presents objects as a data reader, which anything that reads a `DbDataReader` can take. `FieldSettings` choose its fields when the public members are not the ones to write:
   ```csharp
@@ -267,11 +283,21 @@ Cancellation
   ```
 The token of `UsingConnectionAsync` and `UsingTransactionAsync` cancels opening the connection, beginning and committing the transaction; the action gets no token, so pass it to the commands inside yourself.
 
+## Differences between the databases
+The same methods work on both databases. Where the databases themselves differ, so does what happens:
+- **Routines that return rows.** `CreateProcedure` calls a procedure on both. A Sql Server procedure can return result sets; a PostgreSQL procedure cannot (its `INOUT` values come back as one row), and a function cannot be called this way, because Npgsql calls with `CALL`. Call a function with a query, for example `context.CreateSimple("select * from my_function(@p0, @p1)", 1, 40)`. Npgsql's `Npgsql.EnableStoredProcedureCompatMode` switch makes `CreateProcedure` call functions instead, for the whole process (procedures then cannot be called).
+- **Offsets.** A Sql Server `datetimeoffset` keeps the offset of the value; a PostgreSQL `timestamptz` keeps the instant only, so a `DateTimeOffset` reads back with offset 0. FastSql sends `DateTimeOffset` values to PostgreSQL in UTC, which Npgsql requires; the instant is the same.
+- **Generated IDs.** `CreateInsertAndGetID` returns a `decimal` on Sql Server and a `bigint` on PostgreSQL; `ExecuteNonQuery` of it returns 1 on Sql Server and -1 on PostgreSQL.
+- **Bulk copy settings.** PostgreSQL's `COPY` always checks constraints, fires triggers, writes nulls as nulls and writes the source's values into identity columns; `SqlBulkCopy` does each of these only with its `SqlBulkCopyOptions` (`CheckConstraints`, `FireTriggers`, `KeepNulls`, `KeepIdentity`). `BatchSize`, `EnableStreaming` and the other `SqlBulkCopyOptions` have no PostgreSQL counterpart.
+- **Column types in bulk copy.** `SqlBulkCopy` converts a value to the column's type; PostgreSQL's binary `COPY` writes the value's own type, so for example an `int` into a `bigint` column fails there. Copy values of the columns' types: a query of the same column types, or into a table that the bulk copy creates.
+- **Merge.** On PostgreSQL `Merge` is `insert ... on conflict`: the key fields need a unique constraint or index of exactly those columns, and the `not null` columns need values even when the row exists.
+- **Types.** PostgreSQL has no `tinyint` (a `byte` is written to `smallint`), timestamps have at most 6 fractional digits, string parameters are `text` (a string into a `json`, `jsonb` or enum column needs a cast in the command text), and C# enums need to be registered with Npgsql.
+
 ## Options
 There are three kinds of options:
 - `QueryOptions` (`SqlQueryOptions`, `NpgsqlQueryOptions`): the command timeout, and whether parameters are matched to members with regard to case (default: no).
 - `ReadOptions`: how the fields of a result are matched to members: `FieldsSelector` (default `Destination`), which members are filled (`FromTypeOption`; by default the public fields and properties, except the ones of collection types, that is anything enumerable other than `string` and sequences of bytes such as `byte[]`; a property without a setter is not filled), and the case (default: ignored).
-- `BulkOptions` (`SqlBulkOptions`, `NpgsqlBulkOptions`): how the fields of the source are matched to the columns of the table (`FieldsSelector`, default `Source`), the case, table creation (Sql Server only), and for Sql Server the settings of `SqlBulkCopy` (batch size, timeout, `SqlBulkCopyOptions`, streaming).
+- `BulkOptions` (`SqlBulkOptions`, `NpgsqlBulkOptions`): how the fields of the source are matched to the columns of the table (`FieldsSelector`, default `Source`), the case, table creation and how its columns are declared (`ColumnDefinitionOptions`), the timeout, and for Sql Server the other settings of `SqlBulkCopy` (batch size, `SqlBulkCopyOptions`, streaming).
 
 A value is taken from the first place that sets it (a property that is `null` sets nothing): the options of the call, then the options of the context, then the defaults. A context starts with a copy of its provider's options, so a change to the provider's options applies to the contexts created after it, and a change to a context's options applies to that context only:
   ```csharp

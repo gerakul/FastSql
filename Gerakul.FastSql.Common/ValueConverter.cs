@@ -131,6 +131,13 @@ internal static class ValueConverter
             return TimeOnly.FromTimeSpan(timeSpan);
         }
 
+        // Npgsql 10 returns a timestamptz as a DateTime of kind Utc: an instant, which a DateTimeOffset with offset 0 is.
+        // A DateTime of another kind has no known offset, so it is not converted (phase 5, P3)
+        if (value is DateTime instant && instant.Kind == DateTimeKind.Utc && type == typeof(DateTimeOffset))
+        {
+            return new DateTimeOffset(instant);
+        }
+
         // Convert.ChangeType accepts only IConvertible values for other types than their own. The invariant
         // culture: data must not depend on the machine's settings ("1.5" is 15 under de-DE)
         return System.Convert.ChangeType(value, type, CultureInfo.InvariantCulture);

@@ -61,6 +61,35 @@ namespace Gerakul.FastSql.UnitTests.PostgreSQL
             Values(context.LastCommand).Should().HaveCount(2).And.AllSatisfy(x => x.Should().BeSameAs(DBNull.Value));
         }
 
+        // P3 (phase 5): a DateTimeOffset goes in UTC
+        protected override object ExpectedParameterValue(object value)
+        {
+            return value is DateTimeOffset dateTimeOffset ? dateTimeOffset.ToUniversalTime() : value;
+        }
+
+        // P3 (phase 5): Npgsql refuses a DateTimeOffset with a non-zero offset and closes the connection; timestamptz keeps
+        // the instant only, so the parameter gets the same instant in UTC. A value in UTC already is passed as it is
+        [Fact]
+        [Trait("Fixed", "Q87")]
+        public void CreateInsertAndCreateSimple_DateTimeOffsetValue_IsSentInUtc()
+        {
+            var context = Spec.CreateCapturingContext();
+            var withOffset = new DateTimeOffset(2020, 1, 1, 10, 0, 0, TimeSpan.FromHours(3));
+            var utc = new DateTimeOffset(2020, 1, 1, 7, 0, 0, TimeSpan.Zero);
+
+            context.CreateInsert("Events", new { Moment = withOffset, Utc = utc, Missing = (DateTimeOffset?)null });
+            var inserted = Values(context.LastCommand);
+            context.CreateSimple("select @p0", withOffset);
+            var simple = Values(context.LastCommand);
+
+            inserted[0].Should().BeOfType<DateTimeOffset>().Which.Offset.Should().Be(TimeSpan.Zero);
+            inserted[0].Should().Be(utc);
+            inserted[1].Should().Be(utc);
+            inserted[2].Should().BeSameAs(DBNull.Value);
+            simple[0].Should().BeOfType<DateTimeOffset>().Which.Offset.Should().Be(TimeSpan.Zero);
+            simple[0].Should().Be(utc);
+        }
+
         [Fact]
         public void CreateInsert_NullByteArrayMember_BecomesDBNull()
         {

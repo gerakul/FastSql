@@ -7,6 +7,7 @@ namespace Gerakul.FastSql
         public string Delete(string tableName, params string[] keyFields) { }
         public abstract string Delete(string tableName, string whereClause);
         public abstract string Insert(string tableName, params string[] fields);
+        public virtual string InsertAndGetID(string tableName, params string[] fields) { }
         public abstract string InsertWithOutput(string tableName, string[] fields, params string[] outputFields);
         public abstract string Merge(string tableName, System.Collections.Generic.IEnumerable<string> keyFields, params string[] fields);
         public abstract string ParamList(params string[] fields);
@@ -35,7 +36,8 @@ namespace Gerakul.FastSql.Common
     {
         protected BulkOptions(Gerakul.FastSql.Common.BulkOptions bulkOptions) { }
         protected BulkOptions(bool defaultOptions) { }
-        public BulkOptions(Gerakul.FastSql.Common.FieldsSelector? fieldsSelector = default, bool? caseSensitiveFieldsMatching = default, bool? createTable = default, bool? ignoreDataReaderSchemaTable = default, bool? checkTableIfNotExistsBeforeCreation = default) { }
+        public BulkOptions(Gerakul.FastSql.Common.FieldsSelector? fieldsSelector = default, bool? caseSensitiveFieldsMatching = default, bool? createTable = default, bool? ignoreDataReaderSchemaTable = default, bool? checkTableIfNotExistsBeforeCreation = default, int? bulkCopyTimeout = default) { }
+        public int? BulkCopyTimeout { get; set; }
         public bool? CaseSensitiveFieldsMatching { get; set; }
         public bool? CheckTableIfNotExistsBeforeCreation { get; set; }
         public bool? CreateTable { get; set; }
@@ -58,6 +60,11 @@ namespace Gerakul.FastSql.Common
         public Gerakul.FastSql.Common.MappedCommand<T> CompileInsert<T>(string tableName, Gerakul.FastSql.Common.FromTypeOption fromTypeOption, params string[] ignoreFields) { }
         public Gerakul.FastSql.Common.MappedCommand<T> CompileInsert<T>(string tableName, System.Collections.Generic.IList<Gerakul.FastSql.Common.FieldSettings<T>> settings, params string[] ignoreFields) { }
         public Gerakul.FastSql.Common.MappedCommand<T> CompileInsert<T>(T proto, string tableName, Gerakul.FastSql.Common.FromTypeOption fromTypeOption, params string[] ignoreFields) { }
+        public Gerakul.FastSql.Common.MappedCommand<T> CompileInsertAndGetID<T>(string tableName, params string[] ignoreFields) { }
+        public Gerakul.FastSql.Common.MappedCommand<T> CompileInsertAndGetID<T>(T proto, string tableName, params string[] ignoreFields) { }
+        public Gerakul.FastSql.Common.MappedCommand<T> CompileInsertAndGetID<T>(string tableName, Gerakul.FastSql.Common.FromTypeOption fromTypeOption, params string[] ignoreFields) { }
+        public Gerakul.FastSql.Common.MappedCommand<T> CompileInsertAndGetID<T>(string tableName, System.Collections.Generic.IList<Gerakul.FastSql.Common.FieldSettings<T>> settings, params string[] ignoreFields) { }
+        public Gerakul.FastSql.Common.MappedCommand<T> CompileInsertAndGetID<T>(T proto, string tableName, Gerakul.FastSql.Common.FromTypeOption fromTypeOption, params string[] ignoreFields) { }
         public Gerakul.FastSql.Common.MappedCommand<T> CompileInsertWithOutput<T>(string tableName, System.Collections.Generic.IList<Gerakul.FastSql.Common.FieldSettings<T>> settings, System.Collections.Generic.IList<string>? ignoreFields, params string[] outputFields) { }
         public Gerakul.FastSql.Common.MappedCommand<T> CompileMapped<T>(string commandText, Gerakul.FastSql.Common.FromTypeOption fromTypeOption = 3, bool caseSensitiveParamsMatching = false) { }
         public Gerakul.FastSql.Common.MappedCommand<T> CompileMapped<T>(string commandText, System.Collections.Generic.IList<Gerakul.FastSql.Common.FieldSettings<T>> settings, bool caseSensitiveParamsMatching = false) { }
@@ -100,6 +107,8 @@ namespace Gerakul.FastSql.Common
         public static Gerakul.FastSql.Common.IWrappedCommand CreateDelete<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, Gerakul.FastSql.Common.QueryOptions? queryOptions, params string[] keyFields) { }
         public static Gerakul.FastSql.Common.IWrappedCommand CreateInsert<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, params string[] ignoreFields) { }
         public static Gerakul.FastSql.Common.IWrappedCommand CreateInsert<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, Gerakul.FastSql.Common.QueryOptions? queryOptions, params string[] ignoreFields) { }
+        public static Gerakul.FastSql.Common.IWrappedCommand CreateInsertAndGetID<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, params string[] ignoreFields) { }
+        public static Gerakul.FastSql.Common.IWrappedCommand CreateInsertAndGetID<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, Gerakul.FastSql.Common.QueryOptions? queryOptions, params string[] ignoreFields) { }
         public static Gerakul.FastSql.Common.IWrappedCommand CreateInsertWithOutput<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, params string[] outputFields) { }
         public static Gerakul.FastSql.Common.IWrappedCommand CreateInsertWithOutput<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, Gerakul.FastSql.Common.QueryOptions? queryOptions, params string[] outputFields) { }
         public static Gerakul.FastSql.Common.IWrappedCommand CreateInsertWithOutput<T>(this Gerakul.FastSql.Common.ICommandCreator creator, string tableName, T value, System.Collections.Generic.IList<string>? ignoreFields, params string[] outputFields) { }

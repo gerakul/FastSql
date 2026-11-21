@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -9,9 +9,9 @@ using SqlColumnDefinitionOptions = Gerakul.FastSql.SqlServer.ColumnDefinitionOpt
 
 namespace Gerakul.FastSql.UnitTests.PostgreSQL
 {
-    // The PostgreSQL ColumnDefinitionOptions is a public copy of the SQL Server one that no public PostgreSQL API
-    // accepts (Q10). The static Default, Max and Small instances are shared by the whole test run: these tests only
-    // read them.
+    // The PostgreSQL ColumnDefinitionOptions has the shape of the SQL Server one; since phase 5 NpgsqlBulkOptions takes
+    // it for table creation (P1, Q10 fixed). The static Default, Max and Small instances are shared by the whole test
+    // run: these tests only read them.
     public class ColumnDefinitionOptionsTests
     {
         private static NpgsqlColumnDefinitionOptions Static(string name)
@@ -127,8 +127,8 @@ namespace Gerakul.FastSql.UnitTests.PostgreSQL
         }
 
         [Theory]
-        [InlineData("Default", 4000, 8000, 38, 18, 7)]
-        [InlineData("Max", -1, -1, 38, 18, 7)]
+        [InlineData("Default", 4000, 8000, 38, 18, 6)]
+        [InlineData("Max", -1, -1, 38, 18, 6)]
         [InlineData("Small", 255, 255, 19, 9, 3)]
         public void StaticOptions_HaveExpectedValues(string name, int stringMaxLength, int bytesMaxLength, int precision, int scale,
             int dateTimeScale)
@@ -144,26 +144,27 @@ namespace Gerakul.FastSql.UnitTests.PostgreSQL
             options.ThrowIfUnsupportedType.Should().BeFalse();
         }
 
+        // PostgreSQL allows at most 6 fractional digits; the other values are the SQL Server ones
         [Theory]
-        [Trait("Quirk", "Q10")]
+        [Trait("Fixed", "Q10")]
         [InlineData("Default")]
         [InlineData("Max")]
         [InlineData("Small")]
-        public void StaticOptions_HaveSameValuesAsSqlServerCopy(string name)
+        public void StaticOptions_DifferFromSqlServerOnesOnlyInDateTimeScale(string name)
         {
-            Static(name).Should().BeEquivalentTo(SqlServerStatic(name));
+            Static(name).Should().BeEquivalentTo(SqlServerStatic(name), o => o.Excluding(x => x.DateTimeScale));
+            Static(name).DateTimeScale.Should().Be(Math.Min(SqlServerStatic(name).DateTimeScale, (byte)6));
         }
 
         [Fact]
-        [Trait("Quirk", "Q10")]
-        public void ColumnDefinitionOptions_HasSamePublicMembersAsSqlServerCopy()
+        public void ColumnDefinitionOptions_HasSamePublicMembersAsSqlServerOne()
         {
             PublicMemberNames(typeof(NpgsqlColumnDefinitionOptions)).Should().Equal(PublicMemberNames(typeof(SqlColumnDefinitionOptions)));
         }
 
         [Fact]
-        [Trait("Quirk", "Q10")]
-        public void ColumnDefinitionOptions_IsNotUsedByAnyOtherPublicMemberOfPostgreSqlAssembly()
+        [Trait("Fixed", "Q10")]
+        public void ColumnDefinitionOptions_IsUsedByNpgsqlBulkOptionsOnly()
         {
             var type = typeof(NpgsqlColumnDefinitionOptions);
             var flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
@@ -172,9 +173,11 @@ namespace Gerakul.FastSql.UnitTests.PostgreSQL
                 .Where(x => x != type)
                 .SelectMany(x => x.GetMembers(flags).Where(m => IsVisible(m) && SignatureTypes(m).Any(t => Mentions(t, type)))
                     .Select(m => x.Name + "." + m.Name))
+                .Distinct().OrderBy(x => x, StringComparer.Ordinal)
                 .ToArray();
 
-            usages.Should().BeEmpty();
+            usages.Should().Equal("NpgsqlBulkOptions..ctor", "NpgsqlBulkOptions.ColumnDefinitionOptions", "NpgsqlBulkOptions.get_ColumnDefinitionOptions",
+                "NpgsqlBulkOptions.set_ColumnDefinitionOptions");
         }
 
         [Fact]

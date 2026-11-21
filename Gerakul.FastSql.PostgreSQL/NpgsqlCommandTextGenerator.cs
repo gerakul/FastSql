@@ -48,6 +48,22 @@ public class NpgsqlCommandTextGenerator : CommandTextGenerator
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// The value is the inserted row's own value of its <c>serial</c> or identity column (the first one), which
+    /// the catalog lookup finds, as a <c>bigint</c>; null when the table has no such column.
+    /// </remarks>
+    public override string InsertAndGetID(string tableName, params string[] fields)
+    {
+        var literal = tableName.Replace("'", "''");
+
+        // the left join gives a row with null for a table without such a column, as scope_identity() does
+        return $"with inserted as (insert into {tableName} ({ColumnList(fields)}) values ({ParamList(fields)}) returning *) "
+            + "select (to_jsonb(inserted) ->> c.attname)::bigint from inserted left join "
+            + $"(select attname from pg_attribute where attrelid = '{literal}'::regclass and attnum > 0 and not attisdropped "
+            + $"and pg_get_serial_sequence('{literal}', attname) is not null order by attnum limit 1) c on true;";
+    }
+
+    /// <inheritdoc />
     public override string Update(string tableName, string whereClause, params string[] fields)
     {
         return $"update {tableName} set {SetClause(fields)} where {whereClause};";

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AwesomeAssertions;
 using Gerakul.FastSql.Common;
 using Gerakul.FastSql.SqlServer;
@@ -65,10 +65,10 @@ namespace Gerakul.FastSql.UnitTests.SqlServer
             return new SqlBulkOptions(500, 60, SqlBulkCopyOptions.KeepNulls, enableStreaming: true, columnDefinitionOptions: columnDefinitionOptions);
         }
 
+        // BulkCopyTimeout is a base value since phase 5 (P5)
         private static void ShouldHaveSqlServerValuesUnset(SqlBulkOptions options)
         {
             options.BatchSize.Should().BeNull();
-            options.BulkCopyTimeout.Should().BeNull();
             options.SqlBulkCopyOptions.Should().BeNull();
             options.EnableStreaming.Should().BeNull();
             options.ColumnDefinitionOptions.Should().BeNull();
