@@ -364,6 +364,33 @@ namespace Gerakul.FastSql.UnitTests.Common
             AssertCommand(context.LastCommand, Generator.Insert("Person", "Name", "Age"), CommandType.Text, Timeout, ("Name", "John"), ("Age", 30));
         }
 
+        // P2 (phase 5): the insert that returns the generated ID is in Common, for every provider and context
+        [Fact]
+        public void CreateInsertAndGetID_IgnoreFields_InsertsOtherMembers()
+        {
+            context.CreateInsertAndGetID("Person", person, "ID");
+
+            AssertCommand(context.LastCommand, Generator.InsertAndGetID("Person", "Name", "Age"), CommandType.Text, defaultTimeout, ("Name", "John"), ("Age", 30));
+        }
+
+        [Fact]
+        public void CreateInsertAndGetID_QueryOptionsAndIgnoreFields_AppliesQueryOptions()
+        {
+            context.CreateInsertAndGetID("Person", person, queryOptions, "ID");
+
+            AssertCommand(context.LastCommand, Generator.InsertAndGetID("Person", "Name", "Age"), CommandType.Text, Timeout, ("Name", "John"), ("Age", 30));
+        }
+
+        [Fact]
+        public void CreateInsertAndGetID_IgnoreListInOtherCaseOrNull_IgnoresMemberOrNothing()
+        {
+            context.CreateInsertAndGetID("Person", person, "id");
+            context.LastCommand.CommandText.Should().Be(Generator.InsertAndGetID("Person", "Name", "Age"));
+
+            context.CreateInsertAndGetID("Person", person, (string[])null);
+            context.LastCommand.CommandText.Should().Be(Generator.InsertAndGetID("Person", "ID", "Name", "Age"));
+        }
+
         [Fact]
         public void CreateInsertWithOutput_OutputFields_InsertsAllMembers()
         {

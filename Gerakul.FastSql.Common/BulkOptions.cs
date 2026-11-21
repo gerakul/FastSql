@@ -26,8 +26,9 @@ public class BulkOptions
     public bool? CaseSensitiveFieldsMatching { get; set; }
 
     /// <summary>
-    /// Whether to create the table from the fields of the source before the copy. Default: false. Not implemented
-    /// for PostgreSQL.
+    /// Whether to create the table from the fields of the source before the copy. Default: false. The column types
+    /// come from the reader's column schema when the reader belongs to the provider's driver, otherwise from the
+    /// field types; the <c>ColumnDefinitionOptions</c> of the provider's options say how they are declared.
     /// </summary>
     public bool? CreateTable { get; set; }
 
@@ -43,6 +44,16 @@ public class BulkOptions
     public bool? CheckTableIfNotExistsBeforeCreation { get; set; }
 
     /// <summary>
+    /// The timeout of the copy in seconds; 0 is no limit. Not set by default: the default of the driver applies
+    /// (<c>SqlBulkCopy</c>: 30 seconds; PostgreSQL: the command timeout of the connection).
+    /// </summary>
+    /// <remarks>
+    /// When it expires, SQL Server throws <c>SqlException</c>; Npgsql throws <c>NpgsqlException</c> with an inner
+    /// <c>TimeoutException</c>, and closes the connection.
+    /// </remarks>
+    public int? BulkCopyTimeout { get; set; }
+
+    /// <summary>
     /// The default values of this type of options.
     /// </summary>
     protected virtual BulkOptions Default => defaultOptions;
@@ -52,13 +63,14 @@ public class BulkOptions
     /// </summary>
     public BulkOptions(FieldsSelector? fieldsSelector = null, bool? caseSensitiveFieldsMatching = null,
       bool? createTable = null, bool? ignoreDataReaderSchemaTable = null,
-      bool? checkTableIfNotExistsBeforeCreation = null)
+      bool? checkTableIfNotExistsBeforeCreation = null, int? bulkCopyTimeout = null)
     {
         this.FieldsSelector = fieldsSelector;
         this.CaseSensitiveFieldsMatching = caseSensitiveFieldsMatching;
         this.CreateTable = createTable;
         this.IgnoreDataReaderSchemaTable = ignoreDataReaderSchemaTable;
         this.CheckTableIfNotExistsBeforeCreation = checkTableIfNotExistsBeforeCreation;
+        this.BulkCopyTimeout = bulkCopyTimeout;
     }
 
     /// <summary>
@@ -73,6 +85,7 @@ public class BulkOptions
             this.CreateTable = false;
             this.IgnoreDataReaderSchemaTable = false;
             this.CheckTableIfNotExistsBeforeCreation = false;
+            this.BulkCopyTimeout = null;
         }
     }
 
@@ -86,6 +99,7 @@ public class BulkOptions
         this.CreateTable = bulkOptions.CreateTable;
         this.IgnoreDataReaderSchemaTable = bulkOptions.IgnoreDataReaderSchemaTable;
         this.CheckTableIfNotExistsBeforeCreation = bulkOptions.CheckTableIfNotExistsBeforeCreation;
+        this.BulkCopyTimeout = bulkOptions.BulkCopyTimeout;
     }
 
     /// <summary>
@@ -98,6 +112,7 @@ public class BulkOptions
         CreateTable ??= defaultOptions.CreateTable;
         IgnoreDataReaderSchemaTable ??= defaultOptions.IgnoreDataReaderSchemaTable;
         CheckTableIfNotExistsBeforeCreation ??= defaultOptions.CheckTableIfNotExistsBeforeCreation;
+        BulkCopyTimeout ??= defaultOptions.BulkCopyTimeout;
 
         return this;
     }

@@ -358,19 +358,24 @@ namespace Gerakul.FastSql.IntegrationTests.Common
             // scratch copy of Employee instead of the seed table
             var employeeTable = CreateEmployeeTable(true);
 
-            var id = Database.Run(kind, context =>
+            var (id, newId) = Database.Run(kind, context =>
             {
                 var emp = new { CompanyID = 2, Name = "New inserted", Phone = "111" };
                 context.Insert(employeeTable, emp);
                 // or with returning some inserted fields
-                return context.CreateInsertWithOutput(employeeTable, emp, "ID").ExecuteQueryFirstColumn<int>().First();
+                var id = context.CreateInsertWithOutput(employeeTable, emp, "ID").ExecuteQueryFirstColumn<int>().First();
+                // or returning the generated ID, without naming its column (phase 5, P2)
+                var newId = context.CreateInsertAndGetID(employeeTable, emp).ExecuteScalar<int>();
+                return (id, newId);
             });
 
             id.Should().Be(7);
+            newId.Should().Be(8);
             ReadEmployees(employeeTable).Skip(5).Should().BeEquivalentTo(new[]
             {
                 new Employee() { ID = 6, CompanyID = 2, Name = "New inserted", Phone = "111" },
-                new Employee() { ID = 7, CompanyID = 2, Name = "New inserted", Phone = "111" }
+                new Employee() { ID = 7, CompanyID = 2, Name = "New inserted", Phone = "111" },
+                new Employee() { ID = 8, CompanyID = 2, Name = "New inserted", Phone = "111" }
             }, o => o.WithStrictOrdering());
         }
 

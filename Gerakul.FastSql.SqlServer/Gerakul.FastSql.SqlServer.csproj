@@ -15,6 +15,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- the field list check of table creation, shared by the two providers -->
+    <Compile Include="..\shared\CreateTableFields.cs" Link="Shared\CreateTableFields.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Gerakul.FastSql.Common\Gerakul.FastSql.Common.csproj" />
   </ItemGroup>
 

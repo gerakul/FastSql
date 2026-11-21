@@ -13,13 +13,12 @@ using Xunit;
 
 namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
 {
-    // The shared bulk copy scenarios on PostgreSQL, plus PostgreSQL-only behavior: no table creation (Q10),
-    // the asynchronous copy (Q05, fixed), quoted column names (Q19) and the binary COPY type inference
+    // The shared bulk copy scenarios on PostgreSQL, plus PostgreSQL-only behavior: the timeout of the binary import (P5),
+    // the asynchronous copy (Q05, fixed), quoted column names (Q19) and the binary COPY type inference. Table creation
+    // (Q10, fixed in phase 5) is in PostgreSqlCreateTableTests
     [Trait("Provider", "PostgreSQL")]
     public class PostgreSqlBulkCopyTests : BulkCopyTests<PostgreSqlDatabase>
     {
-        private const string CreateTableError = "Table creation is not implemented for PostgreSQL";
-
         public PostgreSqlBulkCopyTests(PostgreSqlDatabase database)
             : base(database)
         {
@@ -31,62 +30,43 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
 
         protected override string DateTimeColumnType => "timestamp";
 
-        #region CreateTable
+        #region Timeout (P5)
 
+        // BulkCopyTimeout sets the timeout of the binary import; when it expires Npgsql throws and closes the connection
         [Theory]
-        [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
-        [Trait("Quirk", "Q10")]
-        public void WriteToServer_CreateTable_ThrowsNotImplementedException(ContextKind kind)
+        [InlineData(ContextKind.ConnectionString)]
+        [InlineData(ContextKind.Connection)]
+        public void WriteToServer_TimeoutShorterThanCopy_ThrowsNpgsqlException(ContextKind kind)
         {
-            var table = NewTableName();
+            var table = CreateSlowTable();
 
-            Action act = () => Database.Run(kind, x => NamedRows.WriteToServer(x, table, new BulkOptions(createTable: true, ignoreDataReaderSchemaTable: true)));
+            Action act = () => Database.Run(kind, x => NamedRows.Take(1).WriteToServer(x, table, new NpgsqlBulkOptions(bulkCopyTimeout: 1)));
 
-            act.Should().Throw<NotImplementedException>().WithMessage(CreateTableError);
-            TableExists(table).Should().BeFalse();
-        }
-
-        [Theory]
-        [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
-        [Trait("Quirk", "Q10")]
-        public async Task WriteToServerAsync_CreateTable_ThrowsNotImplementedExceptionAsync(ContextKind kind)
-        {
-            var table = NewTableName();
-
-            Func<Task> act = () => Database.RunAsync(kind, x => NamedRows.WriteToServerAsync(x, table,
-                new BulkOptions(createTable: true, ignoreDataReaderSchemaTable: true), TestContext.Current.CancellationToken));
-
-            await act.Should().ThrowAsync<NotImplementedException>().WithMessage(CreateTableError);
-            TableExists(table).Should().BeFalse();
-        }
-
-        // NpgsqlBulkOptions has no constructor argument for it, the property still works
-        [Fact]
-        [Trait("Quirk", "Q10")]
-        public void WriteToServer_CreateTableSetOnNpgsqlBulkOptions_ThrowsNotImplementedException()
-        {
-            var table = NewTableName();
-
-            Action act = () => Database.Run(ContextKind.Connection, x => SourceContext().CreateSimple(SourceQuery)
-                .WriteToServer(x, table, new NpgsqlBulkOptions() { CreateTable = true }));
-
-            act.Should().Throw<NotImplementedException>().WithMessage(CreateTableError);
-            TableExists(table).Should().BeFalse();
+            act.Should().Throw<NpgsqlException>().WithInnerException<TimeoutException>();
         }
 
         [Fact]
-        [Trait("Quirk", "Q10")]
-        public async Task WriteToServerAsync_CreateTableAtProviderLevel_ThrowsNotImplementedExceptionAsync()
+        public async Task WriteToServerAsync_TimeoutShorterThanCopy_ThrowsNpgsqlExceptionAsync()
         {
-            var table = NewTableName();
-            var provider = Spec.CreateProvider();
-            provider.BulkOptions.CreateTable = true;
+            var table = CreateSlowTable();
 
-            Func<Task> act = () => Database.RunAsync(provider, ContextKind.Connection, x => SourceContext().CreateSimple(SourceQuery)
-                .WriteToServerAsync(x, table, TestContext.Current.CancellationToken));
+            Func<Task> act = () => Database.RunAsync(ContextKind.Connection, x => NamedRows.Take(1).WriteToServerAsync(x, table,
+                new BulkOptions(bulkCopyTimeout: 1), TestContext.Current.CancellationToken));
 
-            await act.Should().ThrowAsync<NotImplementedException>().WithMessage(CreateTableError);
-            TableExists(table).Should().BeFalse();
+            (await act.Should().ThrowAsync<NpgsqlException>()).WithInnerException<TimeoutException>();
+        }
+
+        // 0 is no limit, as for SqlBulkCopy; the base BulkOptions carry the timeout too
+        [Theory]
+        [InlineData(0)]
+        [InlineData(30)]
+        public void WriteToServer_TimeoutLongerThanCopyOrZero_CopiesRows(int timeout)
+        {
+            var table = CreateSlowTable();
+
+            Database.Run(ContextKind.Connection, x => NamedRows.Take(1).WriteToServer(x, table, new BulkOptions(bulkCopyTimeout: timeout)));
+
+            CountRows(table).Should().Be(1);
         }
 
         #endregion
@@ -311,8 +291,6 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
 
         #region Helpers
 
-        private const string SourceQuery = "select \"ID\", \"Name\" from \"Company\"";
-
         private static NamedRow[] NamedRows => new[]
         {
             new NamedRow() { ID = 1, Name = "one" },
@@ -334,10 +312,13 @@ namespace Gerakul.FastSql.IntegrationTests.PostgreSQL
             return Database.CreateScratchTable("\"ID\" int not null, \"Name\" varchar(50) null");
         }
 
-        private bool TableExists(string table)
+        // every row takes two seconds: a trigger sleeps
+        private string CreateSlowTable()
         {
-            return Database.Run(ContextKind.ConnectionString, x => x.CreateSimple("select count(*) from information_schema.tables where table_name = @p0", table)
-                .ExecuteQueryFirstColumn<int>().Single()) == 1;
+            var table = CreateNamedTable();
+            Database.Execute($"create function {table}_slow() returns trigger language plpgsql as $$ begin perform pg_sleep(2); return new; end $$; "
+                + $"create trigger {table}_slow before insert on {table} for each row execute function {table}_slow();");
+            return table;
         }
 
         private int CountRows(string table)

@@ -7,6 +7,7 @@ internal static class CommandCache<T>
 {
     public static CompiledCommand<T>? Insert;
     public static CompiledCommand<T>? InsertWithOutput;
+    public static CompiledCommand<T>? InsertAndGetID;
     public static CompiledCommand<T>? Update;
     public static CompiledCommand<T>? Delete;
     public static CompiledCommand<T>? Merge;

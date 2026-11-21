@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
 using AwesomeAssertions;
@@ -12,10 +12,11 @@ using Xunit;
 
 namespace Gerakul.FastSql.IntegrationTests.SqlServer
 {
-    // I7: CreateInsertAndGetID (SQL Server only): "insert ...; select scope_identity();".
-    // CreateContext returns the base context types, so the method needs a cast to ISqlCommandCreator (Q18).
+    // I7: CreateInsertAndGetID on SQL Server: "insert ...; select scope_identity();". The scenarios of both providers
+    // are in Common/InsertAndGetIdTests (P2, phase 5); here the decimal of scope_identity() (Q18), also through the
+    // SQL Server method on ISqlCommandCreator, which forwards to the one of Common.
     [Trait("Provider", "SqlServer")]
-    public class SqlServerInsertAndGetIdTests : DataModificationTests<SqlServerDatabase>
+    public class SqlServerInsertAndGetIdTests : InsertAndGetIdTests<SqlServerDatabase>
     {
         public SqlServerInsertAndGetIdTests(SqlServerDatabase database)
             : base(database)
@@ -63,58 +64,16 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
             ReadPersons(table).Should().HaveCount(2);
         }
 
-        // the first result set is the one of "select scope_identity()": the insert itself returns no rows
+        // the method of Common, without the cast, runs the same command
         [Theory]
         [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
-        public void CreateInsertAndGetID_ExecuteQueryFirstColumn_ReturnsIdentityAsInt(ContextKind kind)
+        public void CreateInsertAndGetID_CommonMethod_ReturnsIdentityAsDecimal(ContextKind kind)
         {
             var table = CreatePersonTableWithIdentity();
 
-            var ids = Database.Run(kind, x => ((ISqlCommandCreator)x).CreateInsertAndGetID(table, new { GroupID = 1, Name = "Alice", Age = 30 })
-                .ExecuteQueryFirstColumn<int>().ToArray());
+            var id = Database.Run(kind, x => x.CreateInsertAndGetID(table, new { GroupID = 1, Name = "Alice", Age = 30 }).ExecuteScalar());
 
-            ids.Should().Equal(1);
-            ReadPersons(table).Should().HaveCount(1);
-        }
-
-        [Theory]
-        [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
-        public async Task CreateInsertAndGetID_ExecuteQueryFirstColumn_ReturnsIdentityAsIntAsync(ContextKind kind)
-        {
-            var table = CreatePersonTableWithIdentity();
-
-            var ids = await Database.RunAsync(kind, x => ((ISqlCommandCreator)x).CreateInsertAndGetID(table, new { GroupID = 1, Name = "Alice", Age = 30 })
-                .ExecuteQueryFirstColumnAsync<int>(TestContext.Current.CancellationToken)
-                .ToListCompat(TestContext.Current.CancellationToken));
-
-            ids.Should().Equal(1);
-            ReadPersons(table).Should().HaveCount(1);
-        }
-
-        [Theory]
-        [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
-        public void CreateInsertAndGetID_IgnoredIdentity_ReturnsGeneratedIdentity(ContextKind kind)
-        {
-            var table = CreatePersonTableWithIdentity();
-            var person = new Person() { ID = 100, GroupID = 1, Name = "Alice", Age = 30 };
-
-            var id = Database.Run(kind, x => ((ISqlCommandCreator)x).CreateInsertAndGetID(table, person, "ID").ExecuteScalar());
-
-            id.Should().Be(1m);
-            ReadPersons(table).Should().BeEquivalentTo(new[] { new Person() { ID = 1, GroupID = 1, Name = "Alice", Age = 30 } });
-        }
-
-        [Theory]
-        [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
-        public void CreateInsertAndGetID_WithQueryOptions_ReturnsGeneratedIdentity(ContextKind kind)
-        {
-            var table = CreatePersonTableWithIdentity();
-            var person = new Person() { ID = 100, GroupID = 1, Name = "Alice", Age = 30 };
-
-            var id = Database.Run(kind, x => ((ISqlCommandCreator)x).CreateInsertAndGetID(table, person, new QueryOptions(30), "ID").ExecuteScalar());
-
-            id.Should().Be(1m);
-            ReadPersons(table).Should().HaveCount(1);
+            id.Should().BeOfType<decimal>().Which.Should().Be(1m);
         }
 
         [Theory]
@@ -126,20 +85,6 @@ namespace Gerakul.FastSql.IntegrationTests.SqlServer
 
             ShouldThrowServerError(() => Database.Run(kind, x => ((ISqlCommandCreator)x).CreateInsertAndGetID(table, person).ExecuteScalar()),
                 $"Cannot insert explicit value for identity column in table '{table}' when IDENTITY_INSERT is set to OFF.");
-        }
-
-        // a table without an identity column: the row is inserted and scope_identity() is null
-        [Theory]
-        [MemberData(nameof(ContextKinds.All), MemberType = typeof(ContextKinds))]
-        public void CreateInsertAndGetID_TableWithoutIdentity_ReturnsDBNull(ContextKind kind)
-        {
-            var table = CreatePersonTable();
-            var person = new Person() { ID = 5, GroupID = 1, Name = "Alice", Age = 30 };
-
-            var id = Database.Run(kind, x => ((ISqlCommandCreator)x).CreateInsertAndGetID(table, person).ExecuteScalar());
-
-            id.Should().Be(DBNull.Value);
-            ReadPersons(table).Should().BeEquivalentTo(new[] { person });
         }
     }
 }

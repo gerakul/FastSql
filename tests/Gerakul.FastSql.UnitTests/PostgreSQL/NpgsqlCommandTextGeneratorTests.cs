@@ -95,6 +95,28 @@ namespace Gerakul.FastSql.UnitTests.PostgreSQL
             generator.Insert("Employee").Should().Be("insert into Employee () values ();");
         }
 
+        // P2 (phase 5): the inserted row's value of its serial or identity column, found in the catalog; the left join
+        // gives null for a table without one
+        [Fact]
+        public void InsertAndGetID_Fields_ReturnsInsertedRowsSerialColumn()
+        {
+            generator.InsertAndGetID("public.\"Employee\"", "CompanyID", "Name").Should()
+                .Be("with inserted as (insert into public.\"Employee\" (\"CompanyID\", \"Name\") values (@CompanyID, @Name) returning *) "
+                    + "select (to_jsonb(inserted) ->> c.attname)::bigint from inserted left join "
+                    + "(select attname from pg_attribute where attrelid = 'public.\"Employee\"'::regclass and attnum > 0 and not attisdropped "
+                    + "and pg_get_serial_sequence('public.\"Employee\"', attname) is not null order by attnum limit 1) c on true;");
+        }
+
+        [Fact]
+        public void InsertAndGetID_TableNameWithQuote_IsEscapedInLiterals()
+        {
+            var text = generator.InsertAndGetID("\"it's\"", "Name");
+
+            text.Should().Contain("insert into \"it's\" (");
+            text.Should().Contain("attrelid = '\"it''s\"'::regclass");
+            text.Should().Contain("pg_get_serial_sequence('\"it''s\"', attname)");
+        }
+
         [Fact]
         public void InsertWithOutput_OneOutputField_AppendsReturningClause()
         {

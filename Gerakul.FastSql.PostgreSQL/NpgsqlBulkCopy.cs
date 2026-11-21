@@ -15,6 +15,8 @@ internal sealed class NpgsqlBulkCopy : BulkCopy
         _ => null
     };
 
+    private NpgsqlBulkOptions NpgsqlBulkOptions => (NpgsqlBulkOptions)bulkOptions;
+
     // With the Source selector and nothing said about case, the names of the source fields are the names of the
     // columns, and the columns of the table are not read
     private bool NamesGoAsTheyAre => bulkOptions.FieldsSelector!.Value == FieldsSelector.Source && !bulkOptions.CaseSensitiveFieldsMatching.HasValue;
@@ -26,15 +28,20 @@ internal sealed class NpgsqlBulkCopy : BulkCopy
 
     protected override void WriteToServer()
     {
-        CheckOptions();
-
         string[] sourceFields = GetSourceFields();
+
+        if (bulkOptions.CreateTable!.Value)
+        {
+            context.CreateSimple(GetCreateTableScript(sourceFields)).ExecuteNonQuery();
+        }
+
         var map = NamesGoAsTheyAre ? GetMapping(sourceFields) : GetMapping(sourceFields, GetTableColumns());
 
         if (map.Length > 0)
         {
             var ordinals = GetOrdinals(map);
             using var writer = Connection!.BeginBinaryImport(GetCopyCommand(map));
+            SetTimeout(writer);
 
             while (reader.Read())
             {
@@ -52,9 +59,13 @@ internal sealed class NpgsqlBulkCopy : BulkCopy
 
     protected override async Task WriteToServerAsync(CancellationToken cancellationToken)
     {
-        CheckOptions();
-
         string[] sourceFields = GetSourceFields();
+
+        if (bulkOptions.CreateTable!.Value)
+        {
+            await context.CreateSimple(GetCreateTableScript(sourceFields)).ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+
         var map = NamesGoAsTheyAre ? GetMapping(sourceFields) : GetMapping(sourceFields, await GetTableColumnsAsync(cancellationToken).ConfigureAwait(false));
 
         if (map.Length > 0)
@@ -62,6 +73,7 @@ internal sealed class NpgsqlBulkCopy : BulkCopy
             var ordinals = GetOrdinals(map);
             var writer = await Connection!.BeginBinaryImportAsync(GetCopyCommand(map), cancellationToken).ConfigureAwait(false);
             await using var writerScope = writer.ConfigureAwait(false);
+            SetTimeout(writer);
 
             while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             {
@@ -83,12 +95,26 @@ internal sealed class NpgsqlBulkCopy : BulkCopy
         return fields.Length > 0 ? fields.ToArray() : reader.GetColumnNames().ToArray();
     }
 
-    private void CheckOptions()
+    // the timeout of the copy; not set, the connection's command timeout applies. 0 is no limit on both drivers
+    private void SetTimeout(NpgsqlBinaryImporter writer)
     {
-        if (bulkOptions.CreateTable!.Value)
+        if (bulkOptions.BulkCopyTimeout.HasValue)
         {
-            throw new NotImplementedException("Table creation is not implemented for PostgreSQL");
+            writer.Timeout = TimeSpan.FromSeconds(bulkOptions.BulkCopyTimeout.Value);
         }
+    }
+
+    private string GetCreateTableScript(string[] sourceFields)
+    {
+        var colDefs = NpgsqlColumnDefinition.GetColumnDefinitions(reader, NpgsqlBulkOptions.ColumnDefinitionOptions, bulkOptions.IgnoreDataReaderSchemaTable!.Value)
+            .Where(x => x != null && sourceFields.Contains(x.Name)).Select(x => x!).ToArray(); // null: a type without a column type
+
+        if (colDefs.Length != sourceFields.Length)
+        {
+            throw CreateTableFields.Problems(destinationTable, sourceFields, colDefs.Select(x => x.Name), reader);
+        }
+
+        return NpgsqlColumnDefinition.CreateTableScript(colDefs, destinationTable, bulkOptions.CheckTableIfNotExistsBeforeCreation!.Value);
     }
 
     private static Mapping[] GetMapping(string[] sourceFields)
