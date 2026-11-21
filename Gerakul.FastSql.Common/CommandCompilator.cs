@@ -306,6 +306,65 @@ public class CommandCompilator
     }
 
     /// <summary>
+    /// Compiles an insert of a <c>T</c> that returns the generated ID of the inserted row: a column per field,
+    /// except <c>ignoreFields</c> (usually the ID itself). Read the ID with <c>ExecuteScalar&lt;long&gt;</c>.
+    /// </summary>
+    public MappedCommand<T> CompileInsertAndGetID<T>(string tableName, IList<FieldSettings<T>> settings, params string[] ignoreFields)
+    {
+        ArgumentNullException.ThrowIfNull(tableName);
+        ArgumentNullException.ThrowIfNull(settings);
+
+        var fields = settings.Select(x => x.Name).Except(ToMemberNames(ignoreFields, settings)).ToArray();
+        string query = contextProvider.CommandTextGenerator.InsertAndGetID(tableName, fields);
+        return new MappedCommand<T>(contextProvider, query, fields, settings, true);
+    }
+
+    /// <summary>
+    /// Compiles an insert of a <c>T</c> that returns the generated ID of the inserted row: a column per field,
+    /// except <c>ignoreFields</c> (usually the ID itself). Read the ID with <c>ExecuteScalar&lt;long&gt;</c>.
+    /// </summary>
+    public MappedCommand<T> CompileInsertAndGetID<T>(string tableName, FromTypeOption fromTypeOption, params string[] ignoreFields)
+    {
+        ignoreFields ??= [];
+
+        if (Find(CommandCache<T>.InsertAndGetID, tableName, fromTypeOption, false, ignoreFields, null) is { } last)
+        {
+            return last;
+        }
+
+        var command = CompileInsertAndGetID(tableName, FieldSettings.FromTypeShared<T>(fromTypeOption), ignoreFields);
+        CommandCache<T>.InsertAndGetID = Keep(command, tableName, fromTypeOption, false, ignoreFields, null);
+        return command;
+    }
+
+    /// <summary>
+    /// Compiles an insert of a <c>T</c> that returns the generated ID of the inserted row: a column per field,
+    /// except <c>ignoreFields</c> (usually the ID itself). Read the ID with <c>ExecuteScalar&lt;long&gt;</c>.
+    /// </summary>
+    public MappedCommand<T> CompileInsertAndGetID<T>(string tableName, params string[] ignoreFields)
+    {
+        return CompileInsertAndGetID<T>(tableName, FromTypeOption.Default, ignoreFields);
+    }
+
+    /// <summary>
+    /// Compiles an insert of a <c>T</c> that returns the generated ID of the inserted row: a column per field,
+    /// except <c>ignoreFields</c> (usually the ID itself). Read the ID with <c>ExecuteScalar&lt;long&gt;</c>.
+    /// </summary>
+    public MappedCommand<T> CompileInsertAndGetID<T>(T proto, string tableName, FromTypeOption fromTypeOption, params string[] ignoreFields)
+    {
+        return CompileInsertAndGetID<T>(tableName, fromTypeOption, ignoreFields);
+    }
+
+    /// <summary>
+    /// Compiles an insert of a <c>T</c> that returns the generated ID of the inserted row: a column per field,
+    /// except <c>ignoreFields</c> (usually the ID itself). Read the ID with <c>ExecuteScalar&lt;long&gt;</c>.
+    /// </summary>
+    public MappedCommand<T> CompileInsertAndGetID<T>(T proto, string tableName, params string[] ignoreFields)
+    {
+        return CompileInsertAndGetID<T>(tableName, FromTypeOption.Default, ignoreFields);
+    }
+
+    /// <summary>
     /// Compiles an insert of a <c>T</c> that returns the <c>outputFields</c> of the inserted row (<c>output</c> in
     /// SQL Server, <c>returning</c> in PostgreSQL).
     /// </summary>

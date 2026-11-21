@@ -464,6 +464,57 @@ namespace Gerakul.FastSql.UnitTests.Common
             ParametersOf(command).Should().Equal(("Name", "John"), ("Age", 30));
         }
 
+        // P2 (phase 5)
+        [Theory]
+        [InlineData("Settings")]
+        [InlineData("FromTypeOption")]
+        [InlineData("Type")]
+        [InlineData("ProtoFromTypeOption")]
+        [InlineData("Proto")]
+        public void CompileInsertAndGetID_EachOverload_InsertsMembersExceptIgnored(string overload)
+        {
+            var proto = new { ID = 1, Name = "John", Age = (int?)30 };
+            DbCommand command;
+
+            switch (overload)
+            {
+                case "Settings":
+                    command = Create(Compilator.CompileInsertAndGetID("Person", FieldSettings.FromType<Person>(), "ID"), person);
+                    break;
+                case "FromTypeOption":
+                    command = Create(Compilator.CompileInsertAndGetID<Person>("Person", FromTypeOption.PublicProperty, "ID"), person);
+                    break;
+                case "Type":
+                    command = Create(Compilator.CompileInsertAndGetID<Person>("Person", "ID"), person);
+                    break;
+                case "ProtoFromTypeOption":
+                    command = Create(Compilator.CompileInsertAndGetID(proto, "Person", FromTypeOption.PublicProperty, "ID"), proto);
+                    break;
+                case "Proto":
+                    command = Create(Compilator.CompileInsertAndGetID(proto, "Person", "ID"), proto);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(overload), overload, "Unknown overload");
+            }
+
+            command.CommandText.Should().Be(Generator.InsertAndGetID("Person", "Name", "Age"));
+            command.CommandType.Should().Be(CommandType.Text);
+            ParametersOf(command).Should().Equal(("Name", "John"), ("Age", 30));
+        }
+
+        // kept per type, apart from the plain insert of the same table
+        [Fact]
+        public void CompileInsertAndGetID_SameArgumentsTwice_ReturnsKeptCommand()
+        {
+            var first = Compilator.CompileInsertAndGetID<Person>("Person", "ID");
+            var insert = Compilator.CompileInsert<Person>("Person", "ID");
+            var second = Compilator.CompileInsertAndGetID<Person>("Person", "ID");
+
+            second.Should().BeSameAs(first);
+            insert.Should().NotBeSameAs(first);
+            Compilator.CompileInsertAndGetID<Person>("Person", "Name").Should().NotBeSameAs(first);
+        }
+
         [Fact]
         public void CompileInsert_FromTypeOption_InsertsSelectedMembersOnly()
         {

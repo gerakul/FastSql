@@ -87,6 +87,7 @@ namespace Gerakul.FastSql.UnitTests.Common
                 Add($"CreateProcedure(null settings), {kind}", "settings", () => context.CreateProcedure("P", (IList<FieldSettings<Person>>)null, person));
                 Add($"CreateInsert, {kind}", "tableName", () => context.CreateInsert(null, person));
                 Add($"CreateInsertWithOutput, {kind}", "tableName", () => context.CreateInsertWithOutput(null, person, "ID"));
+                Add($"CreateInsertAndGetID, {kind}", "tableName", () => context.CreateInsertAndGetID(null, person, "ID"));
                 Add($"CreateUpdate, {kind}", "tableName", () => context.CreateUpdate(null, person, "ID"));
                 Add($"CreateDelete, {kind}", "tableName", () => context.CreateDelete(null, person, "ID"));
                 Add($"CreateMerge, {kind}", "tableName", () => context.CreateMerge(null, person, "ID"));
@@ -97,6 +98,7 @@ namespace Gerakul.FastSql.UnitTests.Common
             Add("CreateSimple, null creator", "creator", () => ((ICommandCreator)null).CreateSimple("select 1"));
             Add("CreateMapped, null creator", "creator", () => ((ICommandCreator)null).CreateMapped("select 1", person));
             Add("CreateInsert, null creator", "creator", () => ((ICommandCreator)null).CreateInsert("Person", person));
+            Add("CreateInsertAndGetID, null creator", "creator", () => ((ICommandCreator)null).CreateInsertAndGetID("Person", person));
 
             // compiling commands
             var compilator = provider.CommandCompilator;
@@ -107,6 +109,8 @@ namespace Gerakul.FastSql.UnitTests.Common
             Add("CompileProcedure", "commandText", () => compilator.CompileProcedure<Person>(null));
             Add("CompileInsert", "tableName", () => compilator.CompileInsert<Person>(null));
             Add("CompileInsert(null settings)", "settings", () => compilator.CompileInsert("Person", (IList<FieldSettings<Person>>)null));
+            Add("CompileInsertAndGetID", "tableName", () => compilator.CompileInsertAndGetID<Person>(null));
+            Add("CompileInsertAndGetID(null settings)", "settings", () => compilator.CompileInsertAndGetID("Person", (IList<FieldSettings<Person>>)null));
             Add("CompileInsertWithOutput", "tableName", () => compilator.CompileInsertWithOutput(null, settings, null, "ID"));
             Add("CompileInsertWithOutput(null output fields)", "outputFields", () => compilator.CompileInsertWithOutput("Person", settings, null, null));
             Add("CompileUpdate", "tableName", () => compilator.CompileUpdate<Person>((string)null, "ID"));

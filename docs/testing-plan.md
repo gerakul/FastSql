@@ -255,7 +255,7 @@ Classes: `SqlCommandTextGeneratorTests`, `NpgsqlCommandTextGeneratorTests`.
 - [x] `ColumnList`: one, several, none; quoting (`[x]` / `"x"`); quote characters inside names are not escaped (Q20).
 - [x] `ParamList`, `WhereClause` (joined with `and`), `SetClause`.
 - [x] `Insert`; `InsertWithOutput` (SQL Server `output inserted.[x]` before `values`, PostgreSQL `returning "x"`).
-- [x] `InsertAndGetID` (SQL Server only): insert followed by `select scope_identity();`.
+- [x] `InsertAndGetID` (SQL Server only): insert followed by `select scope_identity();`. Since phase 5 (P2) it is a virtual member of `CommandTextGenerator` (the base throws `NotSupportedException`), and PostgreSQL returns the inserted row's `serial` or identity value.
 - [x] `Update(table, whereClause, fields)` and the base `Update(table, keyFields, fields)`.
 - [x] `Delete(table, whereClause)` and the base `Delete(table, params keyFields)`, including the overload binding of `Delete("T", "ID")` (Q07).
 - [x] `Merge`: single key, composite key, key repeated in fields (deduplicated), no non-key fields (Q09); SQL Server `MERGE` vs PostgreSQL `insert ... on conflict ... do update`; lines separated by `Environment.NewLine`.
@@ -353,8 +353,8 @@ Class: `CommandCreatorExtensionsTests`.
 
 - [x] Each of the 43 `CommandCreatorExtensions` overloads in Common produces the expected command (text, type, parameters, timeout), and passes on its options (`queryOptions`; default `fromTypeOption` is `Default` for `CreateMapped` and `Both` for `CreateProcedure`).
 - [x] `Insert`, `Update`, `Delete`, `Merge` and their async twins build the right command before executing (execution on an unopened connection throws `InvalidOperationException`; real execution is in I7).
-- [x] `CreateInsertAndGetID` (2 overloads, SQL Server): command text and parameters.
-- [x] Contexts returned by `CreateContext` are typed as the base classes, so `CreateInsertAndGetID` needs a cast; SQL Server contexts implement `ISqlCommandCreator` at runtime, PostgreSQL contexts have no equivalent.
+- [x] `CreateInsertAndGetID` (2 overloads, SQL Server): command text and parameters. Since phase 5 (P2) the 2 overloads of Common on `ICommandCreator` and `CommandCompilator.CompileInsertAndGetID` (5 overloads, kept like `CompileInsert`) on both providers; the SQL Server methods forward to them.
+- [x] Contexts returned by `CreateContext` are typed as the base classes, so `CreateInsertAndGetID` needed a cast; SQL Server contexts implement `ISqlCommandCreator` at runtime, PostgreSQL contexts have no equivalent. Since phase 5 the method of Common needs no cast.
 - [x] Custom extensions through `ICommandCreator.Set(...)` (README "Extensibility") work on any context.
 - [x] Scoped contexts build the command immediately and read member values at that moment (unit part of Q15).
 
@@ -440,7 +440,7 @@ Classes: `InsertTests`, `InsertWithOutputTests`, `UpdateTests`, `DeleteTests`, `
 
 - [x] `Insert`: all columns; ignored fields (identity); nulls; `queryOptions` overload; named and anonymous types; table name forms (`dbo.Employee`, `[Employee]`, `"Employee"`, `public."Employee"`); PostgreSQL table with lower-case columns and PascalCase members fails (Q19).
 - [x] `CreateInsertWithOutput` (4 overloads): one and several output fields, read through `ExecuteQueryFirstColumn<int>` and `ExecuteQuery<T>`; ignored fields; no output fields gives a plain insert.
-- [x] `CreateInsertAndGetID` (SQL Server): `ExecuteScalar` returns the identity as `decimal` (Q18); `ExecuteQueryFirstColumn<int>`.
+- [x] `CreateInsertAndGetID` (SQL Server): `ExecuteScalar` returns the identity as `decimal` (Q18); `ExecuteQueryFirstColumn<int>`. Since phase 5 on both providers (`InsertAndGetIdTests`): `ExecuteScalar<long>`, a table without a generated key gives `DBNull`, precompiled commands; PostgreSQL returns `bigint`, an explicit value as given, its own row's value under a trigger that uses another sequence, quoted and schema-qualified names, and -1 rows affected.
 - [x] `Update`: single and composite keys; rows affected; no matching row gives 0; nulls written.
 - [x] `Delete`: by keys; by all members when no keys are given; the README shortcut `new { ID = 2 }`; a null key value matches nothing (Q08).
 - [x] `Merge`: inserts when missing, updates when present, composite keys; PostgreSQL without a unique constraint on the keys fails (pinned); an object with only key members fails (Q09).
@@ -512,7 +512,7 @@ by the implementation PRs (each PR had its own block of IDs, so some numbers are
 | Q15 | Member values are read when the command is executed on connection string contexts, but when it is created on scoped contexts; scoped contexts reuse one `DbCommand` for repeated executions. See also Q92. | U8, I3 | confirmed | `CommandCreatorExtensionsTests`, `WrappedCommandQueryTests` |
 | Q16 | SQL Server bulk copy with the default `Source` selector maps columns case-sensitively (`name` does not match `Name`). | I9 | by design, documented in the README (phase 2) | `SqlServerBulkCopyOptionsTests` |
 | Q17 | Compiling a mapped command with a null parameter list throws `ArgumentNullException` (parameter `source`, from LINQ) instead of a clear error. The plan first expected `NullReferenceException`. | U7 | fixed in phase 2 | `CommandCompilatorTests` |
-| Q18 | `CreateInsertAndGetID(...).ExecuteScalar()` returns the identity as `decimal`; `CreateContext` returns base types, so the method needs a cast to `ISqlCommandCreator`. Since phase 4, `ExecuteScalar<int>()` / `ExecuteScalar<long>()` (I13) convert it. | U8, I7 | confirmed | `SqlCommandCreatorTests`, `SqlServerInsertAndGetIdTests` |
+| Q18 | `CreateInsertAndGetID(...).ExecuteScalar()` returns the identity as `decimal`; `CreateContext` returns base types, so the method needs a cast to `ISqlCommandCreator`. Since phase 4, `ExecuteScalar<int>()` / `ExecuteScalar<long>()` (I13) convert it. Since phase 5 (P2) the method is in Common and needs no cast; PostgreSQL returns a `bigint`. | U8, I7 | confirmed; the cast fixed in phase 5 | `SqlCommandCreatorTests`, `CommandCreatorExtensionsTests`, `InsertAndGetIdTests` |
 | Q19 | PostgreSQL quotes column names but not table names, in the text generator and in bulk copy (`COPY`), so members must match column case exactly while table names need manual quoting. | U1, I7, I9 | confirmed | `NpgsqlCommandTextGeneratorTests`, `PostgreSqlInsertTests`, `PostgreSqlBulkCopyTests` |
 | Q20 | Identifier quoting does not escape quote characters inside names. | U1 | fixed in phase 2 | `SqlCommandTextGeneratorTests`, `NpgsqlCommandTextGeneratorTests` |
 | Q21 | Indexer properties are included by `FieldSettings.FromType` and their getters throw when invoked (`TargetParameterCountException`). See Q53 for reading. | U3 | fixed in phase 2 | `FieldSettingsTests` |
@@ -704,10 +704,10 @@ private code. The "Covered by" column lists the areas that test each type on pur
 | `ICommandCreator` | 1 | U8, I10 |
 | `IWrappedCommand` | 18 | I3, I5 |
 | `WrappedCommandExtensions` | 7 | I3 (`UseReaderAsync`), I9 (`WriteToServer` ×6) |
-| `CommandCreatorExtensions` | 43 | U8 (commands), I3, I7, I8 (execution) |
-| `CommandCompilator` | 46 | U7 |
+| `CommandCreatorExtensions` | 45 | U8 (commands), I3, I7, I8 (execution) |
+| `CommandCompilator` | 51 | U7 |
 | `SimpleCommand`, `MappedCommand<T>` | 2 + 2 | U7 |
-| `CommandTextGenerator` | 12 | U1 |
+| `CommandTextGenerator` | 13 | U1 |
 | `ContextProvider` | 21 | U2 (including the protected extension points `ApplyQueryOptions` and `GetTyped`, through a provider subclass), U9, I2 |
 | `DbContext`, `ScopedContext`, `ConnectionStringContext`, `ConnectionContext`, `TransactionContext` | 7 + 2 + 9 + 6 + 2 | U9, I2, I3, I10 |
 | `QueryOptions`, `ReadOptions`, `BulkOptions` | 9 + 5 + 12 | U4, I3, I9 |

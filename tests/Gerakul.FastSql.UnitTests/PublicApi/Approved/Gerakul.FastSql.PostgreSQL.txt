@@ -35,6 +35,7 @@ namespace Gerakul.FastSql.PostgreSQL
         public override string ColumnList(params string[] fields) { }
         public override string Delete(string tableName, string whereClause) { }
         public override string Insert(string tableName, params string[] fields) { }
+        public override string InsertAndGetID(string tableName, params string[] fields) { }
         public override string InsertWithOutput(string tableName, string[] fields, params string[] outputFields) { }
         public override string Merge(string tableName, System.Collections.Generic.IEnumerable<string> keyFields, params string[] fields) { }
         public override string ParamList(params string[] fields) { }

@@ -178,7 +178,11 @@ Insert
   context.Insert("Employee", emp);
   // or with returning some inserted fields
   var id = context.CreateInsertWithOutput("Employee", emp, "ID").ExecuteQueryFirstColumn<int>().First();
+  // or returning the generated ID, without naming its column
+  var newId = context.CreateInsertAndGetID("Employee", emp).ExecuteScalar<int>();
   ```  
+**NOTE:** `CreateInsertAndGetID` returns `scope_identity()` on Sql Server, a `decimal`, and the inserted row's value of its `serial` or identity column on PostgreSQL, a `bigint`; `ExecuteScalar<int>()` and `ExecuteScalar<long>()` read both, and a table without such a column gives null. Leave the ID out of the object, or name it in the ignore list: `CreateInsertAndGetID("Employee", employee, "ID")`.
+
 Update
   ```csharp
   var emp = new { ID = 2, CompanyID = 2, Name = "Updated", Phone = "111" };

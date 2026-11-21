@@ -48,10 +48,12 @@ public class SqlCommandTextGenerator : CommandTextGenerator
         return $"insert into {tableName} ({ColumnList(fields)}) output {outputColumnList} values ({ParamList(fields)});";
     }
 
-    /// <summary>
-    /// An insert of the fields that returns the identity value of the inserted row.
-    /// </summary>
-    public string InsertAndGetID(string tableName, params string[] fields)
+    /// <inheritdoc />
+    /// <remarks>
+    /// The value is the one of <c>scope_identity()</c>, a <c>decimal</c>; null when the table has no identity
+    /// column.
+    /// </remarks>
+    public override string InsertAndGetID(string tableName, params string[] fields)
     {
         return Insert(tableName, fields) + " select scope_identity();";
     }

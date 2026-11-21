@@ -229,6 +229,37 @@ public static partial class CommandCreatorExtensions
     }
 
     /// <summary>
+    /// Creates an insert of <c>value</c> that returns the generated ID of the inserted row (its identity or
+    /// <c>serial</c> column): a column per field, except <c>ignoreFields</c> (usually the ID itself). Read it with
+    /// <c>ExecuteScalar&lt;long&gt;</c> or <c>ExecuteScalar&lt;int&gt;</c>.
+    /// </summary>
+    /// <remarks>
+    /// SQL Server returns <c>scope_identity()</c>, a <c>decimal</c>; PostgreSQL the inserted row's value, a
+    /// <c>bigint</c>. A table without such a column gives <c>DBNull</c> on both.
+    /// </remarks>
+    public static IWrappedCommand CreateInsertAndGetID<T>(this ICommandCreator creator, string tableName, T value, params string[] ignoreFields)
+    {
+        return creator.CreateInsertAndGetID(tableName, value, null, ignoreFields);
+    }
+
+    /// <summary>
+    /// Creates an insert of <c>value</c> that returns the generated ID of the inserted row (its identity or
+    /// <c>serial</c> column): a column per field, except <c>ignoreFields</c> (usually the ID itself). Read it with
+    /// <c>ExecuteScalar&lt;long&gt;</c> or <c>ExecuteScalar&lt;int&gt;</c>.
+    /// </summary>
+    /// <remarks>
+    /// SQL Server returns <c>scope_identity()</c>, a <c>decimal</c>; PostgreSQL the inserted row's value, a
+    /// <c>bigint</c>. A table without such a column gives <c>DBNull</c> on both.
+    /// </remarks>
+    public static IWrappedCommand CreateInsertAndGetID<T>(this ICommandCreator creator, string tableName, T value, QueryOptions? queryOptions, params string[] ignoreFields)
+    {
+        ArgumentNullException.ThrowIfNull(creator);
+        ArgumentNullException.ThrowIfNull(tableName);
+
+        return creator.Set(x => x.CommandCompilator.CompileInsertAndGetID<T>(tableName, ignoreFields).Create(x, value, queryOptions));
+    }
+
+    /// <summary>
     /// Creates an insert of <c>value</c> that returns the <c>outputFields</c> of the inserted row; read them with
     /// one of the <c>ExecuteQuery</c> methods.
     /// </summary>

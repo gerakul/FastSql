@@ -36,6 +36,16 @@ public abstract class CommandTextGenerator
     public abstract string InsertWithOutput(string tableName, string[] fields, params string[] outputFields);
 
     /// <summary>
+    /// An insert of the fields that returns the generated ID of the inserted row (its identity or <c>serial</c>
+    /// column) as the first column of the first row. The base implementation throws
+    /// <c>NotSupportedException</c>.
+    /// </summary>
+    public virtual string InsertAndGetID(string tableName, params string[] fields)
+    {
+        throw new NotSupportedException($"{GetType().Name} does not generate an insert that returns the generated ID");
+    }
+
+    /// <summary>
     /// An update of the fields in the rows that the where clause, or the key fields, find.
     /// </summary>
     public abstract string Update(string tableName, string whereClause, params string[] fields);

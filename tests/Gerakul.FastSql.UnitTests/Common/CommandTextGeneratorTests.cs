@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using AwesomeAssertions;
 using Gerakul.FastSql.Tests.Shared;
@@ -112,6 +113,35 @@ namespace Gerakul.FastSql.UnitTests.Common
         public void InsertWithOutput_TableName_IsUsedVerbatim(string tableName)
         {
             Generator.InsertWithOutput(tableName, new[] { "Name" }, "ID").Should().StartWith($"insert into {tableName} (");
+        }
+
+        [Theory]
+        [MemberData(nameof(TableNames))]
+        public void InsertAndGetID_TableName_IsUsedVerbatim(string tableName)
+        {
+            Generator.InsertAndGetID(tableName, "Name").Should().Contain($"insert into {tableName} (");
+        }
+
+        // P2 (phase 5): a generator of another database that does not override it
+        [Fact]
+        public void InsertAndGetID_NotOverridden_ThrowsNotSupportedException()
+        {
+            Action act = () => new MinimalGenerator().InsertAndGetID("Employee", "Name");
+
+            act.Should().Throw<NotSupportedException>().WithMessage("MinimalGenerator does not generate an insert that returns the generated ID");
+        }
+
+        private class MinimalGenerator : CommandTextGenerator
+        {
+            public override string ColumnList(params string[] fields) => "";
+            public override string ParamList(params string[] fields) => "";
+            public override string WhereClause(params string[] fields) => "";
+            public override string SetClause(params string[] fields) => "";
+            public override string Insert(string tableName, params string[] fields) => "";
+            public override string InsertWithOutput(string tableName, string[] fields, params string[] outputFields) => "";
+            public override string Update(string tableName, string whereClause, params string[] fields) => "";
+            public override string Delete(string tableName, string whereClause) => "";
+            public override string Merge(string tableName, IEnumerable<string> keyFields, params string[] fields) => "";
         }
 
         [Theory]
